@@ -1,26 +1,238 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/*
+  Ratalu Wafers — Design System
+  ------------------------------------------------------------------
+  A premium D2C food brand. Palette, typography, spacing, motion and
+  elevation are defined here as design tokens and exposed to Tailwind
+  v4 via the @theme directive.
+*/
+
+@theme {
+  /* ---- Brand palette --------------------------------------------- */
+  --color-purple-50: #f4edf7;
+  --color-purple-100: #e6d6ee;
+  --color-purple-200: #cbaad9;
+  --color-purple-300: #a877bf;
+  --color-purple-400: #854ba4;
+  --color-purple-500: #5b2c6f; /* Primary — Deep Purple */
+  --color-purple-600: #4d2560;
+  --color-purple-700: #3d1d4c;
+  --color-purple-800: #2c1537;
+  --color-purple-900: #1c0d23;
+
+  --color-orange-50: #fdf1e7;
+  --color-orange-100: #fbdfc6;
+  --color-orange-200: #f6bd8b;
+  --color-orange-300: #f19a50;
+  --color-orange-400: #ec8a35;
+  --color-orange-500: #e67e22; /* Secondary — Sweet Potato Orange */
+  --color-orange-600: #c9691a;
+  --color-orange-700: #a15315;
+  --color-orange-800: #7a3f10;
+  --color-orange-900: #542b0b;
+
+  --color-gold-50: #fef9e9;
+  --color-gold-100: #fdf0c2;
+  --color-gold-200: #fae389;
+  --color-gold-300: #f7d660;
+  --color-gold-400: #f4c542; /* Accent — Golden Yellow */
+  --color-gold-500: #e9b421;
+  --color-gold-600: #c3941a;
+
+  --color-cream: #fff8f0; /* Background — Cream */
+  --color-cream-100: #fdefe0;
+  --color-cream-200: #f8e2cc;
+
+  --color-charcoal: #2c2c2c; /* Text — Dark Charcoal */
+  --color-charcoal-muted: #5c554f;
+  --color-charcoal-soft: #8a827b;
+
+  /* ---- Semantic tokens ------------------------------------------- */
+  --color-background: var(--color-cream);
+  --color-foreground: var(--color-charcoal);
+  --color-primary: var(--color-purple-500);
+  --color-primary-foreground: #fff8f0;
+  --color-secondary: var(--color-orange-500);
+  --color-accent: var(--color-gold-400);
+  --color-muted: var(--color-charcoal-muted);
+  --color-border: #efe1cf;
+  --color-ring: var(--color-purple-500);
+
+  /* ---- Typography ------------------------------------------------ */
+  --font-serif: var(--font-playfair), Georgia, "Times New Roman", serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  /* ---- Radii ----------------------------------------------------- */
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.75rem;
+  --radius-3xl: 2.25rem;
+
+  /* ---- Elevation ------------------------------------------------- */
+  --shadow-soft: 0 2px 8px -2px rgb(91 44 111 / 0.08),
+    0 8px 24px -8px rgb(91 44 111 / 0.12);
+  --shadow-lift: 0 10px 30px -10px rgb(91 44 111 / 0.22),
+    0 20px 50px -20px rgb(44 21 55 / 0.28);
+  --shadow-glow: 0 0 0 1px rgb(244 197 66 / 0.35),
+    0 12px 40px -12px rgb(230 126 34 / 0.4);
+
+  /* ---- Motion ---------------------------------------------------- */
+  --ease-premium: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* ---- Container ------------------------------------------------- */
+  --breakpoint-3xl: 96rem;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+/*
+  Base layer — global element defaults.
+*/
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "cv01";
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5 {
+    font-family: var(--font-serif);
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+
+  ::selection {
+    background-color: var(--color-gold-300);
+    color: var(--color-purple-700);
+  }
+
+  /* Custom, on-brand scrollbar */
+  ::-webkit-scrollbar {
+    width: 11px;
+    height: 11px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--color-cream-100);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-purple-200);
+    border-radius: 9999px;
+    border: 3px solid var(--color-cream-100);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-purple-300);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer utilities {
+  /* Consistent premium page gutter + max width */
+  .container-px {
+    padding-inline: 1.5rem;
+  }
+  @media (min-width: 1024px) {
+    .container-px {
+      padding-inline: 2.5rem;
+    }
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .text-gradient-warm {
+    background-image: linear-gradient(
+      100deg,
+      var(--color-orange-500),
+      var(--color-gold-400)
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Subtle animated grain/vignette accents used on premium panels */
+  .bg-radial-cream {
+    background:
+      radial-gradient(120% 120% at 50% 0%, #fffdf9 0%, var(--color-cream) 45%, var(--color-cream-100) 100%);
+  }
+
+  .mask-fade-b {
+    -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+    mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+  }
+
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+  .animate-marquee {
+    animation: marquee 32s linear infinite;
+  }
+
+  @keyframes float-slow {
+    0%, 100% { transform: translateY(0) rotate(var(--tw-rotate, 0)); }
+    50% { transform: translateY(-14px) rotate(var(--tw-rotate, 0)); }
+  }
+  .animate-float-slow {
+    animation: float-slow 7s var(--ease-premium) infinite;
+  }
+
+  @keyframes spin-slow {
+    to { transform: rotate(360deg); }
+  }
+  .animate-spin-slow {
+    animation: spin-slow 26s linear infinite;
+  }
+
+  @keyframes accordion-down {
+    from { height: 0; opacity: 0; }
+    to { height: var(--radix-accordion-content-height); opacity: 1; }
+  }
+  @keyframes accordion-up {
+    from { height: var(--radix-accordion-content-height); opacity: 1; }
+    to { height: 0; opacity: 0; }
+  }
+
+  @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes fade-out { from { opacity: 1; } to { opacity: 0; } }
+
+  @keyframes slide-in-right {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+  }
+  @keyframes slide-out-right {
+    from { transform: translateX(0); }
+    to { transform: translateX(100%); }
+  }
+  @keyframes slide-in-left {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(0); }
+  }
+  @keyframes slide-out-left {
+    from { transform: translateX(0); }
+    to { transform: translateX(-100%); }
+  }
+}
+
+/* Respect reduced-motion preferences everywhere */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }
