@@ -19,10 +19,29 @@ export function Navbar() {
   const { totals, openCart } = useCart();
   const { count: wishlistCount } = useWishlist();
   const { user, isLoggedIn } = useAccount();
+  const isAdminUser = isLoggedIn && user?.phone === "9999999999";
 
   useMotionValueEvent(scrollY, "change", (latest) => {
     setScrolled(latest > 16);
   });
+
+  // Lock body scroll while the mobile drawer is open.
+  React.useEffect(() => {
+    if (!menuOpen) return;
+    const original = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = original;
+    };
+  }, [menuOpen]);
+
+  // Close the drawer when the viewport grows to desktop.
+  React.useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const onChange = () => mq.matches && setMenuOpen(false);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
 
   return (
     <header className="sticky top-0 z-40">
@@ -52,13 +71,15 @@ export function Navbar() {
 
           {/* Actions */}
           <div className="flex items-center gap-1 sm:gap-2">
-            <Link
-              href="/admin"
-              className="hidden size-11 place-items-center rounded-full text-charcoal transition-colors hover:bg-purple-50 hover:text-purple-700 sm:grid"
-              aria-label="Admin Console"
-            >
-              <ShieldCheck className="size-5.5 text-purple-600" />
-            </Link>
+            {isAdminUser && (
+              <Link
+                href="/admin"
+                className="hidden size-11 place-items-center rounded-full text-charcoal transition-colors hover:bg-purple-50 hover:text-purple-700 sm:grid"
+                aria-label="Admin Console"
+              >
+                <ShieldCheck className="size-5.5 text-purple-600" />
+              </Link>
+            )}
 
             <Link
               href="/account"
@@ -189,9 +210,11 @@ export function Navbar() {
                       <Link href="/account">Wishlist</Link>
                     </Button>
                   </div>
-                  <Button asChild variant="outline" size="lg" className="w-full text-purple-700 border-purple-200" onClick={() => setMenuOpen(false)}>
-                    <Link href="/admin">Admin Console</Link>
-                  </Button>
+                  {isAdminUser && (
+                    <Button asChild variant="outline" size="lg" className="w-full text-purple-700 border-purple-200" onClick={() => setMenuOpen(false)}>
+                      <Link href="/admin">Admin Console</Link>
+                    </Button>
+                  )}
                 </div>
               </div>
             </motion.div>

@@ -15,7 +15,7 @@ export function Reviews() {
   const rowB = [...REVIEWS.slice().reverse(), ...REVIEWS.slice().reverse()];
 
   return (
-    <section id="reviews" className="relative scroll-mt-24 overflow-hidden py-24">
+    <section id="reviews" className="relative scroll-mt-24 overflow-hidden py-16 sm:py-20 lg:py-24">
       <div className="container-px mx-auto max-w-7xl">
         <SectionHeading
           eyebrow="Loved across India"

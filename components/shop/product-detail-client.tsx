@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { motion, AnimatePresence, useInView } from "motion/react";
 import {
   ArrowLeft,
   Heart,
@@ -43,9 +44,17 @@ export function ProductDetailClient({ flavor }: { flavor: Flavor }) {
   const pack = PACK_SIZES.find((p) => p.id === packId)!;
   const wished = has(flavor.id);
   const savings = pack.compareAt ? pack.compareAt - pack.price : 0;
-  
+
   // Filter reviews matching this flavor
   const flavorReviews = REVIEWS.filter((r) => r.flavor.toLowerCase() === flavor.name.toLowerCase());
+
+  // Show the mobile sticky bar only while the inline Add button is off-screen
+  // and we haven't scrolled into the footer/end region.
+  const inlineRef = React.useRef<HTMLDivElement>(null);
+  const endRef = React.useRef<HTMLDivElement>(null);
+  const inlineInView = useInView(inlineRef, { margin: "-80px 0px 0px 0px" });
+  const endInView = useInView(endRef, { margin: "0px 0px -120px 0px" });
+  const showStickyBar = !inlineInView && !endInView;
 
   const handleAdd = () => {
     addItem(flavor, pack, qty);
@@ -55,7 +64,7 @@ export function ProductDetailClient({ flavor }: { flavor: Flavor }) {
   };
 
   return (
-    <div className="container-px mx-auto max-w-7xl py-8">
+    <div className="container-px mx-auto max-w-7xl pt-6 pb-10 sm:py-8">
       {/* Breadcrumb / Back button */}
       <div className="mb-8">
         <Link
@@ -102,7 +111,7 @@ export function ProductDetailClient({ flavor }: { flavor: Flavor }) {
           </div>
 
           {/* Quick Info Grid */}
-          <div className="grid grid-cols-3 gap-4 text-center">
+          <div className="grid grid-cols-3 gap-2.5 text-center sm:gap-4">
             <div className="rounded-2xl border border-[var(--color-border)] bg-white/40 p-4 backdrop-blur-sm">
               <Leaf className="mx-auto size-5 text-green-600" />
               <p className="mt-1.5 text-xs font-semibold text-charcoal">100% Veg</p>
@@ -158,7 +167,7 @@ export function ProductDetailClient({ flavor }: { flavor: Flavor }) {
                 </Badge>
               )}
             </div>
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-4 gap-2 sm:gap-3">
               {PACK_SIZES.map((p) => (
                 <button
                   key={p.id}
@@ -196,8 +205,8 @@ export function ProductDetailClient({ flavor }: { flavor: Flavor }) {
           </div>
 
           {/* Add to Cart Actions */}
-          <div className="mt-6 flex items-center gap-4">
-            <div className="flex items-center rounded-full border border-[var(--color-border)] bg-white p-1">
+          <div ref={inlineRef} className="mt-6 flex items-center gap-3 sm:gap-4">
+            <div className="flex shrink-0 items-center rounded-full border border-[var(--color-border)] bg-white p-1">
               <button
                 onClick={() => setQty((q) => Math.max(1, q - 1))}
                 className="grid size-11 place-items-center rounded-full text-charcoal-muted transition-colors hover:bg-purple-50 hover:text-purple-700"
@@ -218,22 +227,24 @@ export function ProductDetailClient({ flavor }: { flavor: Flavor }) {
               onClick={handleAdd}
               variant={added ? "accent" : "primary"}
               size="xl"
-              className="flex-1"
+              className="min-w-0 flex-1"
             >
               {added ? (
                 <>
-                  <Check className="size-5" /> Added to cart
+                  <Check className="size-5" /> <span className="truncate">Added to cart</span>
                 </>
               ) : (
                 <>
-                  <ShoppingBag className="size-5" /> Add to Cart · {formatINR(pack.price * qty)}
+                  <ShoppingBag className="size-5" />
+                  <span className="truncate">Add to Cart</span>
+                  <span className="hidden xs:inline">· {formatINR(pack.price * qty)}</span>
                 </>
               )}
             </Button>
           </div>
 
           {/* Shipping Promos */}
-          <div className="mt-6 flex items-center gap-4 text-xs text-charcoal-muted border-t border-[var(--color-border)] pt-5">
+          <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-charcoal-muted border-t border-[var(--color-border)] pt-5">
             <span className="flex items-center gap-1.5">
               <Truck className="size-4 text-purple-600" /> Free Shipping above ₹599
             </span>
@@ -246,13 +257,13 @@ export function ProductDetailClient({ flavor }: { flavor: Flavor }) {
 
       {/* Tabs section for description/ingredients */}
       <div className="mt-16 border-t border-[var(--color-border)] pt-12">
-        <div className="flex gap-4 border-b border-[var(--color-border)] pb-3">
+        <div className="flex gap-4 overflow-x-auto border-b border-[var(--color-border)] pb-3 no-scrollbar">
           {(["ingredients", "details", "shipping"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={cn(
-                "pb-2 text-sm font-bold uppercase tracking-wider transition-all border-b-2 -mb-[14px]",
+                "shrink-0 whitespace-nowrap pb-2 text-sm font-bold uppercase tracking-wider transition-all border-b-2 -mb-[14px]",
                 activeTab === tab
                   ? "border-purple-600 text-purple-700"
                   : "border-transparent text-charcoal-muted hover:text-purple-600"
@@ -358,6 +369,57 @@ export function ProductDetailClient({ flavor }: { flavor: Flavor }) {
           </div>
         )}
       </div>
+
+      {/* End sentinel — used to hide the sticky bar near the footer */}
+      <div ref={endRef} aria-hidden className="h-px w-full" />
+
+      {/* Mobile sticky Add-to-Cart bar */}
+      <AnimatePresence>
+        {showStickyBar && (
+          <motion.div
+            initial={{ y: 100 }}
+            animate={{ y: 0 }}
+            exit={{ y: 100 }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            className="fixed inset-x-0 bottom-0 z-30 border-t border-[var(--color-border)] bg-cream/95 px-4 pt-3 pb-safe backdrop-blur-xl lg:hidden"
+          >
+            <div className="mx-auto flex max-w-2xl items-center gap-3">
+              <div className="shrink-0">
+                <p className="text-[11px] leading-none text-charcoal-muted">{pack.label} pack</p>
+                <p className="font-serif text-lg font-bold leading-tight text-purple-700">
+                  {formatINR(pack.price * qty)}
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center rounded-full border border-[var(--color-border)] bg-white">
+                <button
+                  onClick={() => setQty((q) => Math.max(1, q - 1))}
+                  className="grid size-10 place-items-center rounded-full text-charcoal-muted hover:text-purple-700"
+                  aria-label="Decrease quantity"
+                >
+                  <Minus className="size-4" />
+                </button>
+                <span className="w-6 text-center text-sm font-bold tabular-nums">{qty}</span>
+                <button
+                  onClick={() => setQty((q) => Math.min(99, q + 1))}
+                  className="grid size-10 place-items-center rounded-full text-charcoal-muted hover:text-purple-700"
+                  aria-label="Increase quantity"
+                >
+                  <Plus className="size-4" />
+                </button>
+              </div>
+              <Button
+                onClick={handleAdd}
+                variant={added ? "accent" : "primary"}
+                size="lg"
+                className="min-w-0 flex-1"
+              >
+                {added ? <Check className="size-5" /> : <ShoppingBag className="size-5" />}
+                <span className="truncate">{added ? "Added" : "Add to Cart"}</span>
+              </Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

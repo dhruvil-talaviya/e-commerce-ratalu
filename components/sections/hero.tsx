@@ -43,7 +43,7 @@ export function Hero() {
         <div className="absolute bottom-0 left-1/3 size-72 rounded-full bg-gold-200/40 blur-3xl" />
       </motion.div>
 
-      <div className="container-px relative mx-auto grid max-w-7xl items-center gap-12 py-16 lg:grid-cols-[1.05fr_1fr] lg:gap-8 lg:py-24">
+      <div className="container-px relative mx-auto grid max-w-7xl items-center gap-10 py-14 sm:gap-12 sm:py-16 lg:grid-cols-[1.05fr_1fr] lg:gap-8 lg:py-24">
         {/* Copy */}
         <motion.div variants={container} initial="hidden" animate="visible" className="relative z-10">
           <motion.div variants={item}>
@@ -59,7 +59,7 @@ export function Hero() {
 
           <motion.h1
             variants={item}
-            className="mt-6 font-serif text-5xl font-bold leading-[0.98] text-charcoal sm:text-6xl lg:text-7xl"
+            className="mt-6 font-serif text-[clamp(2.1rem,8vw,3.5rem)] font-bold leading-[1.02] text-charcoal sm:leading-[0.98] lg:text-7xl"
           >
             Crispy. Natural.
             <br />
@@ -91,7 +91,7 @@ export function Hero() {
           {/* Trust stats */}
           <motion.div
             variants={item}
-            className="mt-12 grid max-w-lg grid-cols-3 gap-4 border-t border-[var(--color-border)] pt-8"
+            className="mt-10 grid max-w-lg grid-cols-3 gap-3 border-t border-[var(--color-border)] pt-7 sm:mt-12 sm:gap-4 sm:pt-8"
           >
             <Stat value={<AnimatedCounter value={REVIEW_STATS.averageRating} decimals={1} suffix="★" />} label="Avg. rating" />
             <Stat value={<AnimatedCounter value={6} suffix="" />} label="Bold flavours" />
@@ -172,7 +172,7 @@ export function Hero() {
 function Stat({ value, label }: { value: React.ReactNode; label: string }) {
   return (
     <div>
-      <p className="font-serif text-3xl font-bold text-charcoal">{value}</p>
+      <p className="font-serif text-2xl font-bold text-charcoal sm:text-3xl">{value}</p>
       <p className="mt-1 text-xs text-charcoal-muted">{label}</p>
     </div>
   );

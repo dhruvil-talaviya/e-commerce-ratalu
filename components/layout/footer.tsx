@@ -54,7 +54,7 @@ const SOCIAL = [
 export function Footer() {
   const { settings } = useStoreSettings();
   return (
-    <footer className="relative mt-24 overflow-hidden bg-purple-700 text-cream/80">
+    <footer className="relative mt-16 overflow-hidden bg-purple-700 text-cream/80 sm:mt-24">
       {/* soft top glow */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-purple-600/60 to-transparent" />
 

@@ -28,7 +28,7 @@ const PILLARS = [
 
 export function About() {
   return (
-    <section id="about" className="relative scroll-mt-24 py-24">
+    <section id="about" className="relative scroll-mt-24 py-16 sm:py-20 lg:py-24">
       <div className="container-px mx-auto grid max-w-7xl items-center gap-16 lg:grid-cols-2">
         {/* Visual collage */}
         <Reveal direction="right" className="relative order-2 lg:order-1">

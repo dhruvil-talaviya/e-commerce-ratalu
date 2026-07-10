@@ -45,7 +45,7 @@ const STATS = [
 
 export function WhyChooseUs() {
   return (
-    <section id="why-us" className="relative scroll-mt-24 py-24">
+    <section id="why-us" className="relative scroll-mt-24 py-16 sm:py-20 lg:py-24">
       <div className="container-px mx-auto max-w-7xl">
         <SectionHeading
           eyebrow="Why Ratalu"

@@ -10,7 +10,7 @@ import { FLAVORS } from "@/lib/data/flavors";
 
 export function FlavorShowcase() {
   return (
-    <section id="flavours" className="relative scroll-mt-24 bg-white/40 py-24">
+    <section id="flavours" className="relative scroll-mt-24 bg-white/40 py-16 sm:py-20 lg:py-24">
       <div className="container-px mx-auto max-w-7xl">
         <SectionHeading
           eyebrow="Six signature flavours"

@@ -59,13 +59,13 @@ export function ShopGrid() {
       <div className="mb-8 flex flex-col gap-4 rounded-3xl border border-[var(--color-border)] bg-white/60 p-4 backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-charcoal-muted">Heat</span>
-          <div className="flex gap-1 rounded-full bg-cream-100 p-1">
+          <div className="flex max-w-full gap-1 overflow-x-auto rounded-full bg-cream-100 p-1 no-scrollbar">
             {HEAT_FILTERS.map((f) => (
               <button
                 key={f.key}
                 onClick={() => setHeat(f.key)}
                 className={cn(
-                  "rounded-full px-4 py-1.5 text-sm font-medium transition-all",
+                  "whitespace-nowrap rounded-full px-3.5 py-2 text-xs font-medium transition-all sm:px-4 sm:py-1.5 sm:text-sm",
                   heat === f.key
                     ? "bg-purple-500 text-cream shadow-sm"
                     : "text-charcoal-muted hover:text-purple-700"
@@ -79,13 +79,13 @@ export function ShopGrid() {
 
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-charcoal-muted">Sort</span>
-          <div className="flex gap-1 rounded-full bg-cream-100 p-1">
+          <div className="flex max-w-full gap-1 overflow-x-auto rounded-full bg-cream-100 p-1 no-scrollbar">
             {SORTS.map((s) => (
               <button
                 key={s.key}
                 onClick={() => setSort(s.key)}
                 className={cn(
-                  "rounded-full px-4 py-1.5 text-sm font-medium transition-all",
+                  "whitespace-nowrap rounded-full px-3.5 py-2 text-xs font-medium transition-all sm:px-4 sm:py-1.5 sm:text-sm",
                   sort === s.key
                     ? "bg-purple-500 text-cream shadow-sm"
                     : "text-charcoal-muted hover:text-purple-700"

@@ -79,7 +79,8 @@
   /* ---- Motion ---------------------------------------------------- */
   --ease-premium: cubic-bezier(0.22, 1, 0.36, 1);
 
-  /* ---- Container ------------------------------------------------- */
+  /* ---- Breakpoints ----------------------------------------------- */
+  --breakpoint-xs: 26rem; /* 416px — small-phone refinements */
   --breakpoint-3xl: 96rem;
 }
 
@@ -94,6 +95,8 @@
   html {
     scroll-behavior: smooth;
     -webkit-text-size-adjust: 100%;
+    /* clip (not hidden) prevents horizontal scroll without breaking sticky */
+    overflow-x: clip;
   }
 
   body {
@@ -104,6 +107,30 @@
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overflow-x: clip;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  /* Media never overflows its container */
+  img, svg, video, canvas {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Comfortable, keyboard-friendly focus ring for interactive elements */
+  a:focus-visible,
+  button:focus-visible,
+  [role="button"]:focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+  }
+
+  /* Prevent iOS auto-zoom on input focus (fonts < 16px trigger it) */
+  @media (max-width: 640px) {
+    input, select, textarea {
+      font-size: 16px;
+    }
   }
 
   h1, h2, h3, h4, h5 {
@@ -148,6 +175,20 @@
 
   .text-balance {
     text-wrap: balance;
+  }
+
+  /* Hide scrollbar for horizontal mobile sliders (with snap utilities) */
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Respect the iOS home-indicator area for sticky bottom bars */
+  .pb-safe {
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
   }
 
   .text-gradient-warm {

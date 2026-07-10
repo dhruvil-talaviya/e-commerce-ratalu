@@ -192,7 +192,7 @@ export default function CheckoutPage() {
   const selectedAddress = user.addresses.find((a) => a.id === user.activeAddressId);
 
   return (
-    <div className="container-px mx-auto max-w-6xl py-12">
+    <div className="container-px mx-auto max-w-6xl py-8 sm:py-12">
       <Link
         href="/shop"
         className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-charcoal-muted transition-colors hover:text-purple-600"
@@ -200,7 +200,7 @@ export default function CheckoutPage() {
         <ArrowLeft className="size-4" /> Continue shopping
       </Link>
 
-      <h1 className="font-serif text-4xl font-bold text-charcoal">Checkout</h1>
+      <h1 className="font-serif text-3xl font-bold text-charcoal sm:text-4xl">Checkout</h1>
 
       {errorMsg && (
         <div className="mt-6 rounded-2xl border border-red-100 bg-red-50 p-4 text-sm font-semibold text-red-600">
@@ -278,7 +278,7 @@ export default function CheckoutPage() {
                   <div className="rounded-2xl border border-dashed border-purple-300 bg-purple-50/10 p-4 flex flex-col gap-4 sm:col-span-2">
                     <div className="flex flex-col gap-2">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-charcoal-soft">Address Type</span>
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         {(["Home", "Work", "Other"] as const).map((t) => (
                           <button
                             type="button"

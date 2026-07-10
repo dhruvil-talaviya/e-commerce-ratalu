@@ -16,7 +16,7 @@ import { FAQS } from "@/lib/data/faq";
 
 export function Faq() {
   return (
-    <section id="faq" className="relative scroll-mt-24 py-24">
+    <section id="faq" className="relative scroll-mt-24 py-16 sm:py-20 lg:py-24">
       <div className="container-px mx-auto grid max-w-6xl gap-12 lg:grid-cols-[0.85fr_1.15fr]">
         {/* Left: heading + help card */}
         <div className="lg:sticky lg:top-28 lg:self-start">

@@ -205,37 +205,39 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 selection:bg-indigo-500 selection:text-white">
       {/* Admin Top Header Bar */}
-      <header className="border-b border-slate-900 bg-slate-950/80 sticky top-0 z-40 backdrop-blur-md px-6 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <span className="flex size-9 items-center justify-center rounded-xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 font-bold">
+      <header className="border-b border-slate-900 bg-slate-950/80 sticky top-0 z-40 backdrop-blur-md px-4 py-3 sm:px-6 sm:py-4">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 font-bold">
               R
             </span>
-            <div>
-              <h1 className="text-base font-bold text-slate-100 leading-tight">Admin Console</h1>
-              <p className="text-[10px] text-slate-500">Logistics & Catalog Control Center</p>
+            <div className="min-w-0">
+              <h1 className="truncate text-base font-bold text-slate-100 leading-tight">Admin Console</h1>
+              <p className="hidden text-[10px] text-slate-500 sm:block">Logistics & Catalog Control Center</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
             <Link
               href="/"
-              className="text-xs font-semibold text-slate-400 hover:text-slate-200 border border-slate-800 rounded-xl px-3.5 py-2 transition-colors inline-flex items-center gap-1.5"
+              className="text-xs font-semibold text-slate-400 hover:text-slate-200 border border-slate-800 rounded-xl px-3 py-2 transition-colors inline-flex items-center gap-1.5"
+              aria-label="View public storefront"
             >
-              <Eye className="size-3.5" /> View Public Storefront
+              <Eye className="size-3.5" /> <span className="hidden sm:inline">View Storefront</span>
             </Link>
             <button
               onClick={logout}
-              className="text-xs font-semibold text-red-400 hover:text-red-300 border border-red-500/10 hover:bg-red-500/5 rounded-xl px-3.5 py-2 transition-all flex items-center gap-1.5 focus:outline-none"
+              className="text-xs font-semibold text-red-400 hover:text-red-300 border border-red-500/10 hover:bg-red-500/5 rounded-xl px-3 py-2 transition-all flex items-center gap-1.5 focus:outline-none"
+              aria-label="Logout"
             >
-              <LogOut className="size-3.5" /> Logout
+              <LogOut className="size-3.5" /> <span className="hidden sm:inline">Logout</span>
             </button>
           </div>
         </div>
       </header>
 
       {/* Main Grid Workspace */}
-      <main className="max-w-7xl mx-auto px-6 py-8">
+      <main className="max-w-7xl mx-auto px-4 py-6 sm:px-6 sm:py-8">
         <div className="grid gap-8 lg:grid-cols-[250px_1fr]">
           {/* Navigation Sidebar */}
           <aside className="lg:sticky lg:top-24 lg:self-start">
