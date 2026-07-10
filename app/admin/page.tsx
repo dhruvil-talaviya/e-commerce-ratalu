@@ -599,8 +599,8 @@ function OrdersTab({
         <p className="text-xs text-slate-500 mt-1">Track pending customer order queues and dispatch kettle batches.</p>
       </div>
 
-      <div className="mt-6 overflow-x-auto">
-        <table className="w-full text-left border-collapse">
+      <div className="mt-6 overflow-x-auto no-scrollbar">
+        <table className="w-full min-w-[760px] text-left border-collapse">
           <thead>
             <tr className="border-b border-slate-800 text-xs font-semibold uppercase tracking-wider text-slate-400">
               <th className="py-3 px-4">Order ID</th>

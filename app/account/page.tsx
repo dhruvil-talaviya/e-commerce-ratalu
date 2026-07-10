@@ -80,8 +80,8 @@ export default function AccountPage() {
       <div className="container-px mx-auto max-w-7xl py-10">
         <div className="grid gap-8 lg:grid-cols-[260px_1fr]">
           {/* Sidebar */}
-          <aside className="lg:sticky lg:top-24 lg:self-start">
-            <nav className="flex gap-2 overflow-x-auto rounded-3xl border border-[var(--color-border)] bg-white/70 p-2 backdrop-blur-sm lg:flex-col">
+          <aside className="min-w-0 lg:sticky lg:top-24 lg:self-start">
+            <nav className="flex gap-2 overflow-x-auto rounded-3xl border border-[var(--color-border)] bg-white/70 p-2 backdrop-blur-sm no-scrollbar lg:flex-col">
               {TABS.map((t) => {
                 const Icon = t.icon;
                 const active = tab === t.key;
@@ -123,7 +123,7 @@ export default function AccountPage() {
           </aside>
 
           {/* Content */}
-          <div className="min-h-[420px]">
+          <div className="min-w-0 min-h-[420px]">
             <AnimatePresence mode="wait">
               <motion.div
                 key={tab}
@@ -236,8 +236,8 @@ function QuickAddCard({ flavor }: { flavor: Flavor }) {
         >
           <WaferVisual flavor={flavor} />
         </div>
-        <div className="flex-1">
-          <h4 className="font-serif text-base font-bold text-charcoal">{flavor.name}</h4>
+        <div className="min-w-0 flex-1">
+          <h4 className="truncate font-serif text-base font-bold text-charcoal">{flavor.name}</h4>
           <p className="text-xs text-charcoal-soft line-clamp-1 mt-0.5">{flavor.tagline}</p>
           <HeatMeter level={flavor.heat} className="mt-1" />
         </div>
@@ -537,7 +537,7 @@ function AddressesPanel() {
           >
             <div className="flex flex-col gap-2">
               <span className="text-xs font-bold uppercase tracking-wider text-charcoal-soft">Address Type</span>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 {(["Home", "Work", "Other"] as const).map((t) => (
                   <button
                     type="button"

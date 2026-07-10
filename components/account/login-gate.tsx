@@ -57,10 +57,10 @@ export function LoginGate() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-black/40 p-4 backdrop-blur-sm">
       {/* Background Decorative Rings */}
-      <div className="absolute top-1/4 left-1/4 -z-10 size-80 rounded-full bg-purple-500/10 blur-3xl" />
-      <div className="absolute bottom-1/4 right-1/4 -z-10 size-80 rounded-full bg-orange-500/10 blur-3xl" />
+      <div className="pointer-events-none absolute top-1/4 left-1/4 -z-10 size-80 rounded-full bg-purple-500/10 blur-3xl" />
+      <div className="pointer-events-none absolute bottom-1/4 right-1/4 -z-10 size-80 rounded-full bg-orange-500/10 blur-3xl" />
 
       <div className="w-full max-w-md overflow-hidden rounded-3xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-lift)] sm:p-8">
         {/* Brand Logo and Header */}

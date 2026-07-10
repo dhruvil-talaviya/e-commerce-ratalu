@@ -77,7 +77,7 @@ export function ProductDetailClient({ flavor }: { flavor: Flavor }) {
 
       <div className="grid gap-12 lg:grid-cols-2 lg:gap-16">
         {/* Left Column: Media / Graphic */}
-        <div className="flex flex-col gap-6">
+        <div className="flex min-w-0 flex-col gap-6">
           <div
             className="relative aspect-square w-full overflow-hidden rounded-3xl border border-[var(--color-border)] shadow-[var(--shadow-soft)]"
             style={{
@@ -112,26 +112,26 @@ export function ProductDetailClient({ flavor }: { flavor: Flavor }) {
 
           {/* Quick Info Grid */}
           <div className="grid grid-cols-3 gap-2.5 text-center sm:gap-4">
-            <div className="rounded-2xl border border-[var(--color-border)] bg-white/40 p-4 backdrop-blur-sm">
+            <div className="min-w-0 rounded-2xl border border-[var(--color-border)] bg-white/40 p-3 backdrop-blur-sm sm:p-4">
               <Leaf className="mx-auto size-5 text-green-600" />
               <p className="mt-1.5 text-xs font-semibold text-charcoal">100% Veg</p>
-              <p className="text-[10px] text-charcoal-muted mt-0.5">Pure ingredients</p>
+              <p className="mt-0.5 hidden text-[10px] text-charcoal-muted xs:block">Pure ingredients</p>
             </div>
-            <div className="rounded-2xl border border-[var(--color-border)] bg-white/40 p-4 backdrop-blur-sm">
+            <div className="min-w-0 rounded-2xl border border-[var(--color-border)] bg-white/40 p-3 backdrop-blur-sm sm:p-4">
               <ShieldCheck className="mx-auto size-5 text-purple-600" />
               <p className="mt-1.5 text-xs font-semibold text-charcoal">Gluten Free</p>
-              <p className="text-[10px] text-charcoal-muted mt-0.5">No wheat / starch</p>
+              <p className="mt-0.5 hidden text-[10px] text-charcoal-muted xs:block">No wheat / starch</p>
             </div>
-            <div className="rounded-2xl border border-[var(--color-border)] bg-white/40 p-4 backdrop-blur-sm">
+            <div className="min-w-0 rounded-2xl border border-[var(--color-border)] bg-white/40 p-3 backdrop-blur-sm sm:p-4">
               <RotateCcw className="mx-auto size-5 text-orange-600" />
               <p className="mt-1.5 text-xs font-semibold text-charcoal">Kettle Cooked</p>
-              <p className="text-[10px] text-charcoal-muted mt-0.5">Crafted in batches</p>
+              <p className="mt-0.5 hidden text-[10px] text-charcoal-muted xs:block">Crafted in batches</p>
             </div>
           </div>
         </div>
 
         {/* Right Column: Info & Actions */}
-        <div className="flex flex-col justify-center">
+        <div className="flex min-w-0 flex-col justify-center">
           <div className="flex items-center gap-2.5">
             <span className="inline-flex items-center gap-1 text-sm font-semibold text-gold-500">
               <Star className="size-4 fill-gold-400 text-gold-400" /> 4.9

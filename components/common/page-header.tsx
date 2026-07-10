@@ -43,7 +43,7 @@ export function PageHeader({
             {eyebrow}
           </span>
         )}
-        <h1 className="mt-4 font-serif text-4xl font-bold leading-tight text-charcoal sm:text-5xl">
+        <h1 className="mt-4 font-serif text-[1.9rem] font-bold leading-tight text-charcoal xs:text-4xl sm:text-5xl">
           {title}
         </h1>
         {description && (
