@@ -7,12 +7,14 @@ const badgeVariants = cva(
   {
     variants: {
       variant: {
-        primary: "bg-purple-500 text-cream",
-        soft: "bg-purple-50 text-purple-700 border border-purple-100",
-        gold: "bg-gold-400 text-purple-800",
-        orange: "bg-orange-500 text-white",
+        primary: "bg-purple-500 text-white",
+        soft:    "bg-purple-50 text-purple-700 border border-purple-100",
+        gold:    "bg-yellow-400 text-yellow-950",
+        orange:  "bg-orange-500 text-white",
+        green:   "bg-green-50 text-green-700 border border-green-100",
+        red:     "bg-red-50 text-red-700 border border-red-100",
         outline: "border border-purple-200 text-purple-700",
-        cream: "bg-cream-100 text-charcoal-muted border border-[var(--color-border)]",
+        cream:   "bg-gray-50 text-gray-600 border border-[var(--color-border)]",
       },
       size: {
         sm: "px-2.5 py-0.5 text-[11px]",

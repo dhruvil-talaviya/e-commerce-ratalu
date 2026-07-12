@@ -1,9 +1,11 @@
 "use client";
 
 import * as React from "react";
+import { apiFetch, saveTokens, clearTokens, getTokens } from "@/lib/api";
 
 export interface SavedAddress {
   id: string;
+  _id?: string;
   tag: "Home" | "Work" | "Other";
   addressLine: string;
   city: string;
@@ -12,76 +14,34 @@ export interface SavedAddress {
 }
 
 export interface UserProfile {
+  id?: string;
+  _id?: string;
   name: string;
   phone: string;
   addresses: SavedAddress[];
   activeAddressId: string | null;
+  status?: "Active" | "Blocked";
+  role?: string;
 }
 
 interface AccountContextValue {
   user: UserProfile | null;
   isLoggedIn: boolean;
-  login: (phone: string) => boolean;
-  register: (name: string, phone: string) => void;
+  hydrated: boolean;
+  sendOtp: (phone: string) => Promise<{ success: boolean; isRegistered: boolean; otp?: string; message?: string }>;
+  verifyOtp: (phone: string, otp: string, mode: "login" | "register", name?: string) => Promise<{ success: boolean; message?: string }>;
+  sendAdminOtp: (phone: string) => Promise<{ success: boolean; otp?: string; message?: string }>;
+  verifyAdminOtp: (phone: string, otp: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
-  updateProfile: (details: { name: string; phone: string }) => void;
-  addAddress: (address: Omit<SavedAddress, "id">) => void;
-  deleteAddress: (id: string) => void;
-  setActiveAddress: (id: string) => void;
+  updateProfile: (details: { name: string; phone: string }) => Promise<void>;
+  addAddress: (address: Omit<SavedAddress, "id" | "_id">) => Promise<void>;
+  deleteAddress: (id: string) => Promise<void>;
+  setActiveAddress: (id: string) => Promise<void>;
 }
 
 const AccountContext = React.createContext<AccountContextValue | null>(null);
 
 const STORAGE_KEY = "ratalu.account.v2";
-
-const DEFAULT_ADDRESSES: SavedAddress[] = [
-  {
-    id: "addr-1",
-    tag: "Home",
-    addressLine: "14 Marine Drive, Nariman Point",
-    city: "Mumbai",
-    state: "Maharashtra",
-    pincode: "400021",
-  },
-  {
-    id: "addr-2",
-    tag: "Work",
-    addressLine: "Naman Centre, G Block, Bandra Kurla Complex",
-    city: "Mumbai",
-    state: "Maharashtra",
-    pincode: "400051",
-  },
-];
-
-const SEED_ACCOUNTS = [
-  {
-    name: "Ananya Mehta",
-    phone: "9825000000",
-    addresses: DEFAULT_ADDRESSES,
-    activeAddressId: "addr-1",
-  },
-  {
-    name: "Rahul Sharma",
-    phone: "9876543210",
-    addresses: [
-      {
-        id: "addr-3",
-        tag: "Home",
-        addressLine: "Apt 201, Green Glades, HSR Layout",
-        city: "Bengaluru",
-        state: "Karnataka",
-        pincode: "560102",
-      },
-    ],
-    activeAddressId: "addr-3",
-  },
-  {
-    name: "Kabir Singh",
-    phone: "9911223344",
-    addresses: [],
-    activeAddressId: null,
-  },
-];
 
 export function AccountProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = React.useState<UserProfile | null>(null);
@@ -89,168 +49,195 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
 
   // Load user session on mount
   React.useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        let parsed = JSON.parse(saved);
-        // Automatic migration from v1 (firstName/lastName) to v2 (name)
-        if (parsed && !parsed.name && (parsed.firstName || parsed.lastName)) {
-          parsed = {
-            name: `${parsed.firstName || ""} ${parsed.lastName || ""}`.trim() || "Ananya Mehta",
-            phone: parsed.phone || "+91 98250 00000",
-            addresses: parsed.addresses || DEFAULT_ADDRESSES,
-            activeAddressId: parsed.activeAddressId || "addr-1",
-          };
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+    const loadProfile = async () => {
+      const tokens = getTokens();
+      if (tokens) {
+        try {
+          const profile = await apiFetch<UserProfile>("/auth/profile");
+          setUser(profile);
+        } catch (err) {
+          console.error("Failed to load user profile on mount:", err);
+          // session might be invalid/expired
+          clearTokens();
+          setUser(null);
         }
-        const finalUser = parsed;
-        setTimeout(() => setUser(finalUser), 0);
       }
-      
-      // Seed registered accounts list if empty
-      const savedAccounts = localStorage.getItem("ratalu.accounts");
-      if (!savedAccounts) {
-        localStorage.setItem("ratalu.accounts", JSON.stringify(SEED_ACCOUNTS));
-      }
-    } catch {
-      // Clear corrupt storage
-    }
-    setTimeout(() => setHydrated(true), 0);
+      setHydrated(true);
+    };
+
+    loadProfile();
   }, []);
 
-  // Persist session changes
+  // Sync session changes to local storage (for fallback/speedy loads)
   React.useEffect(() => {
     if (!hydrated) return;
     if (user) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-      // Sync active session profile back into accounts registry
-      try {
-        const savedAccounts = localStorage.getItem("ratalu.accounts");
-        const accounts = savedAccounts ? JSON.parse(savedAccounts) : [];
-        if (Array.isArray(accounts)) {
-          const idx = accounts.findIndex((a) => a.phone === user.phone);
-          if (idx > -1) {
-            accounts[idx] = user;
-          } else {
-            accounts.push(user);
-          }
-          localStorage.setItem("ratalu.accounts", JSON.stringify(accounts));
-        }
-      } catch {
-        // ignore
-      }
     } else {
       localStorage.removeItem(STORAGE_KEY);
     }
   }, [user, hydrated]);
 
-  const login = React.useCallback((phone: string) => {
-    if (phone) {
-      // Load existing account from registry if exists, otherwise create new
-      try {
-        const savedAccounts = localStorage.getItem("ratalu.accounts");
-        const accounts = savedAccounts ? JSON.parse(savedAccounts) : [];
-        if (Array.isArray(accounts)) {
-          const match = accounts.find((a) => a.phone === phone);
-          if (match) {
-            setUser(match);
-            return true;
-          }
-        }
-      } catch {
-        // ignore
-      }
-
-      setUser({
-        name: "Ananya Mehta",
-        phone: phone,
-        addresses: DEFAULT_ADDRESSES,
-        activeAddressId: "addr-1",
-      });
-      return true;
-    }
-    return false;
-  }, []);
-
-  const register = React.useCallback((name: string, phone: string) => {
-    const newUser: UserProfile = {
-      name,
-      phone,
-      addresses: DEFAULT_ADDRESSES,
-      activeAddressId: "addr-1",
-    };
-    setUser(newUser);
-    
-    // Add to registry list
+  const sendOtp = React.useCallback(async (phone: string) => {
     try {
-      const savedAccounts = localStorage.getItem("ratalu.accounts");
-      const accounts = savedAccounts ? JSON.parse(savedAccounts) : [];
-      if (Array.isArray(accounts)) {
-        if (!accounts.some((a) => a.phone === phone)) {
-          accounts.push(newUser);
-          localStorage.setItem("ratalu.accounts", JSON.stringify(accounts));
-        }
+      const res = await fetch("/api/v1/auth/otp/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        return { success: false, isRegistered: false, message: data.message || "Failed to request code" };
       }
-    } catch {
-      // ignore
+      return {
+        success: true,
+        isRegistered: data.data.isRegistered,
+        otp: data.data.otp,
+        message: data.message
+      };
+    } catch (err: any) {
+      return { success: false, isRegistered: false, message: err.message || "Network error" };
     }
   }, []);
 
-  const logout = React.useCallback(() => {
-    setUser(null);
-  }, []);
+  const verifyOtp = React.useCallback(async (phone: string, otp: string, mode: "login" | "register", name?: string) => {
+    try {
+      if (mode === "register") {
+        // Register API endpoint
+        const res = await fetch("/api/v1/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, phone })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          return { success: false, message: data.message || "Registration failed" };
+        }
+        
+        saveTokens({
+          accessToken: data.data.accessToken,
+          refreshToken: data.data.refreshToken
+        });
+        setUser(data.data.user);
+        return { success: true };
+      } else {
+        // Verify OTP Login API endpoint
+        const res = await fetch("/api/v1/auth/otp/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone, otp })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          return { success: false, message: data.message || "Invalid OTP verification code" };
+        }
 
-  const updateProfile = React.useCallback((details: { name: string; phone: string }) => {
-    setUser((prev) => (prev ? { ...prev, ...details } : null));
-  }, []);
-
-  const addAddress = React.useCallback((address: Omit<SavedAddress, "id">) => {
-    const id = "addr-" + Date.now();
-    const newAddr: SavedAddress = { ...address, id };
-    setUser((prev) => {
-      if (!prev) return null;
-      const addresses = [...prev.addresses, newAddr];
-      return {
-        ...prev,
-        addresses,
-        activeAddressId: prev.activeAddressId ? prev.activeAddressId : id,
-      };
-    });
-  }, []);
-
-  const deleteAddress = React.useCallback((id: string) => {
-    setUser((prev) => {
-      if (!prev) return null;
-      const addresses = prev.addresses.filter((a) => a.id !== id);
-      let activeAddressId = prev.activeAddressId;
-      if (activeAddressId === id) {
-        activeAddressId = addresses.length > 0 ? addresses[0].id : null;
+        if (data.data.isRegistered) {
+          saveTokens({
+            accessToken: data.data.accessToken,
+            refreshToken: data.data.refreshToken
+          });
+          setUser(data.data.user);
+          return { success: true };
+        } else {
+          return { success: false, message: "No profile registered for this number." };
+        }
       }
-      return {
-        ...prev,
-        addresses,
-        activeAddressId,
-      };
-    });
+    } catch (err: any) {
+      return { success: false, message: err.message || "Verification network error" };
+    }
   }, []);
 
-  const setActiveAddress = React.useCallback((id: string) => {
-    setUser((prev) => (prev ? { ...prev, activeAddressId: id } : null));
+  const sendAdminOtp = React.useCallback(async (phone: string) => {
+    return await sendOtp(phone);
+  }, [sendOtp]);
+
+  const verifyAdminOtp = React.useCallback(async (phone: string, otp: string) => {
+    try {
+      const res = await fetch("/api/v1/admin/login/otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone, otp })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        return { success: false, message: data.message || "Access denied" };
+      }
+
+      saveTokens({
+        accessToken: data.data.accessToken,
+        refreshToken: data.data.refreshToken
+      });
+      setUser(data.data.user);
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, message: err.message || "Network error" };
+    }
+  }, []);
+
+  const logout = React.useCallback(async () => {
+    try {
+      const tokens = getTokens();
+      if (tokens?.refreshToken) {
+        await apiFetch("/auth/logout", {
+          method: "POST",
+          body: { refreshToken: tokens.refreshToken }
+        });
+      }
+    } catch (err) {
+      console.warn("Failed to invalidate session on server during logout:", err);
+    } finally {
+      clearTokens();
+      setUser(null);
+    }
+  }, []);
+
+  const updateProfile = React.useCallback(async (details: { name: string; phone: string }) => {
+    const updated = await apiFetch<UserProfile>("/auth/profile", {
+      method: "PUT",
+      body: details
+    });
+    setUser(updated);
+  }, []);
+
+  const addAddress = React.useCallback(async (address: Omit<SavedAddress, "id" | "_id">) => {
+    const res = await apiFetch<{ addresses: SavedAddress[]; activeAddressId: string }>("/auth/addresses", {
+      method: "POST",
+      body: address
+    });
+    setUser(prev => prev ? { ...prev, addresses: res.addresses, activeAddressId: res.activeAddressId } : null);
+  }, []);
+
+  const deleteAddress = React.useCallback(async (id: string) => {
+    const res = await apiFetch<{ addresses: SavedAddress[]; activeAddressId: string }>(`/auth/addresses/${id}`, {
+      method: "DELETE"
+    });
+    setUser(prev => prev ? { ...prev, addresses: res.addresses, activeAddressId: res.activeAddressId } : null);
+  }, []);
+
+  const setActiveAddress = React.useCallback(async (id: string) => {
+    const res = await apiFetch<{ activeAddressId: string }>(`/auth/addresses/${id}/active`, {
+      method: "PUT"
+    });
+    setUser(prev => prev ? { ...prev, activeAddressId: res.activeAddressId } : null);
   }, []);
 
   const value = React.useMemo(
     () => ({
       user,
       isLoggedIn: !!user,
-      login,
-      register,
+      hydrated,
+      sendOtp,
+      verifyOtp,
+      sendAdminOtp,
+      verifyAdminOtp,
       logout,
       updateProfile,
       addAddress,
       deleteAddress,
-      setActiveAddress,
+      setActiveAddress
     }),
-    [user, login, register, logout, updateProfile, addAddress, deleteAddress, setActiveAddress]
+    [user, hydrated, sendOtp, verifyOtp, sendAdminOtp, verifyAdminOtp, logout, updateProfile, addAddress, deleteAddress, setActiveAddress]
   );
 
   return <AccountContext.Provider value={value}>{children}</AccountContext.Provider>;

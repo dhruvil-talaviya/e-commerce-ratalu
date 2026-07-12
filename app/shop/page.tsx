@@ -6,7 +6,7 @@ import { ProductJsonLd } from "@/components/seo/json-ld";
 export const metadata: Metadata = {
   title: "Shop All Flavours",
   description:
-    "Shop all six flavours of Ratalu Wafers in 100g, 200g, 500g and 1kg packs. Kettle-cooked purple yam wafers with free shipping over ₹599.",
+    "Shop all six flavours of Ratalu Chips in 100g, 200g, 500g and 1kg packs. Kettle-cooked purple yam chips with free shipping over ₹599.",
   alternates: { canonical: "/shop" },
 };
 
@@ -29,7 +29,7 @@ export default function ShopPage() {
             The full collection
           </span>
           <h1 className="mx-auto mt-5 max-w-2xl font-serif text-4xl font-bold leading-tight text-charcoal sm:text-5xl lg:text-6xl">
-            Shop <span className="text-gradient-warm">Ratalu Wafers</span>
+            Shop <span className="text-gradient-warm">Ratalu Chips</span>
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-lg text-charcoal-muted">
             Six bold flavours. Four pack sizes. One unforgettable crunch. Pick your favourites and

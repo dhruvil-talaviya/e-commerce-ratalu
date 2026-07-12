@@ -29,7 +29,7 @@ export function SectionHeading({
     >
       {eyebrow && (
         <Reveal>
-          <span className="inline-flex items-center gap-2 rounded-full bg-purple-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-purple-600">
+          <span className="inline-flex items-center gap-2 rounded-full bg-orange-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-orange-600 border border-orange-100">
             <span className="size-1.5 rounded-full bg-orange-500" />
             {eyebrow}
           </span>
@@ -38,7 +38,7 @@ export function SectionHeading({
       <Reveal delay={0.05}>
         <h2
           className={cn(
-            "font-serif text-4xl font-semibold leading-[1.05] text-charcoal sm:text-5xl",
+            "text-[2rem] font-bold leading-[1.05] text-gray-800 sm:text-[2.5rem]",
             titleClassName
           )}
         >
@@ -47,7 +47,7 @@ export function SectionHeading({
       </Reveal>
       {description && (
         <Reveal delay={0.1}>
-          <p className="text-lg leading-relaxed text-charcoal-muted">{description}</p>
+          <p className="text-lg leading-relaxed text-gray-500">{description}</p>
         </Reveal>
       )}
     </div>

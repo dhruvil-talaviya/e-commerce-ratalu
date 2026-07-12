@@ -4,11 +4,11 @@
  * and structured data.
  */
 export const SITE = {
-  name: "Ratalu Wafers",
-  legalName: "Ratalu Wafers Pvt. Ltd.",
+  name: "Ratalu Chips",
+  legalName: "Ratalu Chips Pvt. Ltd.",
   tagline: "Crispy. Natural. Irresistible.",
   description:
-    "Ratalu Wafers are crafted from hand-selected fresh purple yam, thin-sliced and kettle-cooked into perfectly crispy wafers with unforgettable flavours. Small-batch, no artificial colours, delivered fresh across India.",
+    "Ratalu Chips are crafted from hand-selected fresh purple yam, thin-sliced and kettle-cooked into perfectly crispy wafers with unforgettable flavours. Small-batch, no artificial colours, delivered fresh across India.",
   url: "https://rataluwafers.com",
   email: "hello@rataluwafers.com",
   phone: "+91 98250 00000",

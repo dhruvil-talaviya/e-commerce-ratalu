@@ -9,12 +9,14 @@ import { WaferVisual } from "@/components/common/wafer-visual";
 import { AnimatedCounter } from "@/components/common/animated-counter";
 import { FLAVORS } from "@/lib/data/flavors";
 import { REVIEW_STATS } from "@/lib/data/reviews";
+import { useLanguage } from "@/components/common/language-provider";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
 export function Hero() {
   const ref = React.useRef<HTMLElement>(null);
   const reduce = useReducedMotion();
+  const { t } = useLanguage();
   const { scrollYProgress } = useScroll({
     target: ref,
     offset: ["start start", "end start"],
@@ -36,54 +38,54 @@ export function Hero() {
 
   return (
     <section ref={ref} className="relative overflow-hidden bg-radial-cream">
-      {/* Decorative background */}
+      {/* Decorative background — orange/yellow glow orbs */}
       <motion.div style={{ y: yGlow }} className="pointer-events-none absolute inset-0" aria-hidden>
-        <div className="absolute -left-24 top-24 size-96 rounded-full bg-purple-200/40 blur-3xl" />
-        <div className="absolute -right-16 top-40 size-80 rounded-full bg-orange-200/40 blur-3xl" />
-        <div className="absolute bottom-0 left-1/3 size-72 rounded-full bg-gold-200/40 blur-3xl" />
+        <div className="absolute -left-24 top-24 size-96 rounded-full bg-orange-200/40 blur-3xl" />
+        <div className="absolute -right-16 top-40 size-80 rounded-full bg-yellow-200/40 blur-3xl" />
+        <div className="absolute bottom-0 left-1/3 size-72 rounded-full bg-orange-100/50 blur-3xl" />
       </motion.div>
 
       <div className="container-px relative mx-auto grid max-w-7xl items-center gap-10 py-14 sm:gap-12 sm:py-16 lg:grid-cols-[1.05fr_1fr] lg:gap-8 lg:py-24">
         {/* Copy */}
         <motion.div variants={container} initial="hidden" animate="visible" className="relative z-10">
+          {/* Social proof badge */}
           <motion.div variants={item}>
-            <span className="inline-flex items-center gap-2 rounded-full border border-purple-100 bg-white/70 px-4 py-1.5 text-xs font-semibold text-purple-700 shadow-[var(--shadow-soft)] backdrop-blur">
+            <span className="inline-flex items-center gap-2 rounded-full border border-orange-100 bg-white/80 px-4 py-1.5 text-xs font-semibold text-orange-700 shadow-[var(--shadow-soft)] backdrop-blur">
               <span className="flex -space-x-0.5">
                 {[0, 1, 2, 3, 4].map((i) => (
-                  <Star key={i} className="size-3.5 fill-gold-400 text-gold-400" />
+                  <Star key={i} className="size-3.5 fill-yellow-400 text-yellow-400" />
                 ))}
               </span>
-              Loved by {REVIEW_STATS.totalReviews.toLocaleString("en-IN")}+ snackers
+              {t("hero_badge", { count: REVIEW_STATS.totalReviews.toLocaleString("en-IN") })}
             </span>
           </motion.div>
 
+          {/* Hero heading — 48px Bold Poppins */}
           <motion.h1
             variants={item}
-            className="mt-6 font-serif text-[clamp(2.1rem,8vw,3.5rem)] font-bold leading-[1.02] text-charcoal sm:leading-[0.98] lg:text-7xl"
+            className="mt-6 text-[clamp(2.1rem,8vw,3rem)] font-bold leading-[1.05] text-gray-800 lg:text-5xl"
           >
-            Crispy. Natural.
+            {t("hero_heading_1")}
             <br />
-            <span className="text-gradient-warm">Irresistible.</span>
+            <span className="text-gradient-warm">{t("hero_heading_2")}</span>
           </motion.h1>
 
           <motion.p
             variants={item}
-            className="mt-6 max-w-xl text-lg leading-relaxed text-charcoal-muted"
+            className="mt-6 max-w-xl text-lg leading-relaxed text-gray-500"
           >
-            Made from carefully selected fresh <em className="not-italic font-medium text-purple-700">Ratalu</em> and
-            crafted into perfectly crispy wafers with unforgettable flavours. Small-batch,
-            kettle-cooked, delivered fresh to your door.
+            {t("hero_description")}
           </motion.p>
 
           <motion.div variants={item} className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
             <Button asChild size="xl">
               <Link href="/shop">
-                Shop Now <ArrowRight />
+                {t("hero_cta_shop")} <ArrowRight />
               </Link>
             </Button>
             <Button asChild size="xl" variant="outline">
               <Link href="#flavours">
-                <Sparkles /> Explore Flavours
+                <Sparkles /> {t("hero_cta_explore")}
               </Link>
             </Button>
           </motion.div>
@@ -93,9 +95,9 @@ export function Hero() {
             variants={item}
             className="mt-10 grid max-w-lg grid-cols-3 gap-3 border-t border-[var(--color-border)] pt-7 sm:mt-12 sm:gap-4 sm:pt-8"
           >
-            <Stat value={<AnimatedCounter value={REVIEW_STATS.averageRating} decimals={1} suffix="★" />} label="Avg. rating" />
-            <Stat value={<AnimatedCounter value={6} suffix="" />} label="Bold flavours" />
-            <Stat value={<><AnimatedCounter value={100} suffix="%" /></>} label="Natural" />
+            <Stat value={<AnimatedCounter value={REVIEW_STATS.averageRating} decimals={1} suffix="★" />} label={t("hero_stat_rating")} />
+            <Stat value={<AnimatedCounter value={6} suffix="" />} label={t("hero_stat_flavors")} />
+            <Stat value={<><AnimatedCounter value={100} suffix="%" /></>} label={t("hero_stat_natural")} />
           </motion.div>
         </motion.div>
 
@@ -105,7 +107,7 @@ export function Hero() {
           className="relative z-0 mx-auto aspect-square w-full max-w-lg"
         >
           {/* rotating dashed ring */}
-          <div className="absolute inset-4 rounded-full border border-dashed border-purple-200 animate-spin-slow" aria-hidden />
+          <div className="absolute inset-4 rounded-full border border-dashed border-orange-200 animate-spin-slow" aria-hidden />
           <div className="absolute inset-0 -z-10 rounded-full bg-gradient-to-br from-white/70 to-transparent blur-2xl" aria-hidden />
 
           {/* hero chip */}
@@ -125,8 +127,8 @@ export function Hero() {
             transition={{ delay: 0.7, duration: 0.6, ease: EASE }}
             className="absolute right-2 top-8 z-20 rounded-2xl border border-[var(--color-border)] bg-white/90 px-4 py-3 shadow-[var(--shadow-lift)] backdrop-blur animate-float-slow"
           >
-            <p className="text-[11px] font-medium uppercase tracking-wide text-charcoal-soft">From</p>
-            <p className="font-serif text-2xl font-bold text-purple-700">₹99</p>
+            <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400">{t("hero_price_from")}</p>
+            <p className="text-2xl font-bold text-orange-500">₹99</p>
           </motion.div>
 
           {/* orbiting flavour chips */}
@@ -155,9 +157,9 @@ export function Hero() {
       </div>
 
       {/* scroll cue */}
-      <div className="pointer-events-none absolute bottom-5 left-1/2 hidden -translate-x-1/2 flex-col items-center gap-2 text-charcoal-soft lg:flex">
-        <span className="text-[11px] uppercase tracking-[0.2em]">Scroll</span>
-        <span className="h-9 w-5 rounded-full border border-charcoal-soft/40 p-1">
+      <div className="pointer-events-none absolute bottom-5 left-1/2 hidden -translate-x-1/2 flex-col items-center gap-2 text-gray-400 lg:flex">
+        <span className="text-[11px] uppercase tracking-[0.2em]">{t("hero_scroll")}</span>
+        <span className="h-9 w-5 rounded-full border border-gray-300/60 p-1">
           <motion.span
             className="block size-1.5 rounded-full bg-orange-500"
             animate={{ y: [0, 12, 0] }}
@@ -172,8 +174,8 @@ export function Hero() {
 function Stat({ value, label }: { value: React.ReactNode; label: string }) {
   return (
     <div>
-      <p className="font-serif text-2xl font-bold text-charcoal sm:text-3xl">{value}</p>
-      <p className="mt-1 text-xs text-charcoal-muted">{label}</p>
+      <p className="text-2xl font-bold text-gray-800 sm:text-3xl">{value}</p>
+      <p className="mt-1 text-xs text-gray-500">{label}</p>
     </div>
   );
 }

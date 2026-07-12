@@ -40,7 +40,7 @@ export function WaferVisual({
     <svg
       viewBox="0 0 320 320"
       role="img"
-      aria-label={`${flavor.name} Ratalu Wafers`}
+      aria-label={`${flavor.name} Ratalu Chips`}
       className={cn("h-full w-full", className)}
     >
       <defs>

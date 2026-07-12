@@ -1,22 +1,43 @@
 import type { Metadata, Viewport } from "next";
-import { Playfair_Display, Inter } from "next/font/google";
+import { Poppins, Inter, Baloo_2, Noto_Sans_Devanagari, Noto_Sans_Gujarati } from "next/font/google";
 import "./globals.css";
 import { SITE } from "@/lib/constants";
 import { Providers } from "./providers";
 import { StorefrontLayoutWrapper } from "@/components/layout/storefront-layout-wrapper";
 import { OrganizationJsonLd, WebsiteJsonLd } from "@/components/seo/json-ld";
 
-const playfair = Playfair_Display({
-  variable: "--font-playfair",
+const poppins = Poppins({
+  variable: "--font-poppins",
   subsets: ["latin"],
   display: "swap",
-  weight: ["500", "600", "700", "800"],
+  weight: ["400", "500", "600", "700", "800"],
 });
 
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
   display: "swap",
+});
+
+const baloo2 = Baloo_2({
+  variable: "--font-baloo2",
+  subsets: ["latin"],
+  display: "swap",
+  weight: ["400", "500", "600", "700", "800"],
+});
+
+const notoSansDevanagari = Noto_Sans_Devanagari({
+  variable: "--font-devanagari",
+  subsets: ["devanagari"],
+  display: "swap",
+  weight: ["400", "500", "600", "700"],
+});
+
+const notoSansGujarati = Noto_Sans_Gujarati({
+  variable: "--font-gujarati",
+  subsets: ["gujarati"],
+  display: "swap",
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -62,7 +83,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#5B2C6F",
+  themeColor: "#5B2C83",
   colorScheme: "light",
   width: "device-width",
   initialScale: 1,
@@ -72,7 +93,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${playfair.variable} ${inter.variable} h-full`}>
+    <html lang="en" className={`${poppins.variable} ${inter.variable} ${baloo2.variable} ${notoSansDevanagari.variable} ${notoSansGujarati.variable} h-full`}>
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <OrganizationJsonLd />
         <WebsiteJsonLd />

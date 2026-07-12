@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence, useInView } from "motion/react";
 import {
   ArrowLeft,
@@ -15,46 +16,60 @@ import {
   ShieldCheck,
   Truck,
   RotateCcw,
+  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { HeatMeter } from "@/components/common/heat-meter";
-import { WaferVisual } from "@/components/common/wafer-visual";
 import { useCart } from "@/components/cart/cart-provider";
 import { useWishlist } from "@/components/cart/wishlist-provider";
+import { ProductGallery } from "./product-gallery";
+import { useRecentlyViewed } from "./recently-viewed-provider";
+import { DeliveryEstimate } from "./delivery-estimate";
+import { FrequentlyBoughtTogether } from "./frequently-bought-together";
+import { RelatedProducts } from "./related-products";
 import { PACK_SIZES, DEFAULT_PACK_ID } from "@/lib/data/products";
+import { NUTRITION, NUTRITION_NOTE } from "@/lib/data/product-meta";
 import { REVIEWS } from "@/lib/data/reviews";
 import { formatINR, cn } from "@/lib/utils";
 import type { Flavor } from "@/lib/types";
 
-const badgeVariant: Record<string, "gold" | "orange" | "primary"> = {
-  Signature: "primary",
-  New: "gold",
-  Hot: "orange",
-};
+type TabKey = "ingredients" | "nutrition" | "details" | "storage" | "shipping";
+const TABS: { key: TabKey; label: string }[] = [
+  { key: "ingredients", label: "Ingredients" },
+  { key: "nutrition", label: "Nutrition" },
+  { key: "details", label: "Product Details" },
+  { key: "storage", label: "Storage" },
+  { key: "shipping", label: "Shipping & Returns" },
+];
 
 export function ProductDetailClient({ flavor }: { flavor: Flavor }) {
   const { addItem } = useCart();
   const { has, toggle } = useWishlist();
+  const router = useRouter();
   const [packId, setPackId] = React.useState(DEFAULT_PACK_ID);
   const [qty, setQty] = React.useState(1);
   const [added, setAdded] = React.useState(false);
-  const [activeTab, setActiveTab] = React.useState<"ingredients" | "details" | "shipping">("ingredients");
+  const [activeTab, setActiveTab] = React.useState<TabKey>("ingredients");
 
   const pack = PACK_SIZES.find((p) => p.id === packId)!;
   const wished = has(flavor.id);
   const savings = pack.compareAt ? pack.compareAt - pack.price : 0;
 
-  // Filter reviews matching this flavor
   const flavorReviews = REVIEWS.filter((r) => r.flavor.toLowerCase() === flavor.name.toLowerCase());
 
-  // Show the mobile sticky bar only while the inline Add button is off-screen
-  // and we haven't scrolled into the footer/end region.
+  // Show the mobile sticky bar only while the inline Add button is off-screen.
   const inlineRef = React.useRef<HTMLDivElement>(null);
   const endRef = React.useRef<HTMLDivElement>(null);
   const inlineInView = useInView(inlineRef, { margin: "-80px 0px 0px 0px" });
   const endInView = useInView(endRef, { margin: "0px 0px -120px 0px" });
   const showStickyBar = !inlineInView && !endInView;
+
+  // Record this product in the customer's "recently viewed" history.
+  const { record } = useRecentlyViewed();
+  React.useEffect(() => {
+    record(flavor.id);
+  }, [flavor.id, record]);
 
   const handleAdd = () => {
     addItem(flavor, pack, qty);
@@ -63,108 +78,86 @@ export function ProductDetailClient({ flavor }: { flavor: Flavor }) {
     setTimeout(() => setAdded(false), 1600);
   };
 
+  const buyNow = () => {
+    addItem(flavor, pack, qty);
+    router.push("/checkout");
+  };
+
   return (
     <div className="container-px mx-auto max-w-7xl pt-6 pb-10 sm:py-8">
-      {/* Breadcrumb / Back button */}
-      <div className="mb-8">
-        <Link
-          href="/shop"
-          className="inline-flex items-center gap-2 text-sm font-medium text-charcoal-muted transition-colors hover:text-purple-700"
-        >
-          <ArrowLeft className="size-4" /> Back to Shop
-        </Link>
-      </div>
+      {/* Breadcrumb */}
+      <nav aria-label="Breadcrumb" className="mb-6 flex items-center gap-1.5 text-sm text-charcoal-soft">
+        <Link href="/" className="hover:text-purple-600">Home</Link>
+        <span>/</span>
+        <Link href="/shop" className="hover:text-purple-600">Shop</Link>
+        <span>/</span>
+        <span className="truncate text-charcoal-muted">{flavor.name}</span>
+      </nav>
+
+      <Link
+        href="/shop"
+        className="mb-8 inline-flex items-center gap-2 text-sm font-medium text-charcoal-muted transition-colors hover:text-purple-700"
+      >
+        <ArrowLeft className="size-4" /> Back to Shop
+      </Link>
 
       <div className="grid gap-12 lg:grid-cols-2 lg:gap-16">
-        {/* Left Column: Media / Graphic */}
-        <div className="flex min-w-0 flex-col gap-6">
-          <div
-            className="relative aspect-square w-full overflow-hidden rounded-3xl border border-[var(--color-border)] shadow-[var(--shadow-soft)]"
-            style={{
-              background: `radial-gradient(130% 130% at 50% 10%, ${flavor.gradient.from}22, transparent 65%)`,
-            }}
-          >
-            <div className="absolute inset-0 flex items-center justify-center p-12">
-              <WaferVisual flavor={flavor} seed={4} className="h-64 w-auto object-contain transition-transform duration-700 hover:scale-105" />
-            </div>
+        {/* Left: gallery (sticky on desktop) */}
+        <div className="flex min-w-0 flex-col gap-6 lg:sticky lg:top-24 lg:self-start">
+          <ProductGallery flavor={flavor} />
 
-            <div className="absolute left-6 top-6 flex flex-col gap-2">
-              {flavor.bestSeller && (
-                <Badge variant="gold" size="lg">
-                  ★ Best Seller
-                </Badge>
-              )}
-              {flavor.badge && (
-                <Badge variant={badgeVariant[flavor.badge] ?? "soft"} size="lg">
-                  {flavor.badge}
-                </Badge>
-              )}
-            </div>
-
-            <button
-              onClick={() => toggle(flavor.id)}
-              aria-label={wished ? "Remove from wishlist" : "Add to wishlist"}
-              className="absolute right-6 top-6 grid size-12 place-items-center rounded-full bg-white text-charcoal-muted shadow-md transition-all hover:scale-110 hover:text-red-500"
-            >
-              <Heart className={cn("size-5.5 transition-all", wished && "fill-red-500 text-red-500")} />
-            </button>
-          </div>
-
-          {/* Quick Info Grid */}
+          {/* Trust badges */}
           <div className="grid grid-cols-3 gap-2.5 text-center sm:gap-4">
-            <div className="min-w-0 rounded-2xl border border-[var(--color-border)] bg-white/40 p-3 backdrop-blur-sm sm:p-4">
-              <Leaf className="mx-auto size-5 text-green-600" />
-              <p className="mt-1.5 text-xs font-semibold text-charcoal">100% Veg</p>
-              <p className="mt-0.5 hidden text-[10px] text-charcoal-muted xs:block">Pure ingredients</p>
-            </div>
-            <div className="min-w-0 rounded-2xl border border-[var(--color-border)] bg-white/40 p-3 backdrop-blur-sm sm:p-4">
-              <ShieldCheck className="mx-auto size-5 text-purple-600" />
-              <p className="mt-1.5 text-xs font-semibold text-charcoal">Gluten Free</p>
-              <p className="mt-0.5 hidden text-[10px] text-charcoal-muted xs:block">No wheat / starch</p>
-            </div>
-            <div className="min-w-0 rounded-2xl border border-[var(--color-border)] bg-white/40 p-3 backdrop-blur-sm sm:p-4">
-              <RotateCcw className="mx-auto size-5 text-orange-600" />
-              <p className="mt-1.5 text-xs font-semibold text-charcoal">Kettle Cooked</p>
-              <p className="mt-0.5 hidden text-[10px] text-charcoal-muted xs:block">Crafted in batches</p>
-            </div>
+            {[
+              { icon: Leaf, color: "text-green-600", title: "100% Veg", sub: "Pure ingredients" },
+              { icon: ShieldCheck, color: "text-purple-600", title: "Gluten Free", sub: "No wheat / starch" },
+              { icon: RotateCcw, color: "text-orange-600", title: "Kettle Cooked", sub: "Crafted in batches" },
+            ].map((b) => {
+              const Icon = b.icon;
+              return (
+                <div key={b.title} className="min-w-0 rounded-2xl border border-[var(--color-border)] bg-white/40 p-3 backdrop-blur-sm sm:p-4">
+                  <Icon className={cn("mx-auto size-5", b.color)} />
+                  <p className="mt-1.5 text-xs font-semibold text-charcoal">{b.title}</p>
+                  <p className="mt-0.5 hidden text-[10px] text-charcoal-muted xs:block">{b.sub}</p>
+                </div>
+              );
+            })}
           </div>
         </div>
 
-        {/* Right Column: Info & Actions */}
-        <div className="flex min-w-0 flex-col justify-center">
+        {/* Right: info & actions */}
+        <div className="flex min-w-0 flex-col">
           <div className="flex items-center gap-2.5">
             <span className="inline-flex items-center gap-1 text-sm font-semibold text-gold-500">
               <Star className="size-4 fill-gold-400 text-gold-400" /> 4.9
             </span>
-            <span className="text-xs text-charcoal-muted">· {flavorReviews.length > 0 ? "Verified Review" : "Signature Flavor"}</span>
+            <span className="text-xs text-charcoal-muted">
+              · {flavorReviews.length > 0 ? `${flavorReviews.length} verified review` : "Signature flavour"}
+            </span>
+            <span className="ml-auto flex items-center gap-1.5 text-xs font-semibold text-green-700">
+              <span className="size-2 rounded-full bg-green-500" /> In stock
+            </span>
           </div>
 
           <h1 className="mt-4 font-serif text-4xl font-bold text-charcoal sm:text-5xl">
-            {flavor.name} <span className="text-gradient-warm">Ratalu Wafers</span>
+            {flavor.name} <span className="text-gradient-warm">Ratalu Chips</span>
           </h1>
 
           <p className="mt-3 text-lg font-medium text-purple-700">{flavor.tagline}</p>
+          <p className="mt-4 leading-relaxed text-charcoal-muted">{flavor.description}</p>
 
-          <p className="mt-4 text-charcoal-muted leading-relaxed">
-            {flavor.description}
-          </p>
-
-          {/* Heat Level */}
+          {/* Heat */}
           <div className="mt-6 flex items-center gap-3">
             <span className="text-sm font-semibold text-charcoal">Spice Level:</span>
-            <HeatMeter level={flavor.heat} className="scale-105" />
+            <HeatMeter level={flavor.heat} />
           </div>
 
-          {/* Size Selector */}
+          {/* Size selector */}
           <fieldset className="mt-8">
-            <div className="flex items-center justify-between mb-3">
-              <legend className="text-xs font-bold uppercase tracking-wider text-charcoal-soft">
-                Select pack size
-              </legend>
+            <div className="mb-3 flex items-center justify-between">
+              <legend className="text-xs font-bold uppercase tracking-wider text-charcoal-soft">Select pack size</legend>
               {savings > 0 && (
-                <Badge variant="soft" size="sm" className="text-green-700 font-semibold animate-pulse">
-                  Save {formatINR(savings)}
-                </Badge>
+                <Badge variant="soft" size="sm" className="font-semibold text-green-700">Save {formatINR(savings)}</Badge>
               )}
             </div>
             <div className="grid grid-cols-4 gap-2 sm:gap-3">
@@ -172,67 +165,47 @@ export function ProductDetailClient({ flavor }: { flavor: Flavor }) {
                 <button
                   key={p.id}
                   onClick={() => setPackId(p.id)}
+                  aria-pressed={p.id === packId}
                   className={cn(
-                    "flex flex-col items-center justify-center rounded-2xl border py-3 text-center transition-all",
+                    "flex min-w-0 flex-col items-center justify-center rounded-2xl border py-3 text-center transition-all",
                     p.id === packId
                       ? "border-purple-500 bg-purple-50 text-purple-700 shadow-sm ring-1 ring-purple-500"
                       : "border-[var(--color-border)] bg-white text-charcoal-muted hover:border-purple-200"
                   )}
                 >
                   <span className="block text-sm font-bold">{p.label}</span>
-                  <span className="block text-xs font-medium mt-0.5">{formatINR(p.price)}</span>
+                  <span className="mt-0.5 block text-xs font-medium">{formatINR(p.price)}</span>
                   {p.note && (
-                    <span className="block text-[8px] uppercase tracking-wider mt-1 font-semibold text-orange-500">
-                      {p.note}
-                    </span>
+                    <span className="mt-1 block text-[8px] font-semibold uppercase tracking-wider text-orange-500">{p.note}</span>
                   )}
                 </button>
               ))}
             </div>
           </fieldset>
 
-          {/* Price Summary */}
+          {/* Price */}
           <div className="mt-8 flex items-baseline gap-3">
-            <span className="font-serif text-3xl font-bold text-purple-700">
-              {formatINR(pack.price * qty)}
-            </span>
+            <span className="font-serif text-3xl font-bold text-purple-700">{formatINR(pack.price * qty)}</span>
             {pack.compareAt && (
-              <span className="text-base text-charcoal-soft line-through">
-                {formatINR(pack.compareAt * qty)}
-              </span>
+              <span className="text-base text-charcoal-soft line-through">{formatINR(pack.compareAt * qty)}</span>
             )}
-            <span className="text-xs text-charcoal-muted">({pack.label} Pack)</span>
+            <span className="text-xs text-charcoal-muted">({pack.label} pack · incl. taxes)</span>
           </div>
 
-          {/* Add to Cart Actions */}
+          {/* Actions */}
           <div ref={inlineRef} className="mt-6 flex items-center gap-3 sm:gap-4">
             <div className="flex shrink-0 items-center rounded-full border border-[var(--color-border)] bg-white p-1">
-              <button
-                onClick={() => setQty((q) => Math.max(1, q - 1))}
-                className="grid size-11 place-items-center rounded-full text-charcoal-muted transition-colors hover:bg-purple-50 hover:text-purple-700"
-                aria-label="Decrease quantity"
-              >
+              <button onClick={() => setQty((q) => Math.max(1, q - 1))} className="grid size-11 place-items-center rounded-full text-charcoal-muted transition-colors hover:bg-purple-50 hover:text-purple-700" aria-label="Decrease quantity">
                 <Minus className="size-4" />
               </button>
-              <span className="w-8 text-center font-bold text-charcoal text-base tabular-nums">{qty}</span>
-              <button
-                onClick={() => setQty((q) => Math.min(99, q + 1))}
-                className="grid size-11 place-items-center rounded-full text-charcoal-muted transition-colors hover:bg-purple-50 hover:text-purple-700"
-                aria-label="Increase quantity"
-              >
+              <span className="w-8 text-center text-base font-bold tabular-nums text-charcoal">{qty}</span>
+              <button onClick={() => setQty((q) => Math.min(99, q + 1))} className="grid size-11 place-items-center rounded-full text-charcoal-muted transition-colors hover:bg-purple-50 hover:text-purple-700" aria-label="Increase quantity">
                 <Plus className="size-4" />
               </button>
             </div>
-            <Button
-              onClick={handleAdd}
-              variant={added ? "accent" : "primary"}
-              size="xl"
-              className="min-w-0 flex-1"
-            >
+            <Button onClick={handleAdd} variant={added ? "accent" : "primary"} size="xl" className="min-w-0 flex-1">
               {added ? (
-                <>
-                  <Check className="size-5" /> <span className="truncate">Added to cart</span>
-                </>
+                <><Check className="size-5" /> <span className="truncate">Added to cart</span></>
               ) : (
                 <>
                   <ShoppingBag className="size-5" />
@@ -241,111 +214,156 @@ export function ProductDetailClient({ flavor }: { flavor: Flavor }) {
                 </>
               )}
             </Button>
+            <button
+              onClick={() => toggle(flavor.id)}
+              aria-label={wished ? "Remove from wishlist" : "Add to wishlist"}
+              aria-pressed={wished}
+              className="grid size-13 shrink-0 place-items-center rounded-full border border-[var(--color-border)] bg-white text-charcoal-muted transition-colors hover:border-red-200 hover:text-red-500"
+            >
+              <Heart className={cn("size-5.5", wished && "fill-red-500 text-red-500")} />
+            </button>
           </div>
 
-          {/* Shipping Promos */}
-          <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-charcoal-muted border-t border-[var(--color-border)] pt-5">
-            <span className="flex items-center gap-1.5">
-              <Truck className="size-4 text-purple-600" /> Free Shipping above ₹599
-            </span>
-            <span className="flex items-center gap-1.5">
-              <ShieldCheck className="size-4 text-purple-600" /> Freshness Guaranteed
-            </span>
+          <Button onClick={buyNow} variant="secondary" size="xl" className="mt-3 w-full">
+            <Zap className="size-5" /> Buy Now
+          </Button>
+
+          {/* Delivery estimate */}
+          <div className="mt-6">
+            <DeliveryEstimate />
+          </div>
+
+          {/* Promos */}
+          <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[var(--color-border)] pt-5 text-xs text-charcoal-muted">
+            <span className="flex items-center gap-1.5"><Truck className="size-4 text-purple-600" /> Free shipping above ₹599</span>
+            <span className="flex items-center gap-1.5"><ShieldCheck className="size-4 text-purple-600" /> Freshness guaranteed</span>
+            <span className="flex items-center gap-1.5"><RotateCcw className="size-4 text-purple-600" /> 7-day easy returns</span>
           </div>
         </div>
       </div>
 
-      {/* Tabs section for description/ingredients */}
+      {/* Tabs */}
       <div className="mt-16 border-t border-[var(--color-border)] pt-12">
-        <div className="flex gap-4 overflow-x-auto border-b border-[var(--color-border)] pb-3 no-scrollbar">
-          {(["ingredients", "details", "shipping"] as const).map((tab) => (
+        <div className="flex gap-4 overflow-x-auto border-b border-[var(--color-border)] pb-3 no-scrollbar" role="tablist">
+          {TABS.map((t) => (
             <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
+              key={t.key}
+              onClick={() => setActiveTab(t.key)}
+              role="tab"
+              aria-selected={activeTab === t.key}
               className={cn(
-                "shrink-0 whitespace-nowrap pb-2 text-sm font-bold uppercase tracking-wider transition-all border-b-2 -mb-[14px]",
-                activeTab === tab
-                  ? "border-purple-600 text-purple-700"
-                  : "border-transparent text-charcoal-muted hover:text-purple-600"
+                "-mb-[14px] shrink-0 whitespace-nowrap border-b-2 pb-2 text-sm font-bold uppercase tracking-wider transition-all",
+                activeTab === t.key ? "border-purple-600 text-purple-700" : "border-transparent text-charcoal-muted hover:text-purple-600"
               )}
             >
-              {tab === "ingredients" && "Ingredients"}
-              {tab === "details" && "Product Details"}
-              {tab === "shipping" && "Shipping & Delivery"}
+              {t.label}
             </button>
           ))}
         </div>
 
-        <div className="mt-8 min-h-[120px]">
+        <div className="mt-8 min-h-[140px]">
           {activeTab === "ingredients" && (
             <div className="max-w-2xl">
-              <h3 className="font-serif text-xl font-bold text-charcoal mb-4">What goes inside</h3>
+              <h3 className="mb-4 font-serif text-xl font-bold text-charcoal">What goes inside</h3>
               <div className="flex flex-wrap gap-2">
                 {flavor.ingredients.map((ing) => (
-                  <span key={ing} className="rounded-full bg-cream-100 px-4.5 py-1.5 text-sm font-semibold text-purple-800 border border-purple-100">
-                    {ing}
-                  </span>
+                  <span key={ing} className="rounded-full border border-purple-100 bg-cream-100 px-4 py-1.5 text-sm font-semibold text-purple-800">{ing}</span>
                 ))}
               </div>
-              <p className="mt-5 text-sm text-charcoal-muted italic">
-                Processed in a facility that handles dairy. Free from added preservatives, MSG, and artificial colors.
-              </p>
+              <p className="mt-5 text-sm italic text-charcoal-muted">{NUTRITION_NOTE}</p>
+            </div>
+          )}
+
+          {activeTab === "nutrition" && (
+            <div className="max-w-md">
+              <h3 className="mb-4 font-serif text-xl font-bold text-charcoal">Nutrition information</h3>
+              <div className="overflow-hidden rounded-2xl border border-[var(--color-border)]">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-cream-100 text-left text-xs uppercase tracking-wide text-charcoal-soft">
+                      <th className="px-4 py-2.5 font-semibold">Per 100g</th>
+                      <th className="px-4 py-2.5 text-right font-semibold">Amount</th>
+                      <th className="px-4 py-2.5 text-right font-semibold">% DV*</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--color-border)]">
+                    {NUTRITION.map((row) => (
+                      <tr key={row.label} className={row.label.startsWith("  ") ? "text-charcoal-muted" : "text-charcoal"}>
+                        <td className="px-4 py-2.5">{row.label.trim()}</td>
+                        <td className="px-4 py-2.5 text-right font-medium tabular-nums">{row.value}</td>
+                        <td className="px-4 py-2.5 text-right tabular-nums text-charcoal-muted">{row.dv ?? "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="mt-3 text-xs text-charcoal-soft">*Percent Daily Values are based on a 2,000 kcal diet.</p>
             </div>
           )}
 
           {activeTab === "details" && (
-            <div className="grid gap-6 max-w-3xl sm:grid-cols-2">
+            <div className="grid max-w-3xl gap-6 sm:grid-cols-2">
               <div>
-                <h4 className="font-serif text-lg font-bold text-charcoal mb-2">Purple Yam (Ratalu)</h4>
-                <p className="text-sm text-charcoal-muted leading-relaxed">
-                  We use fresh, heritage purple yams locally sourced from farms. Kettle-cooking yams preserves their natural fiber, rich antioxidants, and distinct earthy sweetness.
+                <h4 className="mb-2 font-serif text-lg font-bold text-charcoal">Purple Yam (Ratalu)</h4>
+                <p className="text-sm leading-relaxed text-charcoal-muted">
+                  We use fresh, heritage purple yams locally sourced from Gujarat farms. Kettle-cooking preserves
+                  their natural fibre, antioxidants and distinct earthy sweetness.
                 </p>
               </div>
               <div>
-                <h4 className="font-serif text-lg font-bold text-charcoal mb-2">Our Kettle Cooking Process</h4>
-                <p className="text-sm text-charcoal-muted leading-relaxed">
-                  Unlike mass-produced potato chips, Ratalu wafers are kettle-cooked in small batches under controlled temperature. This creates a superior, thick, and satisfying crunch.
+                <h4 className="mb-2 font-serif text-lg font-bold text-charcoal">Our kettle-cooking process</h4>
+                <p className="text-sm leading-relaxed text-charcoal-muted">
+                  Unlike mass-produced potato chips, Ratalu Chips are kettle-cooked in small batches under
+                  controlled temperature — for a superior, thick and satisfying crunch.
                 </p>
               </div>
             </div>
           )}
 
+          {activeTab === "storage" && (
+            <div className="max-w-2xl text-sm leading-relaxed text-charcoal-muted">
+              <h3 className="mb-4 font-serif text-xl font-bold text-charcoal">Storage & shelf life</h3>
+              <ul className="flex flex-col gap-2.5">
+                <li className="flex gap-2"><Check className="mt-0.5 size-4 shrink-0 text-green-600" /> Store in a cool, dry place away from direct sunlight.</li>
+                <li className="flex gap-2"><Check className="mt-0.5 size-4 shrink-0 text-green-600" /> Best enjoyed within 3 months of the manufacturing date on the pack.</li>
+                <li className="flex gap-2"><Check className="mt-0.5 size-4 shrink-0 text-green-600" /> Once opened, reseal the pouch or transfer to an airtight container to keep it crisp.</li>
+                <li className="flex gap-2"><Check className="mt-0.5 size-4 shrink-0 text-green-600" /> Nitrogen-flushed pouches lock in freshness until you open them.</li>
+              </ul>
+            </div>
+          )}
+
           {activeTab === "shipping" && (
-            <div className="max-w-2xl text-sm text-charcoal-muted flex flex-col gap-3">
-              <p>
-                📬 **Standard Shipping**: Dispatch in 24 hours. Delivered across major Indian cities in 2 to 5 business days.
-              </p>
-              <p>
-                🚛 **Freshness Sealed**: Every single pouch is nitrogen-flushed to secure optimal crispiness and prevent breakage.
-              </p>
-              <p>
-                🔄 **Easy Returns**: Received damaged packaging? Contact us within 48 hours for immediate replacement.
-              </p>
+            <div className="flex max-w-2xl flex-col gap-3 text-sm leading-relaxed text-charcoal-muted">
+              <p><strong className="text-charcoal">Standard shipping:</strong> Dispatched within 24 hours. Delivered across major Indian cities in 2–5 business days.</p>
+              <p><strong className="text-charcoal">Freshness sealed:</strong> Every pouch is nitrogen-flushed to secure optimal crispiness and prevent breakage in transit.</p>
+              <p><strong className="text-charcoal">Easy returns:</strong> Received damaged or stale packaging? Contact us within 7 days for a free replacement or full refund.</p>
             </div>
           )}
         </div>
       </div>
 
-      {/* Flavor Reviews Section */}
+      {/* Frequently bought together */}
+      <div className="mt-16">
+        <FrequentlyBoughtTogether flavor={flavor} />
+      </div>
+
+      {/* Reviews */}
       <div className="mt-16 border-t border-[var(--color-border)] pt-12">
-        <h3 className="font-serif text-2xl font-bold text-charcoal mb-8">Customer Reviews</h3>
-        
+        <h3 className="mb-8 font-serif text-2xl font-bold text-charcoal">Customer reviews</h3>
         {flavorReviews.length > 0 ? (
           <div className="grid gap-6 sm:grid-cols-2">
             {flavorReviews.map((rev) => (
               <div key={rev.id} className="rounded-3xl border border-[var(--color-border)] bg-white/60 p-6 shadow-sm backdrop-blur-sm">
-                <div className="flex items-center justify-between mb-4">
+                <div className="mb-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <span
-                      className="grid size-10 place-items-center rounded-full text-sm font-bold text-white shadow-inner"
-                      style={{
-                        background: `linear-gradient(135deg, ${rev.avatarGradient.from}, ${rev.avatarGradient.to})`,
-                      }}
+                      className="grid size-10 place-items-center rounded-full text-sm font-bold text-white"
+                      style={{ background: `linear-gradient(135deg, ${rev.avatarGradient.from}, ${rev.avatarGradient.to})` }}
                     >
                       {rev.initials}
                     </span>
                     <div>
-                      <p className="font-bold text-charcoal text-sm">{rev.name}</p>
+                      <p className="text-sm font-bold text-charcoal">{rev.name}</p>
                       <p className="text-[10px] text-charcoal-muted">{rev.location}</p>
                     </div>
                   </div>
@@ -355,22 +373,23 @@ export function ProductDetailClient({ flavor }: { flavor: Flavor }) {
                     ))}
                   </span>
                 </div>
-                <p className="text-sm text-charcoal-muted leading-relaxed italic">
-                  &ldquo;{rev.quote}&rdquo;
-                </p>
+                <p className="text-sm italic leading-relaxed text-charcoal-muted">&ldquo;{rev.quote}&rdquo;</p>
               </div>
             ))}
           </div>
         ) : (
           <div className="rounded-3xl border border-[var(--color-border)] bg-cream-100/50 p-8 text-center">
-            <p className="text-charcoal-muted">
-              Be the first to review {flavor.name}! Order a pack today and tell us about your experience.
-            </p>
+            <p className="text-charcoal-muted">Be the first to review {flavor.name}! Order a pack today and tell us about your experience.</p>
           </div>
         )}
       </div>
 
-      {/* End sentinel — used to hide the sticky bar near the footer */}
+      {/* Related products */}
+      <div className="mt-16 border-t border-[var(--color-border)] pt-12">
+        <RelatedProducts flavor={flavor} />
+      </div>
+
+      {/* End sentinel */}
       <div ref={endRef} aria-hidden className="h-px w-full" />
 
       {/* Mobile sticky Add-to-Cart bar */}
@@ -386,33 +405,18 @@ export function ProductDetailClient({ flavor }: { flavor: Flavor }) {
             <div className="mx-auto flex max-w-2xl items-center gap-3">
               <div className="shrink-0">
                 <p className="text-[11px] leading-none text-charcoal-muted">{pack.label} pack</p>
-                <p className="font-serif text-lg font-bold leading-tight text-purple-700">
-                  {formatINR(pack.price * qty)}
-                </p>
+                <p className="font-serif text-lg font-bold leading-tight text-purple-700">{formatINR(pack.price * qty)}</p>
               </div>
               <div className="flex shrink-0 items-center rounded-full border border-[var(--color-border)] bg-white">
-                <button
-                  onClick={() => setQty((q) => Math.max(1, q - 1))}
-                  className="grid size-10 place-items-center rounded-full text-charcoal-muted hover:text-purple-700"
-                  aria-label="Decrease quantity"
-                >
+                <button onClick={() => setQty((q) => Math.max(1, q - 1))} className="grid size-10 place-items-center rounded-full text-charcoal-muted hover:text-purple-700" aria-label="Decrease quantity">
                   <Minus className="size-4" />
                 </button>
                 <span className="w-6 text-center text-sm font-bold tabular-nums">{qty}</span>
-                <button
-                  onClick={() => setQty((q) => Math.min(99, q + 1))}
-                  className="grid size-10 place-items-center rounded-full text-charcoal-muted hover:text-purple-700"
-                  aria-label="Increase quantity"
-                >
+                <button onClick={() => setQty((q) => Math.min(99, q + 1))} className="grid size-10 place-items-center rounded-full text-charcoal-muted hover:text-purple-700" aria-label="Increase quantity">
                   <Plus className="size-4" />
                 </button>
               </div>
-              <Button
-                onClick={handleAdd}
-                variant={added ? "accent" : "primary"}
-                size="lg"
-                className="min-w-0 flex-1"
-              >
+              <Button onClick={handleAdd} variant={added ? "accent" : "primary"} size="lg" className="min-w-0 flex-1">
                 {added ? <Check className="size-5" /> : <ShoppingBag className="size-5" />}
                 <span className="truncate">{added ? "Added" : "Add to Cart"}</span>
               </Button>

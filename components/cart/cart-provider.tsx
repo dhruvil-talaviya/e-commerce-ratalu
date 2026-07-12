@@ -3,10 +3,20 @@
 import * as React from "react";
 import type { CartItem, Flavor, PackSize } from "@/lib/types";
 import { SITE } from "@/lib/constants";
-import { findCoupon, type Coupon } from "@/lib/data/coupons";
 import { useStoreSettings } from "@/components/common/settings-provider";
+import { useAccount } from "@/components/account/account-provider";
+import { apiFetch } from "@/lib/api";
+import { toast } from "@/components/ui/toast";
 
 const STORAGE_KEY = "ratalu.cart.v1";
+
+export interface Coupon {
+  code: string;
+  type: "percent" | "flat";
+  value: number;
+  minSubtotal?: number;
+  description: string;
+}
 
 interface CartTotals {
   itemCount: number;
@@ -41,101 +51,206 @@ const CartContext = React.createContext<CartContextValue | null>(null);
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const { settings } = useStoreSettings();
+  const { isLoggedIn } = useAccount();
   const [items, setItems] = React.useState<CartItem[]>([]);
   const [isOpen, setIsOpen] = React.useState(false);
   const [coupon, setCoupon] = React.useState<Coupon | null>(null);
   const [couponError, setCouponError] = React.useState<string | null>(null);
   const [hydrated, setHydrated] = React.useState(false);
+  
+  // Database-loaded active coupons
+  const [availableCoupons, setAvailableCoupons] = React.useState<Coupon[]>([]);
 
-  // Load persisted cart on mount.
+  // Fetch active coupons on mount
   React.useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as { items: CartItem[]; coupon?: string };
-        if (Array.isArray(parsed.items)) setItems(parsed.items);
-        if (parsed.coupon) {
-          const c = findCoupon(parsed.coupon);
-          if (c) setCoupon(c);
-        }
+    const loadCoupons = async () => {
+      try {
+        const coupons = await apiFetch<Coupon[]>("/coupons");
+        setAvailableCoupons(coupons);
+      } catch (err) {
+        console.error("Failed to load coupons from database:", err);
       }
-    } catch {
-      /* ignore malformed storage */
-    }
-    setHydrated(true);
+    };
+    loadCoupons();
   }, []);
 
-  // Persist whenever the cart changes (after hydration to avoid clobbering).
+  // Fetch / Sync cart from server when login status changes
   React.useEffect(() => {
-    if (!hydrated) return;
+    const syncWithServer = async () => {
+      if (isLoggedIn) {
+        try {
+          // If we have local guest items, sync/merge them on login
+          const localData = localStorage.getItem(STORAGE_KEY);
+          let localItems: CartItem[] = [];
+          if (localData) {
+            const parsed = JSON.parse(localData);
+            if (Array.isArray(parsed.items)) localItems = parsed.items;
+          }
+
+          let syncedItems: CartItem[] = [];
+          if (localItems.length > 0) {
+            syncedItems = await apiFetch<CartItem[]>("/cart/sync", {
+              method: "POST",
+              body: {
+                items: localItems.map(i => ({
+                  flavorId: i.flavorId,
+                  packId: i.packId,
+                  quantity: i.quantity
+                }))
+              }
+            });
+            // Clear local guest cart storage after merge
+            localStorage.removeItem(STORAGE_KEY);
+          } else {
+            syncedItems = await apiFetch<CartItem[]>("/cart");
+          }
+
+          setItems(syncedItems);
+        } catch (err) {
+          console.error("Failed to sync cart with backend:", err);
+        }
+      } else {
+        // Load guest cart from local storage on mount/logout
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed.items)) setItems(parsed.items);
+            if (parsed.coupon) {
+              // Wait until availableCoupons is loaded
+              const c = availableCoupons.find(x => x.code === parsed.coupon);
+              if (c) setCoupon(c);
+            }
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+      setHydrated(true);
+    };
+
+    syncWithServer();
+  }, [isLoggedIn, availableCoupons]);
+
+  // Persist guest cart locally (only when not logged in)
+  React.useEffect(() => {
+    if (!hydrated || isLoggedIn) return;
     localStorage.setItem(
       STORAGE_KEY,
       JSON.stringify({ items, coupon: coupon?.code })
     );
-  }, [items, coupon, hydrated]);
+  }, [items, coupon, hydrated, isLoggedIn]);
 
   const addItem = React.useCallback(
-    (flavor: Flavor, pack: PackSize, quantity = 1) => {
+    async (flavor: Flavor, pack: PackSize, quantity = 1) => {
       const currentCount = items.reduce((sum, i) => sum + i.quantity, 0);
       if (currentCount + quantity > settings.maxOrderLimit) {
-        alert(`Maximum order limit of ${settings.maxOrderLimit} packs per checkout reached. Please adjust your quantity.`);
+        toast.warning("Order limit reached", {
+          description: `You can add up to ${settings.maxOrderLimit} packs per checkout.`,
+        });
         return;
       }
 
-      const key = `${flavor.id}:${pack.id}`;
-      setItems((prev) => {
-        const existing = prev.find((i) => i.key === key);
-        if (existing) {
-          return prev.map((i) =>
-            i.key === key ? { ...i, quantity: Math.min(i.quantity + quantity, 99) } : i
-          );
+      if (isLoggedIn) {
+        try {
+          const syncedItems = await apiFetch<CartItem[]>("/cart", {
+            method: "POST",
+            body: { flavorId: flavor.id, packId: pack.id, quantity }
+          });
+          setItems(syncedItems);
+        } catch (err) {
+          console.error("Failed to add cart item on server:", err);
         }
-        return [
-          ...prev,
-          {
-            key,
-            flavorId: flavor.id,
-            flavorName: flavor.name,
-            packId: pack.id,
-            packLabel: pack.label,
-            grams: pack.grams,
-            unitPrice: pack.price,
-            quantity,
-            gradient: flavor.gradient,
-          },
-        ];
-      });
+      } else {
+        const key = `${flavor.id}:${pack.id}`;
+        setItems((prev) => {
+          const existing = prev.find((i) => i.key === key);
+          if (existing) {
+            return prev.map((i) =>
+              i.key === key ? { ...i, quantity: Math.min(i.quantity + quantity, 99) } : i
+            );
+          }
+          return [
+            ...prev,
+            {
+              key,
+              flavorId: flavor.id,
+              flavorName: flavor.name,
+              packId: pack.id,
+              packLabel: pack.label,
+              grams: pack.grams,
+              unitPrice: pack.price,
+              quantity,
+              gradient: flavor.gradient,
+            },
+          ];
+        });
+      }
       setIsOpen(true);
     },
-    [items, settings.maxOrderLimit]
+    [items, settings.maxOrderLimit, isLoggedIn]
   );
 
-  const removeItem = React.useCallback((key: string) => {
-    setItems((prev) => prev.filter((i) => i.key !== key));
-  }, []);
+  const removeItem = React.useCallback(async (key: string) => {
+    const [flavorId, packId] = key.split(":");
+    if (isLoggedIn) {
+      try {
+        const syncedItems = await apiFetch<CartItem[]>(`/cart/${flavorId}/${packId}`, {
+          method: "DELETE"
+        });
+        setItems(syncedItems);
+      } catch (err) {
+        console.error("Failed to remove cart item from server:", err);
+      }
+    } else {
+      setItems((prev) => prev.filter((i) => i.key !== key));
+    }
+  }, [isLoggedIn]);
 
-  const updateQuantity = React.useCallback((key: string, quantity: number) => {
+  const updateQuantity = React.useCallback(async (key: string, quantity: number) => {
     const targetItem = items.find((i) => i.key === key);
     if (targetItem) {
       const diff = quantity - targetItem.quantity;
       const currentCount = items.reduce((sum, i) => sum + i.quantity, 0);
       if (currentCount + diff > settings.maxOrderLimit) {
-        alert(`Maximum order limit of ${settings.maxOrderLimit} packs per checkout reached. Please adjust your quantity.`);
+        toast.warning("Order limit reached", {
+          description: `You can add up to ${settings.maxOrderLimit} packs per checkout.`,
+        });
         return;
       }
     }
 
-    setItems((prev) =>
-      quantity <= 0
-        ? prev.filter((i) => i.key !== key)
-        : prev.map((i) => (i.key === key ? { ...i, quantity: Math.min(quantity, 99) } : i))
-    );
-  }, [items, settings.maxOrderLimit]);
+    const [flavorId, packId] = key.split(":");
+    if (isLoggedIn) {
+      try {
+        const syncedItems = await apiFetch<CartItem[]>("/cart", {
+          method: "PUT",
+          body: { flavorId, packId, quantity }
+        });
+        setItems(syncedItems);
+      } catch (err) {
+        console.error("Failed to update cart quantity on server:", err);
+      }
+    } else {
+      setItems((prev) =>
+        quantity <= 0
+          ? prev.filter((i) => i.key !== key)
+          : prev.map((i) => (i.key === key ? { ...i, quantity: Math.min(quantity, 99) } : i))
+      );
+    }
+  }, [items, settings.maxOrderLimit, isLoggedIn]);
 
-  const clear = React.useCallback(() => {
+  const clear = React.useCallback(async () => {
+    if (isLoggedIn) {
+      try {
+        await apiFetch("/cart", { method: "DELETE" });
+      } catch (err) {
+        console.error("Failed to clear cart on server:", err);
+      }
+    }
     setItems([]);
     setCoupon(null);
-  }, []);
+  }, [isLoggedIn]);
 
   const totals = React.useMemo<CartTotals>(() => {
     const subtotal = items.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0);
@@ -171,7 +286,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const applyCoupon = React.useCallback(
     (code: string) => {
-      const found = findCoupon(code);
+      const found = availableCoupons.find((c) => c.code.toLowerCase() === code.trim().toLowerCase());
       if (!found) {
         setCouponError("That code isn't valid.");
         return false;
@@ -187,7 +302,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       setCouponError(null);
       return true;
     },
-    [items]
+    [items, availableCoupons]
   );
 
   const removeCoupon = React.useCallback(() => {

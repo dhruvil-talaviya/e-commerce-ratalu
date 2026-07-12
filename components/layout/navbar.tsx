@@ -10,7 +10,18 @@ import { NAV_LINKS } from "@/lib/constants";
 import { useCart } from "@/components/cart/cart-provider";
 import { useWishlist } from "@/components/cart/wishlist-provider";
 import { useAccount } from "@/components/account/account-provider";
+import { useLanguage } from "@/components/common/language-provider";
 import { cn } from "@/lib/utils";
+
+// Map href to translation key
+const NAV_KEY_MAP: Record<string, string> = {
+  "/shop":      "nav_shop",
+  "/our-story": "nav_our_story",
+  "/why-us":    "nav_why_us",
+  "/reviews":   "nav_reviews",
+  "/faq":       "nav_faq",
+  "/contact":   "nav_contact",
+};
 
 export function Navbar() {
   const [scrolled, setScrolled] = React.useState(false);
@@ -19,6 +30,7 @@ export function Navbar() {
   const { totals, openCart } = useCart();
   const { count: wishlistCount } = useWishlist();
   const { user, isLoggedIn } = useAccount();
+  const { t } = useLanguage();
   const isAdminUser = isLoggedIn && user?.phone === "9999999999";
 
   useMotionValueEvent(scrollY, "change", (latest) => {
@@ -49,7 +61,7 @@ export function Navbar() {
         className={cn(
           "transition-colors duration-300",
           scrolled
-            ? "border-b border-[var(--color-border)] bg-cream/85 backdrop-blur-xl shadow-[0_4px_20px_-12px_rgba(91,44,111,0.25)]"
+            ? "border-b border-[var(--color-border)] bg-[#fff8f0]/90 backdrop-blur-xl shadow-[0_4px_20px_-12px_rgba(249,115,22,0.2)]"
             : "bg-transparent"
         )}
       >
@@ -62,9 +74,9 @@ export function Navbar() {
               <Link
                 key={link.href}
                 href={link.href}
-                className="relative rounded-full px-4 py-2 text-sm font-medium text-charcoal-muted transition-colors hover:text-purple-700"
+                className="relative rounded-full px-4 py-2 text-[15px] font-medium text-gray-500 transition-colors hover:text-orange-600 hover:bg-orange-50"
               >
-                {link.label}
+                {t((NAV_KEY_MAP[link.href] || "nav_shop") as Parameters<typeof t>[0])}
               </Link>
             ))}
           </div>
@@ -74,20 +86,20 @@ export function Navbar() {
             {isAdminUser && (
               <Link
                 href="/admin"
-                className="hidden size-11 place-items-center rounded-full text-charcoal transition-colors hover:bg-purple-50 hover:text-purple-700 sm:grid"
-                aria-label="Admin Console"
+                className="hidden size-11 place-items-center rounded-full text-gray-700 transition-colors hover:bg-orange-50 hover:text-orange-600 sm:grid"
+                aria-label={t("nav_admin")}
               >
-                <ShieldCheck className="size-5.5 text-purple-600" />
+                <ShieldCheck className="size-5.5 text-orange-500" />
               </Link>
             )}
 
             <Link
               href="/account"
-              className="hidden size-11 place-items-center rounded-full text-charcoal transition-colors hover:bg-purple-50 hover:text-purple-700 sm:grid"
-              aria-label={isLoggedIn && user ? `Account of ${(user.name || "Snacker").split(" ")[0]}` : "Account"}
+              className="hidden size-11 place-items-center rounded-full text-gray-700 transition-colors hover:bg-orange-50 hover:text-orange-600 sm:grid"
+              aria-label={isLoggedIn && user ? `Account of ${(user.name || "Snacker").split(" ")[0]}` : t("nav_account")}
             >
               {isLoggedIn && user ? (
-                <span className="grid size-7 place-items-center rounded-full bg-purple-100 text-xs font-bold text-purple-700 border border-purple-200 shadow-sm">
+                <span className="grid size-7 place-items-center rounded-full bg-orange-100 text-xs font-bold text-orange-700 border border-orange-200 shadow-sm">
                   {(user.name || "S")[0].toUpperCase()}
                 </span>
               ) : (
@@ -97,12 +109,12 @@ export function Navbar() {
 
             <Link
               href="/account"
-              className="relative hidden size-11 place-items-center rounded-full text-charcoal transition-colors hover:bg-purple-50 hover:text-purple-700 sm:grid"
-              aria-label="Wishlist"
+              className="relative hidden size-11 place-items-center rounded-full text-gray-700 transition-colors hover:bg-orange-50 hover:text-orange-600 sm:grid"
+              aria-label={t("nav_wishlist")}
             >
               <Heart className="size-5" />
               {wishlistCount > 0 && (
-                <span className="absolute right-1.5 top-1.5 grid min-w-4 place-items-center rounded-full bg-orange-500 px-1 text-[10px] font-bold text-white">
+                <span className="absolute right-1.5 top-1.5 grid min-w-4 place-items-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">
                   {wishlistCount}
                 </span>
               )}
@@ -110,7 +122,7 @@ export function Navbar() {
 
             <button
               onClick={openCart}
-              className="relative grid size-11 place-items-center rounded-full text-charcoal transition-colors hover:bg-purple-50 hover:text-purple-700"
+              className="relative grid size-11 place-items-center rounded-full text-gray-700 transition-colors hover:bg-orange-50 hover:text-orange-600"
               aria-label={`Cart, ${totals.itemCount} items`}
             >
               <ShoppingBag className="size-5" />
@@ -122,7 +134,7 @@ export function Navbar() {
                     animate={{ scale: 1 }}
                     exit={{ scale: 0 }}
                     transition={{ type: "spring", stiffness: 500, damping: 25 }}
-                    className="absolute right-1 top-1 grid min-w-4.5 place-items-center rounded-full bg-purple-500 px-1 text-[10px] font-bold text-cream"
+                    className="absolute right-1 top-1 grid min-w-4.5 place-items-center rounded-full bg-orange-500 px-1 text-[10px] font-bold text-white"
                   >
                     {totals.itemCount}
                   </motion.span>
@@ -131,13 +143,13 @@ export function Navbar() {
             </button>
 
             <Button asChild size="sm" className="ml-1 hidden md:inline-flex">
-              <Link href="/shop">Shop Now</Link>
+              <Link href="/shop">{t("nav_shop_now")}</Link>
             </Button>
 
             <button
               onClick={() => setMenuOpen(true)}
-              className="grid size-11 place-items-center rounded-full text-charcoal transition-colors hover:bg-purple-50 lg:hidden"
-              aria-label="Open menu"
+              className="grid size-11 place-items-center rounded-full text-gray-700 transition-colors hover:bg-orange-50 lg:hidden"
+              aria-label={t("nav_open_menu")}
             >
               <Menu className="size-5" />
             </button>
@@ -156,7 +168,7 @@ export function Navbar() {
           >
             <motion.div
               variants={{ hidden: { opacity: 0 }, visible: { opacity: 1 } }}
-              className="absolute inset-0 bg-purple-900/40 backdrop-blur-sm"
+              className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm"
               onClick={() => setMenuOpen(false)}
             />
             <motion.div
@@ -165,14 +177,14 @@ export function Navbar() {
                 visible: { x: 0 },
               }}
               transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-              className="absolute right-0 top-0 flex h-full w-[82%] max-w-sm flex-col bg-cream p-6 shadow-[var(--shadow-lift)]"
+              className="absolute right-0 top-0 flex h-full w-[82%] max-w-sm flex-col bg-[#fff8f0] p-6 shadow-[var(--shadow-lift)]"
             >
               <div className="flex items-center justify-between">
                 <Logo />
                 <button
                   onClick={() => setMenuOpen(false)}
-                  className="grid size-10 place-items-center rounded-full text-charcoal hover:bg-purple-50"
-                  aria-label="Close menu"
+                  className="grid size-10 place-items-center rounded-full text-gray-700 hover:bg-orange-50"
+                  aria-label={t("nav_close_menu")}
                 >
                   <X className="size-5" />
                 </button>
@@ -189,9 +201,9 @@ export function Navbar() {
                     <Link
                       href={link.href}
                       onClick={() => setMenuOpen(false)}
-                      className="block rounded-2xl px-4 py-3.5 font-serif text-xl text-charcoal transition-colors hover:bg-purple-50 hover:text-purple-700"
+                      className="block rounded-2xl px-4 py-3.5 text-xl font-semibold text-gray-700 transition-colors hover:bg-orange-50 hover:text-orange-600"
                     >
-                      {link.label}
+                      {t((NAV_KEY_MAP[link.href] || "nav_shop") as Parameters<typeof t>[0])}
                     </Link>
                   </motion.div>
                 ))}
@@ -199,20 +211,20 @@ export function Navbar() {
 
               <div className="mt-auto flex flex-col gap-3">
                 <Button asChild size="lg" className="w-full" onClick={() => setMenuOpen(false)}>
-                  <Link href="/shop">Shop Now</Link>
+                  <Link href="/shop">{t("nav_shop_now")}</Link>
                 </Button>
                 <div className="flex flex-col gap-2">
                   <div className="flex gap-3">
                     <Button asChild variant="outline" size="lg" className="flex-1" onClick={() => setMenuOpen(false)}>
-                      <Link href="/account">{isLoggedIn && user ? `Hi, ${(user.name || "Snacker").split(" ")[0]}` : "Account"}</Link>
+                      <Link href="/account">{isLoggedIn && user ? `Hi, ${(user.name || "Snacker").split(" ")[0]}` : t("nav_account")}</Link>
                     </Button>
                     <Button asChild variant="outline" size="lg" className="flex-1" onClick={() => setMenuOpen(false)}>
-                      <Link href="/account">Wishlist</Link>
+                      <Link href="/account">{t("nav_wishlist")}</Link>
                     </Button>
                   </div>
                   {isAdminUser && (
-                    <Button asChild variant="outline" size="lg" className="w-full text-purple-700 border-purple-200" onClick={() => setMenuOpen(false)}>
-                      <Link href="/admin">Admin Console</Link>
+                    <Button asChild variant="outline" size="lg" className="w-full text-orange-700 border-orange-200" onClick={() => setMenuOpen(false)}>
+                      <Link href="/admin">{t("nav_admin")}</Link>
                     </Button>
                   )}
                 </div>

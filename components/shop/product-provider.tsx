@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { FLAVORS as STATIC_FLAVORS } from "@/lib/data/flavors";
+import { apiFetch } from "@/lib/api";
 import type { Flavor } from "@/lib/types";
 
 interface ProductContextValue {
@@ -9,40 +9,32 @@ interface ProductContextValue {
   hydrated: boolean;
   getFlavor: (id: string) => Flavor | undefined;
   getFlavorBySlug: (slug: string) => Flavor | undefined;
-  addProduct: (flavor: Omit<Flavor, "id" | "slug">) => void;
-  updateProduct: (id: string, updated: Omit<Flavor, "id" | "slug">) => void;
-  deleteProduct: (id: string) => void;
+  addProduct: (flavor: Omit<Flavor, "id" | "slug">) => Promise<void>;
+  updateProduct: (id: string, updated: Omit<Flavor, "id" | "slug">) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>;
 }
 
 const ProductContext = React.createContext<ProductContextValue | null>(null);
 
-const STORAGE_KEY = "ratalu.products.v2";
-
 export function ProductProvider({ children }: { children: React.ReactNode }) {
-  const [flavors, setFlavors] = React.useState<Flavor[]>(STATIC_FLAVORS);
+  const [flavors, setFlavors] = React.useState<Flavor[]>([]);
   const [hydrated, setHydrated] = React.useState(false);
 
-  // Load from local storage
-  React.useEffect(() => {
+  const fetchFlavors = React.useCallback(async () => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setTimeout(() => setFlavors(parsed), 0);
-        }
-      }
-    } catch {
-      // Ignore corrupt storage
+      const data = await apiFetch<Flavor[]>("/products");
+      setFlavors(data);
+    } catch (err) {
+      console.error("Failed to load catalog products from backend:", err);
+    } finally {
+      setHydrated(true);
     }
-    setTimeout(() => setHydrated(true), 0);
   }, []);
 
-  // Save to local storage
+  // Fetch catalog on mount
   React.useEffect(() => {
-    if (!hydrated) return;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(flavors));
-  }, [flavors, hydrated]);
+    fetchFlavors();
+  }, [fetchFlavors]);
 
   const getFlavor = React.useCallback(
     (id: string) => flavors.find((f) => f.id === id),
@@ -54,44 +46,28 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
     [flavors]
   );
 
-  const addProduct = React.useCallback((newFlavor: Omit<Flavor, "id" | "slug">) => {
-    const slug = newFlavor.name
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "");
-    const id = slug; // unique id from slug
+  const addProduct = React.useCallback(async (newFlavor: Omit<Flavor, "id" | "slug">) => {
+    await apiFetch("/products", {
+      method: "POST",
+      body: newFlavor
+    });
+    await fetchFlavors(); // refresh state
+  }, [fetchFlavors]);
 
-    const flavor: Flavor = {
-      ...newFlavor,
-      id,
-      slug,
-    };
+  const updateProduct = React.useCallback(async (id: string, updated: Omit<Flavor, "id" | "slug">) => {
+    await apiFetch(`/products/${id}`, {
+      method: "PUT",
+      body: updated
+    });
+    await fetchFlavors(); // refresh state
+  }, [fetchFlavors]);
 
-    setFlavors((prev) => [...prev, flavor]);
-  }, []);
-
-  const updateProduct = React.useCallback((id: string, updated: Omit<Flavor, "id" | "slug">) => {
-    setFlavors((prev) =>
-      prev.map((f) => {
-        if (f.id !== id) return f;
-        const slug = updated.name
-          .toLowerCase()
-          .trim()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/(^-|-$)/g, "");
-        return {
-          ...f,
-          ...updated,
-          slug, // Keep slug synchronized if name changes
-        };
-      })
-    );
-  }, []);
-
-  const deleteProduct = React.useCallback((id: string) => {
-    setFlavors((prev) => prev.filter((f) => f.id !== id));
-  }, []);
+  const deleteProduct = React.useCallback(async (id: string) => {
+    await apiFetch(`/products/${id}`, {
+      method: "DELETE"
+    });
+    await fetchFlavors(); // refresh state
+  }, [fetchFlavors]);
 
   const value = React.useMemo(
     () => ({
@@ -101,7 +77,7 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
       getFlavorBySlug,
       addProduct,
       updateProduct,
-      deleteProduct,
+      deleteProduct
     }),
     [flavors, hydrated, getFlavor, getFlavorBySlug, addProduct, updateProduct, deleteProduct]
   );

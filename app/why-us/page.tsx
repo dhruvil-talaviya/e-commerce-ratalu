@@ -15,7 +15,7 @@ export default function WhyUsPage() {
         eyebrow="Our Promises"
         title={
           <>
-            Why Choose <span className="text-gradient-warm">Ratalu Wafers</span>
+            Why Choose <span className="text-gradient-warm">Ratalu Chips</span>
           </>
         }
         description="Crafting the ultimate guilt-free gourmet snack. Sourced responsibly, cooked traditionally, seasoned by hand."
