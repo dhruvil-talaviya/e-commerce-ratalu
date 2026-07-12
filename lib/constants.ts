@@ -13,6 +13,7 @@ export const SITE = {
   email: "hello@rataluwafers.com",
   phone: "+91 98250 00000",
   phoneHref: "tel:+919825000000",
+  whatsapp: "919825000000", // WhatsApp Business number (country code + number, no +)
   address: "Unit 7, Artisan Foods Park, Rajkot, Gujarat 360001, India",
   currency: "INR",
   gstRate: 0.05, // 5% GST on packaged namkeen/wafers

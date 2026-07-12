@@ -193,13 +193,13 @@ export function ProductDetailClient({ flavor }: { flavor: Flavor }) {
           </div>
 
           {/* Actions */}
-          <div ref={inlineRef} className="mt-6 flex items-center gap-3 sm:gap-4">
+          <div ref={inlineRef} className="mt-6 flex items-center gap-2 sm:gap-4">
             <div className="flex shrink-0 items-center rounded-full border border-[var(--color-border)] bg-white p-1">
-              <button onClick={() => setQty((q) => Math.max(1, q - 1))} className="grid size-11 place-items-center rounded-full text-charcoal-muted transition-colors hover:bg-purple-50 hover:text-purple-700" aria-label="Decrease quantity">
+              <button onClick={() => setQty((q) => Math.max(1, q - 1))} className="grid size-9 place-items-center rounded-full text-charcoal-muted transition-colors hover:bg-purple-50 hover:text-purple-700 sm:size-11" aria-label="Decrease quantity">
                 <Minus className="size-4" />
               </button>
-              <span className="w-8 text-center text-base font-bold tabular-nums text-charcoal">{qty}</span>
-              <button onClick={() => setQty((q) => Math.min(99, q + 1))} className="grid size-11 place-items-center rounded-full text-charcoal-muted transition-colors hover:bg-purple-50 hover:text-purple-700" aria-label="Increase quantity">
+              <span className="w-7 text-center text-base font-bold tabular-nums text-charcoal sm:w-8">{qty}</span>
+              <button onClick={() => setQty((q) => Math.min(99, q + 1))} className="grid size-9 place-items-center rounded-full text-charcoal-muted transition-colors hover:bg-purple-50 hover:text-purple-700 sm:size-11" aria-label="Increase quantity">
                 <Plus className="size-4" />
               </button>
             </div>
@@ -218,9 +218,9 @@ export function ProductDetailClient({ flavor }: { flavor: Flavor }) {
               onClick={() => toggle(flavor.id)}
               aria-label={wished ? "Remove from wishlist" : "Add to wishlist"}
               aria-pressed={wished}
-              className="grid size-13 shrink-0 place-items-center rounded-full border border-[var(--color-border)] bg-white text-charcoal-muted transition-colors hover:border-red-200 hover:text-red-500"
+              className="grid size-11 shrink-0 place-items-center rounded-full border border-[var(--color-border)] bg-white text-charcoal-muted transition-colors hover:border-red-200 hover:text-red-500 sm:size-13"
             >
-              <Heart className={cn("size-5.5", wished && "fill-red-500 text-red-500")} />
+              <Heart className={cn("size-5 sm:size-5.5", wished && "fill-red-500 text-red-500")} />
             </button>
           </div>
 

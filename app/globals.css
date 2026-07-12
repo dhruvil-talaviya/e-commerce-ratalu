@@ -127,7 +127,9 @@
   html {
     scroll-behavior: smooth;
     -webkit-text-size-adjust: 100%;
-    overflow-x: clip;
+    overflow-x: hidden;
+    /* Prevent layout shift when scrollbar disappears (e.g., when overlays open) */
+    scrollbar-gutter: stable;
   }
 
   body {
@@ -138,15 +140,23 @@
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    overflow-x: clip;
+    overflow-x: hidden;
     width: 100%;
     max-width: 100%;
+    /* Minimum full viewport height so footer is always pushed to bottom */
+    min-height: 100dvh;
   }
 
   /* Media never overflows its container */
   img, svg, video, canvas {
     max-width: 100%;
     height: auto;
+  }
+
+  /* Prevent long words/URLs from breaking layout */
+  p, li, h1, h2, h3, h4, h5, h6 {
+    overflow-wrap: break-word;
+    word-break: break-word;
   }
 
   /* Comfortable focus ring */

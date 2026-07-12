@@ -93,8 +93,8 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${poppins.variable} ${inter.variable} ${baloo2.variable} ${notoSansDevanagari.variable} ${notoSansGujarati.variable} h-full`}>
-      <body className="min-h-full flex flex-col bg-background text-foreground">
+    <html lang="en" className={`${poppins.variable} ${inter.variable} ${baloo2.variable} ${notoSansDevanagari.variable} ${notoSansGujarati.variable}`}>
+      <body className="bg-background text-foreground">
         <OrganizationJsonLd />
         <WebsiteJsonLd />
         <Providers>

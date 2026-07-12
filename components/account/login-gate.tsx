@@ -3,7 +3,7 @@
 import * as React from "react";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { KeyRound, Phone, User, ShieldAlert, ArrowLeft, X, Copy, Check } from "lucide-react";
+import { KeyRound, Phone, User, ShieldAlert, ArrowLeft, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAccount } from "./account-provider";
@@ -17,7 +17,6 @@ export function LoginGate() {
   const pathname = usePathname();
 
   const [visible, setVisible] = React.useState(false);
-  const [copied, setCopied] = React.useState(false);
   
   const [mode, setMode] = React.useState<"login" | "register">("login");
   const [step, setStep] = React.useState<"mobile" | "otp">("mobile");
@@ -70,12 +69,6 @@ export function LoginGate() {
     localStorage.setItem("ratalu.welcomeDismissed", "true");
   };
 
-  const copyCouponCode = () => {
-    navigator.clipboard.writeText(settings.welcomeOfferCoupon || "WELCOME10");
-    setCopied(true);
-    toast.success(`Coupon code ${settings.welcomeOfferCoupon} copied!`);
-    setTimeout(() => setCopied(false), 2000);
-  };
 
   const isValidPhone = (num: string) => {
     const cleaned = num.replace(/\D/g, "");
@@ -221,21 +214,14 @@ export function LoginGate() {
         </div>
 
         {/* Promotional Coupon Chip */}
-        <button
-          onClick={copyCouponCode}
-          className="w-full flex items-center justify-between gap-2.5 rounded-xl bg-orange-50 hover:bg-orange-100/70 border border-orange-100 p-2.5 transition-colors focus:outline-none"
-        >
+        <div className="w-full flex items-center gap-2.5 rounded-xl bg-orange-50 border border-orange-100 p-2.5">
           <div className="text-left">
             <span className="text-[9px] font-bold uppercase text-orange-600 tracking-wider">Newcomer Discount Code</span>
             <p className="text-xs font-extrabold text-gray-800 leading-none mt-0.5">
               Code: {settings.welcomeOfferCoupon} ({settings.welcomeOfferDiscount})
             </p>
           </div>
-          <span className="text-[10px] font-bold text-orange-600 inline-flex items-center gap-1">
-            {copied ? <Check className="size-3" /> : <Copy className="size-3" />}
-            {copied ? "Copied" : "Copy"}
-          </span>
-        </button>
+        </div>
 
         {/* Error notification */}
         {error && (

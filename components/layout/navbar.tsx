@@ -37,13 +37,19 @@ export function Navbar() {
     setScrolled(latest > 16);
   });
 
-  // Lock body scroll while the mobile drawer is open.
+  // Lock body scroll while the mobile drawer is open, compensating for scrollbar width.
   React.useEffect(() => {
     if (!menuOpen) return;
-    const original = document.body.style.overflow;
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+    const originalOverflow = document.body.style.overflow;
+    const originalPaddingRight = document.body.style.paddingRight;
     document.body.style.overflow = "hidden";
+    if (scrollbarWidth > 0) {
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
+    }
     return () => {
-      document.body.style.overflow = original;
+      document.body.style.overflow = originalOverflow;
+      document.body.style.paddingRight = originalPaddingRight;
     };
   }, [menuOpen]);
 

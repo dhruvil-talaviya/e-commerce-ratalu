@@ -28,10 +28,12 @@ const buttonVariants = cva(
         link: "text-purple-600 underline-offset-4 hover:underline rounded-none px-0",
       },
       size: {
-        sm:      "h-9 px-4 text-sm [&_svg]:size-4",
-        md:      "h-11 px-6 text-sm [&_svg]:size-4",
-        lg:      "h-13 px-8 text-base [&_svg]:size-5",
-        xl:      "h-14 px-9 text-base [&_svg]:size-5",
+        // Mobile-first: compact on phones so two buttons fit side-by-side,
+        // full size restored from `sm:` up (desktop unchanged).
+        sm:      "h-9 px-3.5 text-[13px] [&_svg]:size-4 sm:px-4 sm:text-sm",
+        md:      "h-11 px-4 text-sm [&_svg]:size-4 sm:px-6",
+        lg:      "h-12 px-5 text-sm [&_svg]:size-5 sm:h-13 sm:px-8 sm:text-base",
+        xl:      "h-12 px-5 text-sm [&_svg]:size-5 sm:h-14 sm:px-9 sm:text-base",
         icon:    "size-11 [&_svg]:size-5",
         "icon-sm": "size-9 [&_svg]:size-4",
       },

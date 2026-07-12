@@ -2,8 +2,9 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
-import { Minus, Plus, ShoppingBag, Tag, Trash2, Truck, X, ArrowRight } from "lucide-react";
+import { Minus, Plus, ShoppingBag, Tag, Trash2, Truck, X, ArrowRight, Loader2, Lock } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -31,21 +32,24 @@ export function CartSheet() {
     removeCoupon,
   } = useCart();
   const { isLoggedIn } = useAccount();
+  const router = useRouter();
 
   const [code, setCode] = React.useState("");
+  const [checkingOut, setCheckingOut] = React.useState(false);
 
   const handleApply = (e: React.FormEvent) => {
     e.preventDefault();
     if (applyCoupon(code)) setCode("");
   };
 
-  const handleCheckoutClick = (e: React.MouseEvent) => {
-    if (!isLoggedIn) {
-      e.preventDefault();
-      setOpen(false);
-    } else {
-      setOpen(false);
-    }
+  const handleCheckoutClick = async () => {
+    if (checkingOut) return;
+    setCheckingOut(true);
+    // Brief loading animation so the user sees feedback before navigation
+    await new Promise((r) => setTimeout(r, 750));
+    setOpen(false);
+    setCheckingOut(false);
+    router.push("/checkout");
   };
 
   const progress = Math.min(
@@ -55,8 +59,8 @@ export function CartSheet() {
 
   return (
     <Sheet open={isOpen} onOpenChange={setOpen}>
-      <SheetContent className="p-0">
-        <SheetHeader className="flex-row items-center gap-3">
+      <SheetContent className="flex flex-col p-0 overflow-hidden">
+        <SheetHeader className="flex-row items-center gap-3 shrink-0">
           <span className="grid size-10 place-items-center rounded-full bg-purple-500 text-cream">
             <ShoppingBag className="size-5" />
           </span>
@@ -73,7 +77,7 @@ export function CartSheet() {
         ) : (
           <>
             {/* Free-shipping progress */}
-            <div className="border-b border-[var(--color-border)] px-6 py-4">
+            <div className="border-b border-[var(--color-border)] px-6 py-4 shrink-0">
               <div className="mb-2 flex items-center gap-2 text-sm text-charcoal">
                 <Truck className="size-4 text-orange-500" />
                 {totals.qualifiesFreeShipping ? (
@@ -154,7 +158,7 @@ export function CartSheet() {
             </div>
 
             {/* Summary */}
-            <div className="border-t border-[var(--color-border)] bg-white/60 px-6 py-5">
+            <div className="border-t border-[var(--color-border)] bg-white/60 px-6 py-5 shrink-0">
               {/* Coupon */}
               {coupon ? (
                 <div className="mb-4 flex items-center justify-between rounded-2xl border border-green-200 bg-green-50 px-4 py-2.5">
@@ -215,11 +219,58 @@ export function CartSheet() {
                 Estimated delivery in 2–6 business days.
               </p>
 
-              <Button asChild size="lg" className="mt-4 w-full" onClick={handleCheckoutClick}>
-                <Link href="/checkout">
-                  Checkout · {formatINR(totals.total)} <ArrowRight />
-                </Link>
-              </Button>
+              {/* Checkout button with loading state */}
+              <div className="mt-4 relative">
+                <Button
+                  size="lg"
+                  className="w-full overflow-hidden relative"
+                  onClick={handleCheckoutClick}
+                  disabled={checkingOut}
+                >
+                  <AnimatePresence mode="wait" initial={false}>
+                    {checkingOut ? (
+                      <motion.span
+                        key="loading"
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -8 }}
+                        transition={{ duration: 0.18 }}
+                        className="flex items-center gap-2"
+                      >
+                        <Loader2 className="size-4 animate-spin" />
+                        Preparing checkout…
+                      </motion.span>
+                    ) : (
+                      <motion.span
+                        key="idle"
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -8 }}
+                        transition={{ duration: 0.18 }}
+                        className="flex items-center gap-2"
+                      >
+                        <Lock className="size-4" />
+                        Checkout · {formatINR(totals.total)}
+                        <ArrowRight className="size-4" />
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Animated progress bar that sweeps across the button */}
+                  <AnimatePresence>
+                    {checkingOut && (
+                      <motion.span
+                        key="bar"
+                        className="absolute bottom-0 left-0 h-[3px] bg-white/40 rounded-full"
+                        initial={{ width: "0%" }}
+                        animate={{ width: "100%" }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.75, ease: "easeInOut" }}
+                      />
+                    )}
+                  </AnimatePresence>
+                </Button>
+              </div>
             </div>
           </>
         )}
