@@ -72,8 +72,12 @@ const INPUT =
 /* PAGE                                                               */
 /* ------------------------------------------------------------------ */
 
-export default function CatalogPage() {
-  const [tab, setTab] = React.useState<"categories" | "combos">("categories");
+export default function CatalogPage({
+  defaultTab = "categories",
+}: {
+  defaultTab?: "categories" | "combos";
+} = {}) {
+  const [tab, setTab] = React.useState<"categories" | "combos">(defaultTab);
 
   return (
     <AdminShell

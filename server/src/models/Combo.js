@@ -23,8 +23,10 @@ const ComboItemSchema = new mongoose.Schema({
 const ComboSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true },
   slug: { type: String, required: true, unique: true, trim: true },
+  subtitle: { type: String, default: '' },
   description: { type: String, default: '' },
   image: { type: String, default: '' },
+  images: { type: [String], default: [] },
 
   items: {
     type: [ComboItemSchema],
@@ -37,23 +39,27 @@ const ComboSchema = new mongoose.Schema({
   /** What the customer pays for the bundle. */
   comboPrice: { type: Number, required: true, min: 0 },
 
-  /**
-   * Sum of the items at their individual prices, snapshotted when the combo was
-   * saved. Kept so the "you save ₹X" figure is stable and auditable rather than
-   * silently shifting whenever a pack price moves.
-   */
+  /** Sum of individual items at regular prices. */
   originalPrice: { type: Number, default: 0 },
 
-  /** Which category this combo belongs to, so it can appear in category pages. */
+  /** Which category this combo belongs to. */
   categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', default: null },
 
   badge: { type: String, default: '' },      // e.g. "Best value"
+  rating: { type: Number, default: 4.8, min: 1, max: 5 },
+  reviewCount: { type: Number, default: 16 },
   sortOrder: { type: Number, default: 0 },
   featured: { type: Boolean, default: false },
 
   status: { type: String, enum: ['Active', 'Inactive'], default: 'Active' },
 
-  /** Optional scheduling window. Null on either side means "no bound". */
+  seo: {
+    title: { type: String, default: '' },
+    description: { type: String, default: '' },
+    keywords: { type: String, default: '' }
+  },
+
+  /** Optional scheduling window. */
   startsAt: { type: Date, default: null },
   endsAt: { type: Date, default: null }
 }, { timestamps: true });

@@ -158,4 +158,41 @@ export interface CartItem {
   unitPrice: number;
   quantity: number;
   gradient: { from: string; via: string; to: string };
+  isCombo?: boolean;
+  comboId?: string;
+  comboName?: string;
+}
+
+export interface ShopComboItem {
+  flavorId: string;
+  flavorName: string;
+  packId: string;
+  packLabel: string;
+  quantity: number;
+  flavor?: Flavor;
+}
+
+export interface ShopCombo {
+  _id: string;
+  name: string;
+  slug: string;
+  subtitle?: string;
+  description?: string;
+  image?: string;
+  images?: string[];
+  badge?: string;
+  comboPrice: number;
+  originalPrice: number;
+  savings: number;
+  discountPercent: number;
+  rating?: number;
+  reviewCount?: number;
+  status?: "Active" | "Inactive";
+  featured?: boolean;
+  seo?: {
+    title?: string;
+    description?: string;
+    keywords?: string;
+  };
+  items: ShopComboItem[];
 }

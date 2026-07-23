@@ -237,25 +237,36 @@ const priceItems = async (items) => {
 exports.getPublicCombos = async (req, res, next) => {
   try {
     const now = new Date();
+    const { query, sort, category, featured } = req.query;
 
-    const combos = await Combo.find({
+    const filter = {
       status: 'Active',
       $and: [
         { $or: [{ startsAt: null }, { startsAt: { $lte: now } }] },
         { $or: [{ endsAt: null }, { endsAt: { $gte: now } }] }
       ]
-    }).sort({ sortOrder: 1, createdAt: -1 });
+    };
 
-    /**
-     * Re-price each bundle against the live catalogue before showing it.
-     *
-     * `originalPrice` is a snapshot from when the combo was saved, so once a
-     * pack price moved the card advertised a "was" price and a saving that no
-     * longer matched what checkout actually charges. Checkout discounts down to
-     * `comboPrice` using live prices, so the card must quote live prices too —
-     * otherwise the two disagree and the customer is quoted a saving they
-     * don't get.
-     */
+    if (featured === 'true') {
+      filter.featured = true;
+    }
+
+    if (query && String(query).trim()) {
+      const q = String(query).trim();
+      filter.$or = [
+        { name: { $regex: q, $options: 'i' } },
+        { subtitle: { $regex: q, $options: 'i' } },
+        { description: { $regex: q, $options: 'i' } }
+      ];
+    }
+
+    let sortObj = { sortOrder: 1, createdAt: -1 };
+    if (sort === 'price-asc') sortObj = { comboPrice: 1 };
+    if (sort === 'price-desc') sortObj = { comboPrice: -1 };
+    if (sort === 'rating') sortObj = { rating: -1 };
+
+    const combos = await Combo.find(filter).sort(sortObj);
+
     const priced = await Promise.all(
       combos.map(async (combo) => {
         const json = combo.toJSON();
@@ -267,14 +278,119 @@ exports.getPublicCombos = async (req, res, next) => {
             ? Math.round(((originalPrice - combo.comboPrice) / originalPrice) * 100)
             : 0;
         } catch {
-          // A pack was pulled from the catalogue — fall back to the snapshot
-          // rather than dropping the combo entirely.
+          // fallback to snapshot
         }
         return json;
       })
     );
 
     sendResponse(res, 200, { success: true, data: priced });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Featured combos for the home page section
+// @route   GET /api/v1/combos/featured
+// @access  Public
+exports.getFeaturedCombos = async (req, res, next) => {
+  try {
+    const now = new Date();
+    let combos = await Combo.find({
+      status: 'Active',
+      featured: true,
+      $and: [
+        { $or: [{ startsAt: null }, { startsAt: { $lte: now } }] },
+        { $or: [{ endsAt: null }, { endsAt: { $gte: now } }] }
+      ]
+    }).sort({ sortOrder: 1, createdAt: -1 }).limit(8);
+
+    if (combos.length === 0) {
+      combos = await Combo.find({
+        status: 'Active',
+        $and: [
+          { $or: [{ startsAt: null }, { startsAt: { $lte: now } }] },
+          { $or: [{ endsAt: null }, { endsAt: { $gte: now } }] }
+        ]
+      }).sort({ sortOrder: 1, createdAt: -1 }).limit(8);
+    }
+
+    const priced = await Promise.all(
+      combos.map(async (combo) => {
+        const json = combo.toJSON();
+        try {
+          const { originalPrice } = await priceItems(combo.items);
+          json.originalPrice = originalPrice;
+          json.savings = Math.max(originalPrice - combo.comboPrice, 0);
+          json.discountPercent = originalPrice
+            ? Math.round(((originalPrice - combo.comboPrice) / originalPrice) * 100)
+            : 0;
+        } catch {
+          // fallback to snapshot
+        }
+        return json;
+      })
+    );
+
+    sendResponse(res, 200, { success: true, data: priced });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Single combo details by slug
+// @route   GET /api/v1/combos/:slug
+// @access  Public
+exports.getComboBySlug = async (req, res, next) => {
+  try {
+    const combo = await Combo.findOne({ slug: req.params.slug });
+    if (!combo) {
+      return next(new ErrorResponse('Combo deal not found', 404));
+    }
+
+    const json = combo.toJSON();
+    try {
+      const { originalPrice } = await priceItems(combo.items);
+      json.originalPrice = originalPrice;
+      json.savings = Math.max(originalPrice - combo.comboPrice, 0);
+      json.discountPercent = originalPrice
+        ? Math.round(((originalPrice - combo.comboPrice) / originalPrice) * 100)
+        : 0;
+    } catch {
+      // fallback
+    }
+
+    // Attach resolved flavor details for details page rendering
+    json.items = await Promise.all(
+      combo.items.map(async (item) => {
+        const flavor = await Flavor.findOne({ slug: item.flavorId }).lean();
+        return {
+          ...item,
+          flavor
+        };
+      })
+    );
+
+    sendResponse(res, 200, { success: true, data: json });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Toggle combo status (Active / Inactive)
+// @route   PATCH /api/v1/admin/combos/:id/status
+// @access  Private (Admin)
+exports.patchComboStatus = async (req, res, next) => {
+  try {
+    const combo = await Combo.findById(req.params.id);
+    if (!combo) return next(new ErrorResponse('Combo not found', 404));
+
+    combo.status = combo.status === 'Active' ? 'Inactive' : 'Active';
+    await combo.save();
+
+    await audit(req, `Toggled status for combo "${combo.name}" to ${combo.status}`);
+
+    sendResponse(res, 200, { success: true, message: `Combo status changed to ${combo.status}`, data: combo });
   } catch (error) {
     next(error);
   }

@@ -7,10 +7,13 @@ const {
   updateCategory,
   deleteCategory,
   getPublicCombos,
+  getFeaturedCombos,
+  getComboBySlug,
   getAdminCombos,
   createCombo,
   updateCombo,
-  deleteCombo
+  deleteCombo,
+  patchComboStatus
 } = require('../controllers/catalog.controller');
 
 const { protect, authorize } = require('../middlewares/auth');
@@ -18,12 +21,10 @@ const { protect, authorize } = require('../middlewares/auth');
 const adminOnly = [protect, authorize('Admin', 'Super Admin', 'Manager')];
 
 // ─── Public ──────────────────────────────────────────────────────────────────
-// NOTE: these are mounted at the router root (NOT under /admin), so the paths
-// are exactly /api/v1/categories and /api/v1/combos. Declaring them with an
-// '/admin' prefix inside a router already mounted at '/admin' is what produced
-// the /admin/admin/... dead routes elsewhere in this codebase.
 router.get('/categories/list', getPublicCategories);
 router.get('/combos', getPublicCombos);
+router.get('/combos/featured', getFeaturedCombos);
+router.get('/combos/:slug', getComboBySlug);
 
 // ─── Admin ───────────────────────────────────────────────────────────────────
 router.get('/admin/categories', ...adminOnly, getAdminCategories);
@@ -35,5 +36,6 @@ router.get('/admin/combos', ...adminOnly, getAdminCombos);
 router.post('/admin/combos', ...adminOnly, createCombo);
 router.put('/admin/combos/:id', ...adminOnly, updateCombo);
 router.delete('/admin/combos/:id', ...adminOnly, deleteCombo);
+router.patch('/admin/combos/:id/status', ...adminOnly, patchComboStatus);
 
 module.exports = router;

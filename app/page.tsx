@@ -1,6 +1,7 @@
 import { Hero } from "@/components/sections/hero";
 import { BestSellers } from "@/components/sections/best-sellers";
 import { OffersStrip } from "@/components/sections/offers-strip";
+import { ComboSection } from "@/components/sections/combo-section";
 import { FlavorShowcase } from "@/components/sections/flavor-showcase";
 import { FarmFresh } from "@/components/sections/farm-fresh";
 import { About } from "@/components/sections/about";
@@ -17,12 +18,15 @@ export default function HomePage() {
       <ProductJsonLd />
       <FaqJsonLd />
 
-      {/* Hook */}
+      {/* Hero & Hook */}
       <Hero />
       <BestSellers />
       <OffersStrip />
 
-      {/* Explore */}
+      {/* ⭐⭐ Combo Deals ⭐⭐ */}
+      <ComboSection />
+
+      {/* Featured Products / Explore */}
       <FlavorShowcase />
 
       {/* Trust & story */}

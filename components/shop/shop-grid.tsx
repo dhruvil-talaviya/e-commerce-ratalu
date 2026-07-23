@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { motion } from "motion/react";
 import { ChevronLeft, ChevronRight, Search, X, SearchX } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -8,7 +9,8 @@ import { useProducts } from "@/components/shop/product-provider";
 import { apiFetch } from "@/lib/api";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ProductCard } from "./product-card";
-import { ComboCard, type ShopCombo } from "./combo-card";
+import { ComboCard } from "./combo-card";
+import type { ShopCombo } from "@/lib/types";
 
 type SortKey = "popular" | "price-asc" | "heat";
 type ViewMode = "grid" | "list";
@@ -105,7 +107,7 @@ export function ShopGrid() {
       (c) =>
         c.name.toLowerCase().includes(q) ||
         (c.description ?? "").toLowerCase().includes(q) ||
-        c.items.some((i) => i.flavorName.toLowerCase().includes(q))
+        c.items.some((i: { flavorName: string }) => i.flavorName.toLowerCase().includes(q))
     );
   }, [combos, category, heat, query]);
 
@@ -178,6 +180,19 @@ export function ShopGrid() {
                     All Flavours
                   </span>
                 </button>
+
+                {/* ⭐⭐ Combos ⭐⭐ Chip - Navigates directly to /combos */}
+                <Link
+                  href="/combos"
+                  className="flex flex-col items-center gap-1.5 shrink-0 snap-start select-none group/card focus:outline-none w-20 sm:w-24 cursor-pointer"
+                >
+                  <div className="size-14 sm:size-18 rounded-full flex items-center justify-center border-2 border-amber-300 bg-amber-50 group-hover/card:border-amber-400 group-hover/card:scale-105 transition-all duration-300 shadow-xs">
+                    <span className="font-extrabold text-[10px] sm:text-[11px] text-amber-900 tracking-tight text-center">COMBOS</span>
+                  </div>
+                  <span className="text-[11px] sm:text-xs font-bold text-center text-amber-900 group-hover/card:text-purple-700 truncate max-w-full">
+                    ⭐ Combos ⭐
+                  </span>
+                </Link>
 
                 {/* Database Categories */}
                 {categories.map((c) => {
