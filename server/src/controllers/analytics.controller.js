@@ -86,23 +86,28 @@ exports.getReach = async (req, res, next) => {
     // Conversion: of today's unique visitors, how many placed an order.
     const conversionRate = visitorsToday > 0 ? Math.round((ordersToday / visitorsToday) * 1000) / 10 : 0;
 
-    // Resolve top liked products with flavor details
-    const topLikedProducts = await Promise.all(
-      likesAgg.slice(0, 10).map(async (item) => {
-        const flavor = await Flavor.findOne({
-          $or: [{ slug: item._id }, { _id: item._id }]
-        }).lean();
-        return {
-          flavorId: item._id,
-          name: flavor ? flavor.name : item._id,
-          image: flavor?.image || null,
-          gradient: flavor?.gradient || null,
-          likesCount: item.likesCount
-        };
-      })
-    );
+    // Resolve all active products with their exact real-time likes count
+    const allFlavors = await Flavor.find({ status: 'Active' }).select('name slug image gradient categoryId').lean();
+    const likesMap = new Map(likesAgg.map((item) => [item._id, item.likesCount]));
+
+    const topLikedProducts = allFlavors.map((flavor) => {
+      const likesCount = likesMap.get(flavor.slug) || likesMap.get(String(flavor._id)) || 0;
+      return {
+        flavorId: flavor.slug,
+        name: flavor.name,
+        image: flavor.image || null,
+        gradient: flavor.gradient || null,
+        likesCount
+      };
+    }).sort((a, b) => b.likesCount - a.likesCount);
 
     const totalLikes = likesAgg.reduce((acc, curr) => acc + curr.likesCount, 0);
+    const activeProductsCount = allFlavors.length || 1;
+    const avgLikesPerProduct = Math.round((totalLikes / activeProductsCount) * 10) / 10;
+
+    const accountsWithLikes = await Wishlist.countDocuments({ 'ids.0': { $exists: true } });
+    const engagementRate = totalCustomers > 0 ? Math.round((accountsWithLikes / totalCustomers) * 1000) / 10 : 0;
+    const mostLikedProduct = topLikedProducts[0] || null;
 
     // ── 7-day trend, oldest first ──────────────────────────────────────────
     const series = [];
@@ -142,7 +147,14 @@ exports.getReach = async (req, res, next) => {
           conversionRate,
           totalLikes,
         },
-        totals: { customers: totalCustomers, likes: totalLikes },
+        totals: {
+          customers: totalCustomers,
+          likes: totalLikes,
+          avgLikesPerProduct,
+          engagementRate,
+          accountsWithLikes,
+        },
+        mostLikedProduct,
         topLikedProducts,
         series,
       },

@@ -43,6 +43,18 @@ const buildRatingsMap = async () => {
       distribution: { 5: r.five, 4: r.four, 3: r.three, 2: r.two, 1: r.one }
     });
   });
+const Wishlist = require('../models/Wishlist');
+
+/**
+ * Real-time product likes count computed from Wishlist documents.
+ */
+const buildLikesMap = async () => {
+  const rows = await Wishlist.aggregate([
+    { $unwind: '$ids' },
+    { $group: { _id: '$ids', count: { $sum: 1 } } }
+  ]);
+  const map = new Map();
+  rows.forEach((r) => map.set(r._id, r.count));
   return map;
 };
 
@@ -117,6 +129,7 @@ exports.getProducts = async (req, res, next) => {
       .limit(limitNum);
 
     const ratings = await buildRatingsMap();
+    const likes = await buildLikesMap();
     const categories = await Category.find().select('name slug').lean();
     const categoryById = new Map(categories.map((c) => [String(c._id), c]));
 
@@ -152,6 +165,7 @@ exports.getProducts = async (req, res, next) => {
           delivery: flavor.delivery || {},
           category: category ? { id: String(category._id), name: category.name, slug: category.slug } : null,
           rating: ratings.get(flavor.name.toLowerCase()) || EMPTY_RATING,
+          likesCount: likes.get(flavor.slug) || likes.get(String(flavor._id)) || 0,
           packs: product ? product.packs : []
         };
       })
@@ -194,6 +208,7 @@ exports.getProduct = async (req, res, next) => {
     const product = await Product.findOne({ flavorId: flavor.slug });
 
     const ratings = await buildRatingsMap();
+    const likes = await buildLikesMap();
     const category = flavor.categoryId
       ? await Category.findById(flavor.categoryId).select('name slug').lean()
       : null;
@@ -219,15 +234,14 @@ exports.getProduct = async (req, res, next) => {
         category: category
           ? { id: String(category._id), name: category.name, slug: category.slug }
           : null,
-        // Product page content, editable from the console (was hardcoded in React).
         labels: flavor.labels || [],
         trustBadges: flavor.trustBadges || [],
         highlights: flavor.highlights || [],
         nutrition: flavor.nutrition || {},
         productInfo: flavor.productInfo || {},
         delivery: flavor.delivery || {},
-        // Real, from approved reviews — never a hardcoded score.
         rating: ratings.get(flavor.name.toLowerCase()) || EMPTY_RATING,
+        likesCount: likes.get(flavor.slug) || likes.get(String(flavor._id)) || 0,
         packs: product ? product.packs : []
       }
     });

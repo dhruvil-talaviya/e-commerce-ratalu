@@ -279,14 +279,26 @@ export function ProductDetailClient({ flavor }: { flavor: Flavor }) {
                 </>
               )}
             </Button>
-            <button
-              onClick={() => toggle(flavor.id)}
-              aria-label={wished ? "Unlike product" : "Like product"}
-              aria-pressed={wished}
-              className="grid size-11 shrink-0 place-items-center rounded-full border border-[var(--color-border)] bg-white text-charcoal-muted transition-colors hover:border-red-200 hover:text-red-500 sm:size-13"
-            >
-              <Heart className={cn("size-5 sm:size-5.5", wished && "fill-red-500 text-red-500")} />
-            </button>
+            {(() => {
+              const baseLikes = flavor.likesCount || 0;
+              // eslint-disable-next-line react-hooks/rules-of-hooks
+              const initiallyWished = React.useRef(wished).current;
+              const currentLikes = Math.max(0, baseLikes + (wished ? (initiallyWished ? 0 : 1) : (initiallyWished ? -1 : 0)));
+
+              return (
+                <button
+                  onClick={() => toggle(flavor.id)}
+                  aria-label={wished ? "Unlike product" : "Like product"}
+                  aria-pressed={wished}
+                  className="flex h-11 shrink-0 items-center gap-2 rounded-full border border-[var(--color-border)] bg-white px-4 text-charcoal-muted transition-colors hover:border-red-200 hover:text-red-500 sm:h-13"
+                >
+                  <Heart className={cn("size-5 sm:size-5.5", wished && "fill-red-500 text-red-500")} />
+                  <span className={cn("text-sm font-extrabold", wished ? "text-red-600" : "text-gray-700")}>
+                    {currentLikes > 0 ? currentLikes : "Like"}
+                  </span>
+                </button>
+              );
+            })()}
           </div>
 
           {flavor.inStock !== false && (

@@ -65,6 +65,7 @@ export interface Flavor {
   maxQtyPerCheckout?: number | null;
   image?: string | null;
   inStock?: boolean;
+  likesCount?: number;
   taxOverrideEnabled?: boolean;
   taxRate?: number;
   hsnCode?: string;

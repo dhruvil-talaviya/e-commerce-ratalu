@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Users, Eye, UserPlus, ShoppingCart, IndianRupee, TrendingUp, Repeat, RefreshCw, Heart } from "lucide-react";
+import { Users, Eye, UserPlus, ShoppingCart, IndianRupee, TrendingUp, Repeat, RefreshCw, Heart, Crown, Sparkles, BarChart3, Flame } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiFetch } from "@/lib/api";
 import { AdminShell } from "@/components/admin/console/admin-shell";
@@ -27,7 +27,14 @@ interface Reach {
     conversionRate: number;
     totalLikes?: number;
   };
-  totals: { customers: number; likes?: number };
+  totals: {
+    customers: number;
+    likes?: number;
+    avgLikesPerProduct?: number;
+    engagementRate?: number;
+    accountsWithLikes?: number;
+  };
+  mostLikedProduct?: TopLikedProduct | null;
   topLikedProducts?: TopLikedProduct[];
   series: {
     date: string;
@@ -62,13 +69,13 @@ export default function ReachPage() {
 
   const maxLikes = React.useMemo(() => {
     if (!data?.topLikedProducts || data.topLikedProducts.length === 0) return 1;
-    return Math.max(...data.topLikedProducts.map((p) => p.likesCount));
+    return Math.max(1, ...data.topLikedProducts.map((p) => p.likesCount));
   }, [data]);
 
   return (
     <AdminShell
       title="Reach & Product Engagement"
-      description="Today's traffic, sign-ups, orders, and product ❤️ likes — real numbers, updated live."
+      description="Real-time visitor traffic, customer sign-ups, orders, and product ❤️ likes analytics."
       actions={
         <Button variant="secondary" onClick={load} disabled={loading}>
           <RefreshCw className={cn("size-3.5", loading && "animate-spin")} />
@@ -88,69 +95,112 @@ export default function ReachPage() {
       ) : error ? (
         <ErrorState message={error} onRetry={load} />
       ) : data ? (
-        <div className="flex flex-col gap-5">
-          {/* ── Today ─────────────────────────────────────────────── */}
+        <div className="flex flex-col gap-6">
+          {/* ── Today Traffic & Sales ─────────────────────────────── */}
           <div>
-            <p className="mb-2 text-xs font-bold uppercase tracking-wider text-gray-500">Today & Engagement</p>
+            <p className="mb-2.5 text-xs font-extrabold uppercase tracking-wider text-gray-400">Traffic & Conversions Today</p>
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              <Kpi icon={Users} tone="primary" label="Unique visitors" value={data.today.visitors} />
-              <Kpi icon={Eye} tone="info" label="Page views" value={data.today.views} />
-              <Kpi icon={UserPlus} tone="success" label="New sign-ups" value={data.today.signups} />
-              <Kpi icon={ShoppingCart} tone="warning" label="Orders" value={data.today.orders} />
+              <Kpi icon={Users} tone="primary" label="Unique Visitors" value={data.today.visitors} />
+              <Kpi icon={Eye} tone="info" label="Page Views" value={data.today.views} />
+              <Kpi icon={UserPlus} tone="success" label="New Sign-ups" value={data.today.signups} />
+              <Kpi icon={ShoppingCart} tone="warning" label="Orders Today" value={data.today.orders} />
             </div>
-            <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-3">
               <Kpi
                 icon={IndianRupee}
                 tone="success"
-                label="Revenue today"
+                label="Revenue Today"
                 value={formatMoney(data.today.revenue)}
               />
               <Kpi
                 icon={TrendingUp}
                 tone="primary"
-                label="Visitor → order"
+                label="Visitor → Order Rate"
                 value={`${data.today.conversionRate}%`}
-                hint="Share of today's visitors who ordered"
+                hint="Share of today's visitors who placed an order"
               />
               <Kpi
                 icon={Repeat}
                 tone="neutral"
-                label="Signed-in visitors"
+                label="Signed-in Visitors"
                 value={data.today.returningVisitors}
-                hint="Returning / logged-in today"
+                hint="Logged-in users active today"
               />
+            </div>
+          </div>
+
+          {/* ── Product Likes & Customer Engagement KPI Cards ────── */}
+          <div>
+            <p className="mb-2.5 text-xs font-extrabold uppercase tracking-wider text-gray-400">Product Likes & Customer Intent KPIs</p>
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               <Kpi
                 icon={Heart}
                 tone="danger"
                 label="Total Product Likes"
                 value={data.totals.likes ?? 0}
-                hint="Total ❤️ likes saved by customers"
+                hint="1 user = 1 unique like per product"
+              />
+              <Kpi
+                icon={Crown}
+                tone="warning"
+                label="Top Liked Flavor"
+                value={data.mostLikedProduct ? `${data.mostLikedProduct.name}` : "None"}
+                hint={data.mostLikedProduct ? `${data.mostLikedProduct.likesCount} customer likes` : "No likes yet"}
+              />
+              <Kpi
+                icon={BarChart3}
+                tone="info"
+                label="Avg. Likes / Flavor"
+                value={data.totals.avgLikesPerProduct ?? 0}
+                hint="Average likes per active product"
+              />
+              <Kpi
+                icon={Sparkles}
+                tone="primary"
+                label="Customer Like Rate"
+                value={`${data.totals.engagementRate ?? 0}%`}
+                hint={`${data.totals.accountsWithLikes ?? 0} of ${data.totals.customers} customers saved likes`}
               />
             </div>
           </div>
 
-          {/* ── Top Liked Products Leaderboard ────────────────────── */}
+          {/* ── Product Likes Analytics Breakdown Leaderboard ─────── */}
           {data.topLikedProducts && data.topLikedProducts.length > 0 && (
             <Card className="p-5">
-              <div className="mb-4 flex items-center justify-between">
+              <div className="mb-5 flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-4">
                 <div>
-                  <h2 className="text-sm font-bold text-[#111827] flex items-center gap-1.5">
-                    <Heart className="size-4 text-red-500 fill-red-500" /> Most Liked Products (❤️ Likes Leaderboard)
+                  <h2 className="text-base font-extrabold text-gray-900 flex items-center gap-2">
+                    <Flame className="size-5 text-orange-500 fill-orange-500" />
+                    Product Likes Breakdown & Leaderboard
                   </h2>
-                  <p className="text-xs text-gray-500">Ranked by customer likes across all user accounts</p>
+                  <p className="text-xs text-gray-500">
+                    Exact number of unique customer likes for each product flavor across all user accounts.
+                  </p>
                 </div>
-                <span className="rounded-full bg-red-50 px-2.5 py-1 text-xs font-bold text-red-600 border border-red-200">
-                  {data.totals.likes ?? 0} Total Likes
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-extrabold text-red-600 border border-red-200 flex items-center gap-1">
+                    <Heart className="size-3.5 fill-red-500" /> {data.totals.likes ?? 0} Total Likes
+                  </span>
+                </div>
               </div>
 
-              <div className="space-y-3">
+              <div className="divide-y divide-gray-100">
                 {data.topLikedProducts.map((prod, idx) => {
-                  const pct = Math.round((prod.likesCount / maxLikes) * 100);
+                  const pctOfMax = Math.round((prod.likesCount / maxLikes) * 100);
+                  const pctOfTotal = (data.totals.likes ?? 0) > 0 
+                    ? Math.round((prod.likesCount / (data.totals.likes ?? 1)) * 1000) / 10 
+                    : 0;
+
                   return (
-                    <div key={prod.flavorId} className="flex items-center gap-3">
-                      <span className="w-5 text-center text-xs font-extrabold text-gray-400">#{idx + 1}</span>
-                      <div className="size-9 rounded-lg overflow-hidden shrink-0 border border-gray-200 bg-gray-50 flex items-center justify-center">
+                    <div key={prod.flavorId} className="flex items-center gap-3 py-3 hover:bg-gray-50/60 px-2 rounded-xl transition-colors">
+                      <span className={cn(
+                        "w-7 text-center text-xs font-extrabold shrink-0",
+                        idx === 0 ? "text-amber-500 text-sm" : idx === 1 ? "text-slate-400" : idx === 2 ? "text-amber-700" : "text-gray-400"
+                      )}>
+                        {idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `#${idx + 1}`}
+                      </span>
+
+                      <div className="size-10 rounded-xl overflow-hidden shrink-0 border border-gray-200 bg-gray-50 flex items-center justify-center shadow-2xs">
                         {prod.image ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={prod.image} alt={prod.name} className="size-full object-cover" />
@@ -165,17 +215,23 @@ export default function ReachPage() {
                           />
                         )}
                       </div>
+
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between text-xs mb-1">
-                          <span className="font-bold text-gray-900 truncate">{prod.name}</span>
-                          <span className="font-extrabold text-red-600 flex items-center gap-1">
-                            <Heart className="size-3 fill-red-500" /> {prod.likesCount} {prod.likesCount === 1 ? "like" : "likes"}
-                          </span>
+                        <div className="flex items-center justify-between text-xs mb-1.5 gap-2">
+                          <span className="font-extrabold text-gray-900 truncate">{prod.name}</span>
+                          <div className="flex items-center gap-3 shrink-0">
+                            <span className="text-[11px] font-semibold text-gray-400 hidden sm:inline">
+                              {pctOfTotal}% of all likes
+                            </span>
+                            <span className="font-extrabold text-red-600 bg-red-50 border border-red-100 rounded-lg px-2 py-0.5 flex items-center gap-1">
+                              <Heart className="size-3 fill-red-500" /> {prod.likesCount} {prod.likesCount === 1 ? "like" : "likes"}
+                            </span>
+                          </div>
                         </div>
                         <div className="h-2 w-full rounded-full bg-gray-100 overflow-hidden">
                           <div
-                            className="h-full rounded-full bg-gradient-to-r from-purple-500 to-red-500 transition-all duration-500"
-                            style={{ width: `${Math.max(pct, 5)}%` }}
+                            className="h-full rounded-full bg-gradient-to-r from-purple-600 via-pink-500 to-red-500 transition-all duration-500"
+                            style={{ width: `${Math.max(pctOfMax, prod.likesCount > 0 ? 5 : 0)}%` }}
                           />
                         </div>
                       </div>
@@ -196,7 +252,7 @@ export default function ReachPage() {
               total registered customers all-time.
             </p>
             <p className="text-[11px] text-gray-400">
-              Visitor counts are privacy-light — a random browser id, no IP or personal data.
+              Product likes are strictly unique per customer account (1 customer = max 1 like per product).
             </p>
           </Card>
         </div>

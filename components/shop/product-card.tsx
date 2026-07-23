@@ -99,18 +99,32 @@ export function ProductCard({
             )}
           </div>
 
-          {/* Wishlist */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              toggle(flavor.id);
-            }}
-            aria-label={wished ? "Unlike product" : "Like product"}
-            aria-pressed={wished}
-            className="absolute right-2.5 top-2.5 sm:right-4 sm:top-4 grid size-8 sm:size-9 place-items-center rounded-full bg-white/85 text-charcoal-muted shadow-sm backdrop-blur transition-transform active:scale-95 hover:text-red-500 z-10"
-          >
-            <Heart className={cn("size-4 transition-colors", wished && "fill-red-500 text-red-500")} />
-          </button>
+          {/* Wishlist / Likes Button with Live Count */}
+          {(() => {
+            const baseLikes = flavor.likesCount || 0;
+            // eslint-disable-next-line react-hooks/rules-of-hooks
+            const initiallyWished = React.useRef(wished).current;
+            const currentLikes = Math.max(0, baseLikes + (wished ? (initiallyWished ? 0 : 1) : (initiallyWished ? -1 : 0)));
+
+            return (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggle(flavor.id);
+                }}
+                aria-label={wished ? "Unlike product" : "Like product"}
+                aria-pressed={wished}
+                className="absolute right-2.5 top-2.5 sm:right-4 sm:top-4 flex items-center gap-1 rounded-full bg-white/90 px-2.5 py-1 text-charcoal-muted shadow-sm backdrop-blur transition-all active:scale-95 hover:text-red-500 z-10 border border-gray-100/80"
+              >
+                <Heart className={cn("size-3.5 sm:size-4 transition-colors", wished && "fill-red-500 text-red-500")} />
+                {currentLikes > 0 && (
+                  <span className={cn("text-[11px] font-extrabold leading-none", wished ? "text-red-600" : "text-gray-700")}>
+                    {currentLikes}
+                  </span>
+                )}
+              </button>
+            );
+          })()}
         </div>
 
         {/* Body */}
