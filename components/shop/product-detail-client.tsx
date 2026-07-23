@@ -281,7 +281,7 @@ export function ProductDetailClient({ flavor }: { flavor: Flavor }) {
             </Button>
             <button
               onClick={() => toggle(flavor.id)}
-              aria-label={wished ? "Remove from wishlist" : "Add to wishlist"}
+              aria-label={wished ? "Unlike product" : "Like product"}
               aria-pressed={wished}
               className="grid size-11 shrink-0 place-items-center rounded-full border border-[var(--color-border)] bg-white text-charcoal-muted transition-colors hover:border-red-200 hover:text-red-500 sm:size-13"
             >

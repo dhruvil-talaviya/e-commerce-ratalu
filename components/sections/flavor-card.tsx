@@ -90,7 +90,7 @@ export function FlavorCard({ flavor, index = 0 }: { flavor: Flavor; index?: numb
             e.stopPropagation();
             toggle(flavor.id);
           }}
-          aria-label={wished ? "Remove from wishlist" : "Add to wishlist"}
+          aria-label={wished ? "Unlike product" : "Like product"}
           aria-pressed={wished}
           className="absolute right-2.5 top-2.5 sm:right-4 sm:top-4 grid size-8 sm:size-9 place-items-center rounded-full bg-white/85 text-charcoal-muted shadow-sm backdrop-blur transition-transform active:scale-95 hover:text-red-500 z-10"
         >

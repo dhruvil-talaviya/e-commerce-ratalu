@@ -142,7 +142,7 @@ type Tab =
 const TABS: { key: Tab; label: string; icon: React.ElementType }[] = [
   { key: "profile", label: "Profile", icon: User },
   { key: "orders", label: "My Orders", icon: Package },
-  { key: "wishlist", label: "Wishlist", icon: Heart },
+  { key: "wishlist", label: "Liked Products", icon: Heart },
   { key: "coupons", label: "Coupons", icon: Ticket },
   { key: "addresses", label: "Addresses", icon: MapPin },
   { key: "support", label: "Support", icon: LifeBuoy },
@@ -1422,11 +1422,11 @@ function WishlistPanel() {
 
   if (flavors.length === 0)
     return (
-      <Panel title="Your wishlist">
+      <Panel title="Liked Products">
         <EmptyState
           icon={Heart}
-          title="Nothing saved yet"
-          description="Tap the heart on any flavour to save it for later."
+          title="No liked products yet"
+          description="Tap the heart on any flavour to like it and save it for later."
           action={<Button asChild><Link href="/shop">Explore flavours</Link></Button>}
           tone="muted"
         />
@@ -1434,7 +1434,7 @@ function WishlistPanel() {
     );
 
   return (
-    <Panel title={`Your wishlist (${flavors.length})`}>
+    <Panel title={`Liked Products (${flavors.length})`}>
       <div className="grid gap-4 sm:grid-cols-2">
         {flavors.map((f) => (
           <div key={f.id} className="flex gap-4 rounded-2xl border border-[var(--color-border)] bg-white p-4">

@@ -109,3 +109,5 @@ export function useWishlist() {
   if (!ctx) throw new Error("useWishlist must be used within a WishlistProvider");
   return ctx;
 }
+
+export const useLikes = useWishlist;

@@ -1,6 +1,8 @@
 const Visit = require('../models/Visit');
 const Customer = require('../models/Customer');
 const Order = require('../models/Order');
+const Wishlist = require('../models/Wishlist');
+const Flavor = require('../models/Flavor');
 const sendResponse = require('../utils/response');
 
 /** Start of the local day, N days ago (0 = today). */
@@ -19,10 +21,6 @@ const LIVE_ORDER = { status: { $nin: ['Cancelled', 'Payment Failed', 'Expired'] 
  *
  * @route POST /api/v1/track
  * @access Public
- *
- * The browser sends a random `visitorId` it made up itself — no account, no IP,
- * no fingerprint. Best-effort: a tracking failure must never break the page, so
- * this always answers 200.
  */
 exports.track = async (req, res) => {
   try {
@@ -38,7 +36,6 @@ exports.track = async (req, res) => {
   } catch {
     // Analytics is never allowed to fail a request.
   }
-  // 204-style ack; the client ignores the body.
   return res.status(200).json({ success: true });
 };
 
@@ -59,6 +56,7 @@ exports.getReach = async (req, res, next) => {
       ordersTodayAgg,
       totalCustomers,
       returningToday,
+      likesAgg,
     ] = await Promise.all([
       // Unique visitors today.
       Visit.distinct('visitorId', { createdAt: { $gte: today } }).then((v) => v.length),
@@ -74,6 +72,12 @@ exports.getReach = async (req, res, next) => {
       Customer.countDocuments({}),
       // Signed-in visitors today (a proxy for returning customers).
       Visit.distinct('visitorId', { createdAt: { $gte: today }, authed: true }).then((v) => v.length),
+      // Product likes aggregation.
+      Wishlist.aggregate([
+        { $unwind: '$ids' },
+        { $group: { _id: '$ids', likesCount: { $sum: 1 } } },
+        { $sort: { likesCount: -1 } }
+      ])
     ]);
 
     const ordersToday = ordersTodayAgg[0]?.count || 0;
@@ -81,6 +85,24 @@ exports.getReach = async (req, res, next) => {
 
     // Conversion: of today's unique visitors, how many placed an order.
     const conversionRate = visitorsToday > 0 ? Math.round((ordersToday / visitorsToday) * 1000) / 10 : 0;
+
+    // Resolve top liked products with flavor details
+    const topLikedProducts = await Promise.all(
+      likesAgg.slice(0, 10).map(async (item) => {
+        const flavor = await Flavor.findOne({
+          $or: [{ slug: item._id }, { _id: item._id }]
+        }).lean();
+        return {
+          flavorId: item._id,
+          name: flavor ? flavor.name : item._id,
+          image: flavor?.image || null,
+          gradient: flavor?.gradient || null,
+          likesCount: item.likesCount
+        };
+      })
+    );
+
+    const totalLikes = likesAgg.reduce((acc, curr) => acc + curr.likesCount, 0);
 
     // ── 7-day trend, oldest first ──────────────────────────────────────────
     const series = [];
@@ -118,8 +140,10 @@ exports.getReach = async (req, res, next) => {
           revenue: revenueToday,
           returningVisitors: returningToday,
           conversionRate,
+          totalLikes,
         },
-        totals: { customers: totalCustomers },
+        totals: { customers: totalCustomers, likes: totalLikes },
+        topLikedProducts,
         series,
       },
     });

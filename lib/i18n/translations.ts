@@ -18,7 +18,7 @@ export const EN = {
   nav_contact:    "Contact Us",
   nav_shop_now:   "Shop Now",
   nav_account:    "Account",
-  nav_wishlist:   "Wishlist",
+  nav_wishlist:   "Likes",
   nav_admin:      "Admin Console",
   nav_open_menu:  "Open menu",
   nav_close_menu: "Close menu",
@@ -51,7 +51,7 @@ export const EN = {
   /* ---- Product Card ----------------------------------------------- */
   card_add_to_cart: "Add to Cart",
   card_add:         "Add",
-  card_wishlist:    "Wishlist",
+  card_wishlist:    "Like product",
   card_added:       "Added!",
   card_pack:        "{weight} Pack",
   card_off:         "{pct}% OFF",
@@ -94,11 +94,11 @@ export const EN = {
 
   /* ---- Account --------------------------------------------------- */
   account_title:         "Welcome back, {name}",
-  account_description:   "Manage your orders, addresses, wishlist and rewards — all in one place.",
+  account_description:   "Manage your orders, addresses, liked products and rewards — all in one place.",
   tab_profile:           "Profile",
   tab_orders:            "Orders",
   tab_addresses:         "Addresses",
-  tab_wishlist:          "Wishlist",
+  tab_wishlist:          "Liked Products",
   tab_rewards:           "Rewards",
   tab_coupons:           "Coupons",
   tab_settings:          "Settings",

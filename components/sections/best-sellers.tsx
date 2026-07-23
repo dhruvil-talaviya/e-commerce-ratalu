@@ -158,7 +158,7 @@ function FeaturedCard({ flavor, rank }: { flavor: Flavor; rank: number }) {
 
   const handleWishlist = () => {
     toggleWishlist(flavor.id);
-    if (!isWishlisted) toast.success("Added to wishlist");
+    if (!isWishlisted) toast.success("Liked product ❤️");
   };
 
   return (

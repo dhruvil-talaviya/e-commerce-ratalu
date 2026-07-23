@@ -61,7 +61,7 @@ export function QuickView({
 
   const toggleWishlist = () => {
     toggle(flavor.id);
-    if (!wished) toast.success("Saved to wishlist");
+    if (!wished) toast.success("Liked product ❤️");
   };
 
   return (
@@ -162,7 +162,7 @@ export function QuickView({
               </div>
               <button
                 onClick={toggleWishlist}
-                aria-label={wished ? "Remove from wishlist" : "Add to wishlist"}
+                aria-label={wished ? "Unlike product" : "Like product"}
                 aria-pressed={wished}
                 className={cn(
                   "grid size-11 shrink-0 place-items-center rounded-full border transition-all hover:scale-105",

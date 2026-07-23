@@ -1,12 +1,20 @@
 "use client";
 
 import * as React from "react";
-import { Users, Eye, UserPlus, ShoppingCart, IndianRupee, TrendingUp, Repeat, RefreshCw } from "lucide-react";
+import { Users, Eye, UserPlus, ShoppingCart, IndianRupee, TrendingUp, Repeat, RefreshCw, Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiFetch } from "@/lib/api";
 import { AdminShell } from "@/components/admin/console/admin-shell";
 import { Button, Card, ErrorState, Skeleton } from "@/components/admin/ui/primitives";
 import { formatMoney } from "@/components/admin/ui/tokens";
+
+interface TopLikedProduct {
+  flavorId: string;
+  name: string;
+  image?: string | null;
+  gradient?: { from: string; via: string; to: string } | null;
+  likesCount: number;
+}
 
 interface Reach {
   today: {
@@ -17,8 +25,10 @@ interface Reach {
     revenue: number;
     returningVisitors: number;
     conversionRate: number;
+    totalLikes?: number;
   };
-  totals: { customers: number };
+  totals: { customers: number; likes?: number };
+  topLikedProducts?: TopLikedProduct[];
   series: {
     date: string;
     label: string;
@@ -50,10 +60,15 @@ export default function ReachPage() {
     load();
   }, [load]);
 
+  const maxLikes = React.useMemo(() => {
+    if (!data?.topLikedProducts || data.topLikedProducts.length === 0) return 1;
+    return Math.max(...data.topLikedProducts.map((p) => p.likesCount));
+  }, [data]);
+
   return (
     <AdminShell
-      title="Reach"
-      description="Today's traffic, sign-ups and orders — real numbers, updated live."
+      title="Reach & Product Engagement"
+      description="Today's traffic, sign-ups, orders, and product ❤️ likes — real numbers, updated live."
       actions={
         <Button variant="secondary" onClick={load} disabled={loading}>
           <RefreshCw className={cn("size-3.5", loading && "animate-spin")} />
@@ -76,14 +91,14 @@ export default function ReachPage() {
         <div className="flex flex-col gap-5">
           {/* ── Today ─────────────────────────────────────────────── */}
           <div>
-            <p className="mb-2 text-xs font-bold uppercase tracking-wider text-gray-500">Today</p>
+            <p className="mb-2 text-xs font-bold uppercase tracking-wider text-gray-500">Today & Engagement</p>
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               <Kpi icon={Users} tone="primary" label="Unique visitors" value={data.today.visitors} />
               <Kpi icon={Eye} tone="info" label="Page views" value={data.today.views} />
               <Kpi icon={UserPlus} tone="success" label="New sign-ups" value={data.today.signups} />
               <Kpi icon={ShoppingCart} tone="warning" label="Orders" value={data.today.orders} />
             </div>
-            <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-3">
+            <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
               <Kpi
                 icon={IndianRupee}
                 tone="success"
@@ -104,8 +119,72 @@ export default function ReachPage() {
                 value={data.today.returningVisitors}
                 hint="Returning / logged-in today"
               />
+              <Kpi
+                icon={Heart}
+                tone="danger"
+                label="Total Product Likes"
+                value={data.totals.likes ?? 0}
+                hint="Total ❤️ likes saved by customers"
+              />
             </div>
           </div>
+
+          {/* ── Top Liked Products Leaderboard ────────────────────── */}
+          {data.topLikedProducts && data.topLikedProducts.length > 0 && (
+            <Card className="p-5">
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <h2 className="text-sm font-bold text-[#111827] flex items-center gap-1.5">
+                    <Heart className="size-4 text-red-500 fill-red-500" /> Most Liked Products (❤️ Likes Leaderboard)
+                  </h2>
+                  <p className="text-xs text-gray-500">Ranked by customer likes across all user accounts</p>
+                </div>
+                <span className="rounded-full bg-red-50 px-2.5 py-1 text-xs font-bold text-red-600 border border-red-200">
+                  {data.totals.likes ?? 0} Total Likes
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                {data.topLikedProducts.map((prod, idx) => {
+                  const pct = Math.round((prod.likesCount / maxLikes) * 100);
+                  return (
+                    <div key={prod.flavorId} className="flex items-center gap-3">
+                      <span className="w-5 text-center text-xs font-extrabold text-gray-400">#{idx + 1}</span>
+                      <div className="size-9 rounded-lg overflow-hidden shrink-0 border border-gray-200 bg-gray-50 flex items-center justify-center">
+                        {prod.image ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={prod.image} alt={prod.name} className="size-full object-cover" />
+                        ) : (
+                          <div
+                            className="size-full"
+                            style={{
+                              background: prod.gradient
+                                ? `radial-gradient(120% 120% at 30% 20%, ${prod.gradient.from}, ${prod.gradient.to})`
+                                : "#9333ea",
+                            }}
+                          />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between text-xs mb-1">
+                          <span className="font-bold text-gray-900 truncate">{prod.name}</span>
+                          <span className="font-extrabold text-red-600 flex items-center gap-1">
+                            <Heart className="size-3 fill-red-500" /> {prod.likesCount} {prod.likesCount === 1 ? "like" : "likes"}
+                          </span>
+                        </div>
+                        <div className="h-2 w-full rounded-full bg-gray-100 overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-gradient-to-r from-purple-500 to-red-500 transition-all duration-500"
+                            style={{ width: `${Math.max(pct, 5)}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+          )}
 
           {/* ── 7-day trend ───────────────────────────────────────── */}
           <TrendChart series={data.series} />
