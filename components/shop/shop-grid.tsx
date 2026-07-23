@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { motion } from "motion/react";
-import { ChevronLeft, ChevronRight, Search, LayoutGrid, Rows3, X, SearchX } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search, X, SearchX } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useProducts } from "@/components/shop/product-provider";
 import { apiFetch } from "@/lib/api";
@@ -122,51 +122,26 @@ export function ShopGrid() {
     <div>
       {/* Toolbar */}
       <div className="mb-6 flex flex-col gap-3.5 rounded-2xl sm:rounded-3xl border border-gray-200/80 bg-white/80 p-3.5 sm:p-5 shadow-xs backdrop-blur-sm">
-        {/* Row 1: search + view toggle */}
-        <div className="flex items-center gap-2.5">
-          <div className="relative flex-1 min-w-0">
-            <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-charcoal-soft" />
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search flavours, ingredients…"
-              aria-label="Search flavours"
-              className="h-10 w-full rounded-xl sm:rounded-full border border-gray-200 bg-white pl-10 pr-9 text-xs sm:text-sm text-charcoal shadow-xs transition-all placeholder:text-gray-400 focus-visible:border-purple-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-100"
-            />
-            {query && (
-              <button
-                onClick={() => setQuery("")}
-                aria-label="Clear search"
-                className="absolute right-3 top-1/2 grid size-6 -translate-y-1/2 place-items-center rounded-full text-charcoal-soft hover:bg-cream-100 hover:text-charcoal"
-              >
-                <X className="size-3.5" />
-              </button>
-            )}
-          </div>
-
-          <div className="flex shrink-0 items-center gap-0.5 rounded-xl sm:rounded-full border border-gray-200 bg-gray-50 p-1" role="group" aria-label="View mode">
-            {([
-              { key: "grid", icon: LayoutGrid, label: "Grid view" },
-              { key: "list", icon: Rows3, label: "List view" },
-            ] as const).map((v) => {
-              const Icon = v.icon;
-              return (
-                <button
-                  key={v.key}
-                  onClick={() => setView(v.key)}
-                  aria-label={v.label}
-                  aria-pressed={view === v.key}
-                  className={cn(
-                    "grid size-8 sm:size-9 place-items-center rounded-lg sm:rounded-full transition-all",
-                    view === v.key ? "bg-purple-600 text-white shadow-xs" : "text-gray-500 hover:text-purple-700"
-                  )}
-                >
-                  <Icon className="size-3.5 sm:size-4" />
-                </button>
-              );
-            })}
-          </div>
+        {/* Row 1: Search bar */}
+        <div className="relative w-full">
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-charcoal-soft" />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search flavours, ingredients…"
+            aria-label="Search flavours"
+            className="h-10.5 w-full rounded-xl sm:rounded-full border border-gray-200 bg-white pl-10 pr-9 text-xs sm:text-sm text-charcoal shadow-xs transition-all placeholder:text-gray-400 focus-visible:border-purple-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-100"
+          />
+          {query && (
+            <button
+              onClick={() => setQuery("")}
+              aria-label="Clear search"
+              className="absolute right-3 top-1/2 grid size-6 -translate-y-1/2 place-items-center rounded-full text-charcoal-soft hover:bg-cream-100 hover:text-charcoal"
+            >
+              <X className="size-3.5" />
+            </button>
+          )}
         </div>
 
         {/* Row 2: Category Visual Slider */}
