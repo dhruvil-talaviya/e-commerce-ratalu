@@ -152,7 +152,7 @@ export function ProductCard({
             <legend className="mb-2 text-xs font-semibold uppercase tracking-wide text-charcoal-soft">
               Choose size
             </legend>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 xs:grid-cols-4 gap-1.5 sm:gap-2">
               {getPacks(flavor).map((p) => (
                 <button
                   key={p.id}

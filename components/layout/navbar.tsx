@@ -131,7 +131,7 @@ export function Navbar() {
 
             <Link
               href={isLoggedIn ? "/account" : `${pathname}?login=true`}
-              className="hidden size-11 place-items-center rounded-full text-gray-700 transition-colors hover:bg-orange-50 hover:text-orange-600 sm:grid"
+              className="flex size-10 items-center justify-center rounded-full text-gray-700 transition-colors hover:bg-orange-50 hover:text-orange-600 sm:size-11"
               aria-label={isLoggedIn && user ? `Account of ${(user.name || "Snacker").split(" ")[0]}` : t("nav_account")}
             >
               {isLoggedIn && user ? (

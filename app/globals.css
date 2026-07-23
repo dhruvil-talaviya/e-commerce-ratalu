@@ -354,12 +354,23 @@
 
 @layer utilities {
   .container-px {
-    padding-inline: 1.5rem;
+    padding-inline: 1rem;
+  }
+  @media (min-width: 640px) {
+    .container-px {
+      padding-inline: 1.5rem;
+    }
   }
   @media (min-width: 1024px) {
     .container-px {
       padding-inline: 2.5rem;
     }
+  }
+
+  .table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .text-balance {

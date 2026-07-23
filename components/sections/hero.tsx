@@ -309,7 +309,7 @@ export function Hero() {
                 initial={{ opacity: 0, scale: 0 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.8 + i * 0.12, duration: 0.5, ease: EASE }}
-                className={`absolute z-20 size-16 sm:size-20 rounded-2xl border border-white/80 bg-white/30 shadow-[0_8px_32px_0_rgba(124,58,237,0.08)] backdrop-blur-md hover:scale-110 hover:rotate-6 hover:border-purple-300/40 hover:shadow-[0_12px_40px_0_rgba(124,58,237,0.18)] transition-all duration-300 cursor-pointer ${positions[i]}`}
+                className={`hidden sm:block absolute z-20 size-16 sm:size-20 rounded-2xl border border-white/80 bg-white/30 shadow-[0_8px_32px_0_rgba(124,58,237,0.08)] backdrop-blur-md hover:scale-110 hover:rotate-6 hover:border-purple-300/40 hover:shadow-[0_12px_40px_0_rgba(124,58,237,0.18)] transition-all duration-300 cursor-pointer ${positions[i]}`}
                 style={{ animation: `float-slow ${6 + i}s var(--ease-premium) ${i * 0.4}s infinite` }}
                 title={f.name}
               >
