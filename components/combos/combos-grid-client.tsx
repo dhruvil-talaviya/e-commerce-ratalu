@@ -90,51 +90,27 @@ export function CombosGridClient() {
         </p>
       </div>
 
-      {/* Toolbar */}
-      <div className="mb-8 flex flex-col gap-4 rounded-2xl sm:rounded-3xl border border-purple-200/80 bg-white/80 p-4 shadow-xs backdrop-blur-sm">
-        <div className="flex flex-col sm:flex-row items-center gap-3">
-          {/* Search */}
-          <div className="relative flex-1 w-full">
-            <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search combos by name, flavor..."
-              aria-label="Search combos"
-              className="h-10.5 w-full rounded-xl sm:rounded-full border border-gray-200 bg-white pl-10 pr-9 text-xs sm:text-sm text-gray-900 shadow-xs transition-all placeholder:text-gray-400 focus-visible:border-purple-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-100"
-            />
-            {query && (
-              <button
-                onClick={() => setQuery("")}
-                aria-label="Clear search"
-                className="absolute right-3 top-1/2 grid size-6 -translate-y-1/2 place-items-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-900"
-              >
-                <X className="size-3.5" />
-              </button>
-            )}
-          </div>
-
-          {/* Sort */}
-          <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 justify-between sm:justify-end">
-            <span className="text-xs font-bold text-gray-500 flex items-center gap-1">
-              <SlidersHorizontal className="size-3.5 text-purple-600" /> Sort
-            </span>
-            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
-              {SORTS.map((s) => (
-                <button
-                  key={s.key}
-                  onClick={() => setSort(s.key)}
-                  className={cn(
-                    "whitespace-nowrap rounded-lg sm:rounded-full px-3 py-1.5 text-xs font-bold transition-all",
-                    sort === s.key ? "bg-purple-600 text-white shadow-xs" : "bg-gray-100 text-gray-600 hover:bg-purple-50 hover:text-purple-700"
-                  )}
-                >
-                  {s.label}
-                </button>
-              ))}
-            </div>
-          </div>
+      {/* Search Toolbar */}
+      <div className="mb-8 flex flex-col gap-4 rounded-2xl sm:rounded-3xl border border-purple-200/80 bg-white/80 p-3 sm:p-4 shadow-xs backdrop-blur-sm">
+        <div className="relative w-full">
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search combos by name, flavor..."
+            aria-label="Search combos"
+            className="h-10.5 w-full rounded-xl sm:rounded-full border border-gray-200 bg-white pl-10 pr-9 text-xs sm:text-sm text-gray-900 shadow-xs transition-all placeholder:text-gray-400 focus-visible:border-purple-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-100"
+          />
+          {query && (
+            <button
+              onClick={() => setQuery("")}
+              aria-label="Clear search"
+              className="absolute right-3 top-1/2 grid size-6 -translate-y-1/2 place-items-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-900"
+            >
+              <X className="size-3.5" />
+            </button>
+          )}
         </div>
       </div>
 

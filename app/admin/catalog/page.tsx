@@ -738,7 +738,10 @@ function ComboEditor({
   onSaved: () => void;
 }) {
   const [name, setName] = React.useState(combo?.name ?? "");
+  const [subtitle, setSubtitle] = React.useState((combo as any)?.subtitle ?? "");
   const [badge, setBadge] = React.useState(combo?.badge ?? "");
+  const [rating, setRating] = React.useState(String((combo as any)?.rating ?? "4.8"));
+  const [reviewCount, setReviewCount] = React.useState(String((combo as any)?.reviewCount ?? "16"));
   const [description, setDescription] = React.useState(combo?.description ?? "");
   const [image, setImage] = React.useState(combo?.image ?? "");
   const [featured, setFeatured] = React.useState(combo?.featured ?? false);
@@ -785,9 +788,12 @@ function ComboEditor({
     try {
       const body = {
         name,
+        subtitle,
         description,
         badge,
         image,
+        rating: Number(rating) || 4.8,
+        reviewCount: Number(reviewCount) || 16,
         featured,
         status: active ? "Active" : "Inactive",
         items,
@@ -815,7 +821,7 @@ function ComboEditor({
       open
       onClose={onClose}
       title={combo ? `Edit — ${combo.name}` : "New combo offer"}
-      description="Bundle two or more packs together for less than buying them separately."
+      description="Design & bundle two or more packs together for less than buying them separately."
       width="max-w-4xl"
     >
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
@@ -835,12 +841,53 @@ function ComboEditor({
             </label>
             <label className="flex flex-col gap-1">
               <span className="text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">
+                Subtitle
+              </span>
+              <input
+                value={subtitle}
+                onChange={(e) => setSubtitle(e.target.value)}
+                placeholder="2 Packs Value Bundle"
+                className={INPUT}
+              />
+            </label>
+          </div>
+
+          <div className="grid gap-3.5 sm:grid-cols-3">
+            <label className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">
                 Badge
               </span>
               <input
                 value={badge}
                 onChange={(e) => setBadge(e.target.value)}
                 placeholder="Best value"
+                className={INPUT}
+              />
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">
+                Rating (1-5)
+              </span>
+              <input
+                type="number"
+                step="0.1"
+                min="1"
+                max="5"
+                value={rating}
+                onChange={(e) => setRating(e.target.value)}
+                placeholder="4.8"
+                className={INPUT}
+              />
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">
+                Review Count
+              </span>
+              <input
+                type="number"
+                value={reviewCount}
+                onChange={(e) => setReviewCount(e.target.value)}
+                placeholder="16"
                 className={INPUT}
               />
             </label>
