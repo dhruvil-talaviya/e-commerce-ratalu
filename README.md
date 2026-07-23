@@ -20,7 +20,7 @@ warm, food-focused and conversion-obsessed.
 | Icons      | lucide-react (+ custom brand glyphs) |
 | Fonts      | Playfair Display (headings) · Inter (body) via `next/font` |
 
-Backend (Express + Prisma/PostgreSQL), Auth (NextAuth), Payments (Razorpay),
+Backend (Express + MongoDB Atlas), Auth (NextAuth), Payments (Razorpay),
 Media (Cloudinary) and the Admin panel are **planned phases** — see the roadmap below.
 Environment variables for all of them are scaffolded in [`.env.example`](.env.example).
 
@@ -99,13 +99,13 @@ lib/
 ```
 
 All content (flavours, pricing, reviews, FAQs, coupons, policies) lives in typed modules under
-`lib/data/` — the single source of truth that the future Prisma layer will hydrate.
+`lib/data/` — the single source of truth that the MongoDB backend hydrates.
 
 ---
 
 ## Roadmap (next phases)
 
-1. **Backend & data** — Express API + Prisma schema on PostgreSQL; move `lib/data/*` into the DB.
+1. **Backend & data** — Express API + Mongoose schema on MongoDB Atlas; move `lib/data/*` into the DB.
 2. **Auth** — NextAuth (email + Google), protected account routes, address book.
 3. **Payments** — Razorpay order creation, checkout, webhook verification, order records.
 4. **Media** — Cloudinary product photography via `next/image` (config already added).

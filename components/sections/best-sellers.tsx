@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
 import { ArrowRight, Heart, ShoppingCart, Star, Trophy, Flame, Zap } from "lucide-react";
@@ -11,69 +12,121 @@ import { useCart } from "@/components/cart/cart-provider";
 import { useWishlist } from "@/components/cart/wishlist-provider";
 import { toast } from "@/components/ui/toast";
 import { useLanguage } from "@/components/common/language-provider";
-import { FLAVORS } from "@/lib/data/flavors";
+import { useProducts } from "@/components/shop/product-provider";
+import { ProductCardSkeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import { getPack, DEFAULT_PACK_ID } from "@/lib/data/products";
+import { useSection } from "@/components/cms/cms-provider";
+import type { HeadingContent } from "@/components/cms/types";
 import { formatINR } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import type { Flavor } from "@/lib/types";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
-// Curated top sellers (bestSeller flag first, then a fan favourite).
-const FEATURED = [
-  FLAVORS.find((f) => f.id === "original-salted")!,
-  FLAVORS.find((f) => f.id === "classic-masala")!,
-  FLAVORS.find((f) => f.id === "peri-peri")!,
-].filter(Boolean);
-
-// Fake review counts for display
-const REVIEW_COUNTS: Record<string, number> = {
-  "original-salted": 1842,
-  "classic-masala":  1421,
-  "peri-peri":       964,
-};
-const RATINGS: Record<string, number> = {
-  "original-salted": 4.9,
-  "classic-masala":  4.8,
-  "peri-peri":       4.7,
-};
+/** Pick the top 3 sellers from the live catalogue. */
+function pickFeatured(flavors: Flavor[]): Flavor[] {
+  const preferred = ["original-salted", "classic-masala", "peri-peri"];
+  const bySlug = preferred
+    .map((s) => flavors.find((f) => f.slug === s))
+    .filter((f): f is Flavor => Boolean(f));
+  const sellers = flavors.filter((f) => f.bestSeller);
+  // preferred → flagged bestsellers → anything else, de-duped, capped at 3
+  const merged = [...bySlug, ...sellers, ...flavors];
+  const seen = new Set<string>();
+  return merged.filter((f) => !seen.has(f.id) && seen.add(f.id)).slice(0, 3);
+}
 
 export function BestSellers() {
   const { t } = useLanguage();
+  // Live catalogue from the backend — no static data.
+  const { flavors, hydrated } = useProducts();
+  const featured = React.useMemo(() => pickFeatured(flavors), [flavors]);
+
+  /**
+   * Heading is editable in the Website Builder; the translated strings are the
+   * fallback. Before this, the "Best Sellers" row in the builder wrote to a
+   * section nothing read, so editing it did nothing.
+   */
+  const cmsContent = useSection<Record<string, any>>("best-sellers", {});
+  const heading = React.useMemo(() => {
+    const fallback = {
+      eyebrow: t("bestsellers_eyebrow"),
+      title: t("bestsellers_title_1"),
+      titleHighlight: t("bestsellers_title_2"),
+      description: t("bestsellers_description"),
+    };
+    const merged = { ...fallback, ...cmsContent };
+    if (cmsContent.title && !cmsContent.titleHighlight) {
+      merged.titleHighlight = "";
+    }
+    return merged;
+  }, [cmsContent, t]);
 
   return (
-    <section className="relative py-16 sm:py-20 lg:py-24">
+    <section id="best-sellers" className="relative scroll-mt-24 py-16 sm:py-20 lg:py-24">
       <div className="container-px mx-auto max-w-7xl">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
           <SectionHeading
             align="left"
-            eyebrow={t("bestsellers_eyebrow")}
+            eyebrow={heading.eyebrow}
             title={
               <>
-                {t("bestsellers_title_1")}{" "}
-                <span className="text-gradient-warm">{t("bestsellers_title_2")}</span>
+                {heading.title}
+                {heading.titleHighlight && (
+                  <>
+                    {" "}
+                    <span className="text-gradient-warm">{heading.titleHighlight}</span>
+                  </>
+                )}
               </>
             }
-            description={t("bestsellers_description")}
+            description={heading.description}
             className="max-w-xl"
           />
           <Button asChild variant="outline" size="lg" className="hidden shrink-0 sm:inline-flex">
-            <Link href="/shop">
+            <Link href="/best-sellers">
               {t("bestsellers_view_all")} <ArrowRight />
             </Link>
           </Button>
         </div>
 
+        {/* Loading */}
+        {!hydrated && (
+          <div className="mt-10 grid gap-5 sm:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <ProductCardSkeleton key={i} />
+            ))}
+          </div>
+        )}
+
+        {/* Empty */}
+        {hydrated && featured.length === 0 && (
+          <EmptyState
+            className="mt-10"
+            icon={Trophy}
+            title="No best sellers yet"
+            description="Once orders start rolling in, our top products will appear here."
+            action={
+              <Button asChild variant="outline">
+                <Link href="/products">Browse all products</Link>
+              </Button>
+            }
+          />
+        )}
+
         {/* Mobile: snap slider · Desktop: grid */}
-        <div className="mt-10 flex snap-x snap-mandatory gap-5 overflow-x-auto pb-4 no-scrollbar sm:grid sm:grid-cols-3 sm:overflow-visible sm:pb-0">
-          {FEATURED.map((flavor, i) => (
-            <FeaturedCard key={flavor.id} flavor={flavor} rank={i + 1} />
-          ))}
-        </div>
+        {hydrated && featured.length > 0 && (
+          <div className="mt-10 flex snap-x snap-mandatory gap-5 overflow-x-auto pb-4 no-scrollbar sm:grid sm:grid-cols-3 sm:overflow-visible sm:pb-0">
+            {featured.map((flavor, i) => (
+              <FeaturedCard key={flavor.id} flavor={flavor} rank={i + 1} />
+            ))}
+          </div>
+        )}
 
         <div className="mt-6 sm:hidden">
           <Button asChild variant="outline" size="lg" className="w-full">
-            <Link href="/shop">
+            <Link href="/best-sellers">
               {t("bestsellers_view_all_mob")} <ArrowRight />
             </Link>
           </Button>
@@ -89,8 +142,9 @@ function FeaturedCard({ flavor, rank }: { flavor: Flavor; rank: number }) {
   const { t } = useLanguage();
   const pack = getPack(DEFAULT_PACK_ID)!;
   const isWishlisted = has(flavor.id);
-  const rating = RATINGS[flavor.id] ?? 4.8;
-  const reviewCount = REVIEW_COUNTS[flavor.id] ?? 500;
+  // Real ratings from approved reviews — the per-slug 4.9/1842 values were invented.
+  const rating = flavor.rating?.average ?? 0;
+  const reviewCount = flavor.rating?.count ?? 0;
   const discount = pack.compareAt
     ? Math.round((1 - pack.price / pack.compareAt) * 100)
     : null;
@@ -167,49 +221,51 @@ function FeaturedCard({ flavor, rank }: { flavor: Flavor; rank: number }) {
         {/* Tagline */}
         <p className="mt-0.5 text-xs text-gray-400 leading-snug">{flavor.tagline}</p>
 
-        {/* Rating */}
-        <div className="mt-2 flex items-center gap-1.5">
-          <div className="flex">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <Star
-                key={i}
-                className={cn(
-                  "size-3",
-                  i <= Math.round(rating)
-                    ? "fill-yellow-400 text-yellow-400"
-                    : "fill-gray-200 text-gray-200"
-                )}
-              />
-            ))}
+        {/* Rating — shown only when this product actually has reviews. */}
+        {reviewCount > 0 && (
+          <div className="mt-2 flex items-center gap-1.5">
+            <div className="flex">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <Star
+                  key={i}
+                  className={cn(
+                    "size-3",
+                    i <= Math.round(rating)
+                      ? "fill-yellow-400 text-yellow-400"
+                      : "fill-gray-200 text-gray-200"
+                  )}
+                />
+              ))}
+            </div>
+            <span className="text-xs font-medium text-gray-600">{rating.toFixed(1)}</span>
+            <span className="text-xs text-gray-400">
+              ({reviewCount.toLocaleString("en-IN")})
+            </span>
           </div>
-          <span className="text-xs font-medium text-gray-600">{rating}</span>
-          <span className="text-xs text-gray-400">
-            ({reviewCount.toLocaleString("en-IN")})
-          </span>
-        </div>
+        )}
 
         {/* Weight + Price + CTA row */}
-        <div className="mt-4 flex items-center justify-between gap-3 border-t border-[var(--color-border)] pt-4">
-          <div>
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-y-3 gap-x-2 border-t border-[var(--color-border)] pt-4">
+          <div className="min-w-0 flex-1">
             <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
               {t("card_pack", { weight: pack.label })}
             </p>
-            <div className="flex items-baseline gap-2 mt-0.5">
-              <p className="text-[1.25rem] font-bold text-gray-800">{formatINR(pack.price)}</p>
+            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 mt-0.5">
+              <p className="text-[1.25rem] font-bold text-gray-800 whitespace-nowrap">{formatINR(pack.price)}</p>
               {pack.compareAt && (
-                <>
-                  <p className="text-sm text-gray-400 line-through">{formatINR(pack.compareAt)}</p>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <p className="text-sm text-gray-400 line-through whitespace-nowrap">{formatINR(pack.compareAt)}</p>
                   {discount && (
-                    <span className="rounded-full bg-green-50 px-1.5 py-0.5 text-[10px] font-bold text-green-600">
+                    <span className="rounded-full bg-green-50 px-1.5 py-0.5 text-[10px] font-bold text-green-600 whitespace-nowrap">
                       {t("card_off", { pct: String(discount) })}
                     </span>
                   )}
-                </>
+                </div>
               )}
             </div>
           </div>
 
-          <Button onClick={handleAdd} size="md" className="shrink-0 gap-1.5">
+          <Button onClick={handleAdd} size="md" className="shrink-0 gap-1.5 w-full xs:w-auto">
             <ShoppingCart className="size-4" />
             {t("card_add")}
           </Button>

@@ -44,4 +44,5 @@ next-env.d.ts
 /server/node_modules/
 /server/logs/
 /server/uploads/
+/logs/
 

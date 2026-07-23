@@ -1,29 +1,21 @@
 import type { Metadata } from "next";
-import { About } from "@/components/sections/about";
-import { PageHeader } from "@/components/common/page-header";
+import { getPageContent } from "@/lib/cms-server";
+import OurStoryClient from "./our-story-client";
 
-export const metadata: Metadata = {
-  title: "Our Story",
-  description: "Learn how we turned a traditional monsoon favorite purple yam (ratalu) into premium, hand-cooked wafers.",
-  alternates: { canonical: "/our-story" },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const cms = await getPageContent("story");
+  const details = cms?.content?.details as any;
 
-export default function OurStoryPage() {
-  return (
-    <>
-      <PageHeader
-        eyebrow="Our Heritage"
-        title={
-          <>
-            A Humble Yam, <span className="text-gradient-warm">Reimagined</span>
-          </>
-        }
-        description="Born in Gujarat, kettle-cooked in small batches, and seasoned with local pride."
-        crumbs={[{ label: "Home", href: "/" }, { label: "Our Story" }]}
-      />
-      <div className="pb-12">
-        <About />
-      </div>
-    </>
-  );
+  return {
+    title: details?.metaTitle || "Our Story",
+    description: details?.metaDescription || "Born in Gujarat, kettle-cooked in small batches, and seasoned with local pride.",
+  };
+}
+
+export default async function OurStoryPage() {
+  const [cms, homepageCms] = await Promise.all([
+    getPageContent("story"),
+    getPageContent("homepage"),
+  ]);
+  return <OurStoryClient initialCms={cms} homepageCms={homepageCms} />;
 }

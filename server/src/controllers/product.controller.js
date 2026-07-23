@@ -7,12 +7,54 @@ const AuditLog = require('../models/AuditLog');
 const ErrorResponse = require('../utils/errorResponse');
 const sendResponse = require('../utils/response');
 
+/**
+ * Real rating for every product, computed from APPROVED reviews.
+ *
+ * The product page used to print a hardcoded "4.9" regardless of what customers
+ * had actually said — a number invented in code and shown as if it were earned.
+ * This returns the truth, including a `count` of 0, so the UI can honestly show
+ * nothing rather than a fabricated score.
+ *
+ * Reviews link to a product by flavour NAME (Review.flavor === Flavor.name), so
+ * the map is keyed on the lowercased name.
+ */
+const buildRatingsMap = async () => {
+  const rows = await Review.aggregate([
+    { $match: { active: true } },
+    {
+      $group: {
+        _id: { $toLower: '$flavor' },
+        count: { $sum: 1 },
+        average: { $avg: '$rating' },
+        five: { $sum: { $cond: [{ $eq: ['$rating', 5] }, 1, 0] } },
+        four: { $sum: { $cond: [{ $eq: ['$rating', 4] }, 1, 0] } },
+        three: { $sum: { $cond: [{ $eq: ['$rating', 3] }, 1, 0] } },
+        two: { $sum: { $cond: [{ $eq: ['$rating', 2] }, 1, 0] } },
+        one: { $sum: { $cond: [{ $eq: ['$rating', 1] }, 1, 0] } }
+      }
+    }
+  ]);
+
+  const map = new Map();
+  rows.forEach((r) => {
+    map.set(r._id, {
+      average: Math.round(r.average * 10) / 10,
+      count: r.count,
+      distribution: { 5: r.five, 4: r.four, 3: r.three, 2: r.two, 1: r.one }
+    });
+  });
+  return map;
+};
+
+/** A product with no reviews yet. `count: 0` tells the UI to show nothing. */
+const EMPTY_RATING = { average: 0, count: 0, distribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 } };
+
 // @desc    Get All Flavors & Pack Details (Catalog)
 // @route   GET /api/v1/products
 // @access  Public
 exports.getProducts = async (req, res, next) => {
   try {
-    const { search, heat, sort, page = 1, limit = 50 } = req.query;
+    const { search, heat, category, bestSeller, sort, page = 1, limit = 50 } = req.query;
 
     const query = { status: 'Active' };
 
@@ -28,6 +70,28 @@ exports.getProducts = async (req, res, next) => {
     // Heat Level filter
     if (heat !== undefined && heat !== '') {
       query.heat = parseInt(heat, 10);
+    }
+
+    /**
+     * Category filter. Accepts a slug (what the storefront URL carries) or an
+     * id. An unknown slug returns nothing rather than silently ignoring the
+     * filter and showing the whole catalogue — a filter that quietly does
+     * nothing is worse than one that returns an honest empty state.
+     */
+    if (category) {
+      const cat = await Category.findOne({
+        $or: [
+          { slug: category },
+          ...(String(category).match(/^[0-9a-fA-F]{24}$/) ? [{ _id: category }] : [])
+        ]
+      }).select('_id');
+
+      query.categoryId = cat ? cat._id : null;
+      if (!cat) query._id = { $in: [] }; // no such category → no results
+    }
+
+    if (bestSeller === 'true') {
+      query.bestSeller = true;
     }
 
     // Sorting
@@ -52,14 +116,19 @@ exports.getProducts = async (req, res, next) => {
       .skip(skip)
       .limit(limitNum);
 
+    const ratings = await buildRatingsMap();
+    const categories = await Category.find().select('name slug').lean();
+    const categoryById = new Map(categories.map((c) => [String(c._id), c]));
+
     // Hydrate flavors with pack sizes from Product schema
     const hydratedFlavors = await Promise.all(
       flavors.map(async (flavor) => {
-        const product = await Product.findOne({ flavorId: flavor.id });
-        
+        const product = await Product.findOne({ flavorId: flavor.slug });
+        const category = flavor.categoryId ? categoryById.get(String(flavor.categoryId)) : null;
+
         // Return structured flavor with nested packs matching frontend
         return {
-          id: flavor.id,
+          id: flavor.slug,
           slug: flavor.slug,
           name: flavor.name,
           tagline: flavor.tagline,
@@ -70,6 +139,19 @@ exports.getProducts = async (req, res, next) => {
           accent: flavor.accent,
           badge: flavor.badge,
           bestSeller: flavor.bestSeller,
+          maxQtyPerCheckout: flavor.maxQtyPerCheckout,
+          image: flavor.image,
+          inStock: flavor.inStock,
+          categoryId: flavor.categoryId || null,
+          // Product page content, editable from the console (was hardcoded in React).
+          labels: flavor.labels || [],
+          trustBadges: flavor.trustBadges || [],
+          highlights: flavor.highlights || [],
+          nutrition: flavor.nutrition || {},
+          productInfo: flavor.productInfo || {},
+          delivery: flavor.delivery || {},
+          category: category ? { id: String(category._id), name: category.name, slug: category.slug } : null,
+          rating: ratings.get(flavor.name.toLowerCase()) || EMPTY_RATING,
           packs: product ? product.packs : []
         };
       })
@@ -97,20 +179,29 @@ exports.getProduct = async (req, res, next) => {
   try {
     const { slugOrId } = req.params;
 
+    const mongoose = require('mongoose');
     const flavor = await Flavor.findOne({
-      $or: [{ id: slugOrId }, { slug: slugOrId }]
+      $or: [
+        { slug: slugOrId },
+        ...(mongoose.Types.ObjectId.isValid(slugOrId) ? [{ _id: slugOrId }] : [])
+      ]
     });
 
     if (!flavor) {
       return next(new ErrorResponse('Product flavor not found', 404));
     }
 
-    const product = await Product.findOne({ flavorId: flavor.id });
+    const product = await Product.findOne({ flavorId: flavor.slug });
+
+    const ratings = await buildRatingsMap();
+    const category = flavor.categoryId
+      ? await Category.findById(flavor.categoryId).select('name slug').lean()
+      : null;
 
     sendResponse(res, 200, {
       success: true,
       data: {
-        id: flavor.id,
+        id: flavor.slug,
         slug: flavor.slug,
         name: flavor.name,
         tagline: flavor.tagline,
@@ -121,6 +212,22 @@ exports.getProduct = async (req, res, next) => {
         accent: flavor.accent,
         badge: flavor.badge,
         bestSeller: flavor.bestSeller,
+        maxQtyPerCheckout: flavor.maxQtyPerCheckout,
+        image: flavor.image,
+        inStock: flavor.inStock,
+        categoryId: flavor.categoryId || null,
+        category: category
+          ? { id: String(category._id), name: category.name, slug: category.slug }
+          : null,
+        // Product page content, editable from the console (was hardcoded in React).
+        labels: flavor.labels || [],
+        trustBadges: flavor.trustBadges || [],
+        highlights: flavor.highlights || [],
+        nutrition: flavor.nutrition || {},
+        productInfo: flavor.productInfo || {},
+        delivery: flavor.delivery || {},
+        // Real, from approved reviews — never a hardcoded score.
+        rating: ratings.get(flavor.name.toLowerCase()) || EMPTY_RATING,
         packs: product ? product.packs : []
       }
     });
@@ -134,7 +241,7 @@ exports.getProduct = async (req, res, next) => {
 // @access  Private (Admin only)
 exports.createProduct = async (req, res, next) => {
   try {
-    const { name, tagline, description, heat, ingredients, gradient, accent, badge, bestSeller, packs } = req.body;
+    const { name, tagline, description, heat, ingredients, gradient, accent, badge, bestSeller, packs, maxQtyPerCheckout, image, inStock } = req.body;
 
     const slug = name
       .toLowerCase()
@@ -145,7 +252,7 @@ exports.createProduct = async (req, res, next) => {
     const id = slug;
 
     // Check if flavor exists
-    let existing = await Flavor.findOne({ id });
+    let existing = await Flavor.findOne({ slug });
     if (existing) {
       return next(new ErrorResponse('Product name already exists', 400));
     }
@@ -161,7 +268,10 @@ exports.createProduct = async (req, res, next) => {
       gradient,
       accent,
       badge: badge === 'None' ? undefined : badge,
-      bestSeller
+      bestSeller,
+      maxQtyPerCheckout: maxQtyPerCheckout !== undefined ? Number(maxQtyPerCheckout) : undefined,
+      image,
+      inStock: inStock !== undefined ? Boolean(inStock) : true
     });
 
     // Default package layout
@@ -200,7 +310,7 @@ exports.createProduct = async (req, res, next) => {
       success: true,
       message: 'Product added successfully',
       data: {
-        id: flavor.id,
+        id: flavor.slug,
         name: flavor.name,
         packs: product.packs
       }
@@ -216,13 +326,19 @@ exports.createProduct = async (req, res, next) => {
 exports.updateProduct = async (req, res, next) => {
   try {
     const flavorId = req.params.id;
+    const mongoose = require('mongoose');
 
-    let flavor = await Flavor.findOne({ id: flavorId });
+    let flavor = await Flavor.findOne({
+      $or: [
+        { slug: flavorId },
+        ...(mongoose.Types.ObjectId.isValid(flavorId) ? [{ _id: flavorId }] : [])
+      ]
+    });
     if (!flavor) {
       return next(new ErrorResponse('Product not found', 404));
     }
 
-    const { name, tagline, description, heat, ingredients, gradient, accent, badge, bestSeller, packs } = req.body;
+    const { name, tagline, description, heat, ingredients, gradient, accent, badge, bestSeller, packs, maxQtyPerCheckout, image, inStock } = req.body;
 
     // Update flavor properties
     if (name) {
@@ -241,6 +357,15 @@ exports.updateProduct = async (req, res, next) => {
     if (accent) flavor.accent = accent;
     flavor.badge = badge === 'None' ? undefined : badge;
     if (bestSeller !== undefined) flavor.bestSeller = bestSeller;
+    if (maxQtyPerCheckout !== undefined) {
+      flavor.maxQtyPerCheckout = maxQtyPerCheckout === "" || maxQtyPerCheckout === null ? undefined : Number(maxQtyPerCheckout);
+    }
+    if (image !== undefined) {
+      flavor.image = image === "" || image === null ? undefined : image;
+    }
+    if (inStock !== undefined) {
+      flavor.inStock = Boolean(inStock);
+    }
 
     await flavor.save();
 
@@ -287,13 +412,21 @@ exports.updateProduct = async (req, res, next) => {
 exports.deleteProduct = async (req, res, next) => {
   try {
     const flavorId = req.params.id;
+    const mongoose = require('mongoose');
 
-    const flavor = await Flavor.findOneAndDelete({ id: flavorId });
+    const flavor = await Flavor.findOne({
+      $or: [
+        { slug: flavorId },
+        ...(mongoose.Types.ObjectId.isValid(flavorId) ? [{ _id: flavorId }] : [])
+      ]
+    });
     if (!flavor) {
       return next(new ErrorResponse('Product not found', 404));
     }
 
-    await Product.findOneAndDelete({ flavorId });
+    const actualSlug = flavor.slug;
+    await Flavor.findByIdAndDelete(flavor._id);
+    await Product.findOneAndDelete({ flavorId: actualSlug });
     
     // Clear inventory
     const Inventory = require('../models/Inventory');
@@ -441,6 +574,124 @@ exports.createReview = async (req, res, next) => {
       message: 'Review posted successfully',
       data: review
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BULK PRODUCT OPERATIONS
+// ─────────────────────────────────────────────────────────────────────────────
+
+// @desc    Bulk delete products by flavorId array
+// @route   POST /api/v1/products/bulk/delete
+// @access  Private (Admin)
+exports.bulkDeleteProducts = async (req, res, next) => {
+  try {
+    const { flavorIds } = req.body;
+    if (!Array.isArray(flavorIds) || flavorIds.length === 0) {
+      return next(new ErrorResponse('flavorIds array is required', 400));
+    }
+
+    const Inventory = require('../models/Inventory');
+    await Promise.all([
+      Flavor.deleteMany({ id: { $in: flavorIds } }),
+      Product.deleteMany({ flavorId: { $in: flavorIds } }),
+      Inventory.deleteMany({ flavorId: { $in: flavorIds } })
+    ]);
+
+    await AuditLog.create({
+      user: req.user?.username || 'Admin',
+      role: req.user?.role || 'Admin',
+      action: `Bulk deleted ${flavorIds.length} products: ${flavorIds.join(', ')}`,
+      ipAddress: req.ip || '127.0.0.1'
+    });
+
+    sendResponse(res, 200, { success: true, message: `${flavorIds.length} products deleted successfully` });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Bulk publish / unpublish products
+// @route   POST /api/v1/products/bulk/status
+// @access  Private (Admin)
+exports.bulkUpdateProductStatus = async (req, res, next) => {
+  try {
+    const { flavorIds, status } = req.body;
+    if (!Array.isArray(flavorIds) || flavorIds.length === 0) {
+      return next(new ErrorResponse('flavorIds array is required', 400));
+    }
+    if (!['Active', 'Inactive'].includes(status)) {
+      return next(new ErrorResponse("status must be 'Active' or 'Inactive'", 400));
+    }
+
+    await Flavor.updateMany({ id: { $in: flavorIds } }, { status });
+
+    await AuditLog.create({
+      user: req.user?.username || 'Admin',
+      role: req.user?.role || 'Admin',
+      action: `Bulk set ${flavorIds.length} products to ${status}`,
+      ipAddress: req.ip || '127.0.0.1'
+    });
+
+    sendResponse(res, 200, { success: true, message: `${flavorIds.length} products set to ${status}` });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Duplicate a product (create copy with same details)
+// @route   POST /api/v1/products/:id/duplicate
+// @access  Private (Admin)
+exports.duplicateProduct = async (req, res, next) => {
+  try {
+    const flavorId = req.params.id;
+    const mongoose = require('mongoose');
+
+    const srcFlavor = await Flavor.findOne({
+      $or: [
+        { slug: flavorId },
+        ...(mongoose.Types.ObjectId.isValid(flavorId) ? [{ _id: flavorId }] : [])
+      ]
+    }).lean();
+    if (!srcFlavor) return next(new ErrorResponse('Product not found', 404));
+
+    const srcProduct = await Product.findOne({ flavorId: srcFlavor.slug }).lean();
+
+    // Generate unique slug for the copy
+    const baseName = `${srcFlavor.name} Copy`;
+    const newSlug = baseName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now();
+
+    const newFlavor = await Flavor.create({
+      ...srcFlavor,
+      _id: undefined,
+      name: baseName,
+      slug: newSlug,
+      status: 'Inactive' // copies start as drafts
+    });
+
+    if (srcProduct) {
+      const Inventory = require('../models/Inventory');
+      const newProduct = await Product.create({
+        flavorId: newSlug,
+        packs: srcProduct.packs.map(p => ({ ...p._doc || p, stock: 0, _id: undefined }))
+      });
+
+      // Seed inventory at 0 for new copy
+      for (const p of newProduct.packs) {
+        await Inventory.create({ flavorId: newSlug, packId: p.id, currentStock: 0 });
+      }
+    }
+
+    await AuditLog.create({
+      user: req.user?.username || 'Admin',
+      role: req.user?.role || 'Admin',
+      action: `Duplicated product ${flavorId} → ${newSlug}`,
+      ipAddress: req.ip || '127.0.0.1'
+    });
+
+    sendResponse(res, 201, { success: true, message: 'Product duplicated successfully', data: { id: newSlug, name: baseName } });
   } catch (error) {
     next(error);
   }

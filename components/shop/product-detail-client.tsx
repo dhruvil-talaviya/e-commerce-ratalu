@@ -20,17 +20,18 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useStoreSettings } from "@/components/common/settings-provider";
 import { HeatMeter } from "@/components/common/heat-meter";
 import { useCart } from "@/components/cart/cart-provider";
 import { useWishlist } from "@/components/cart/wishlist-provider";
 import { ProductGallery } from "./product-gallery";
-import { useRecentlyViewed } from "./recently-viewed-provider";
 import { DeliveryEstimate } from "./delivery-estimate";
 import { FrequentlyBoughtTogether } from "./frequently-bought-together";
 import { RelatedProducts } from "./related-products";
-import { PACK_SIZES, DEFAULT_PACK_ID } from "@/lib/data/products";
+import { getPacks, getPackFor, DEFAULT_PACK_ID } from "@/lib/data/products";
 import { NUTRITION, NUTRITION_NOTE } from "@/lib/data/product-meta";
 import { REVIEWS } from "@/lib/data/reviews";
+import { CmsIcon } from "@/components/cms/icon-registry";
 import { formatINR, cn } from "@/lib/utils";
 import type { Flavor } from "@/lib/types";
 
@@ -44,6 +45,7 @@ const TABS: { key: TabKey; label: string }[] = [
 ];
 
 export function ProductDetailClient({ flavor }: { flavor: Flavor }) {
+  const { settings } = useStoreSettings();
   const { addItem } = useCart();
   const { has, toggle } = useWishlist();
   const router = useRouter();
@@ -52,11 +54,42 @@ export function ProductDetailClient({ flavor }: { flavor: Flavor }) {
   const [added, setAdded] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState<TabKey>("ingredients");
 
-  const pack = PACK_SIZES.find((p) => p.id === packId)!;
+  const gstEnabled = settings.gstEnabled !== false;
+  const globalGstRate = settings.taxRate || 5;
+  const globalTaxInclusive = settings.taxInclusive !== false;
+
+  let activeRate = globalGstRate;
+  let activeInclusive = globalTaxInclusive;
+  if (flavor.taxOverrideEnabled) {
+    activeRate = flavor.taxRate || 0;
+    activeInclusive = flavor.taxInclusive !== false;
+  }
+
+  // Prices come from the database, never the static file — otherwise an admin
+  // could change a price and customers would keep paying the hardcoded one.
+  const packs = getPacks(flavor);
+  const pack = getPackFor(flavor, packId);
   const wished = has(flavor.id);
   const savings = pack.compareAt ? pack.compareAt - pack.price : 0;
 
   const flavorReviews = REVIEWS.filter((r) => r.flavor.toLowerCase() === flavor.name.toLowerCase());
+
+  /** Real rating from approved reviews. Falls back to "no reviews" — never a made-up score. */
+  const rating = flavor.rating ?? { average: 0, count: 0, distribution: {} };
+
+  /**
+   * Product page content, from the CMS. Only enabled badges/labels render, and
+   * an empty list renders nothing rather than falling back to hardcoded copy —
+   * if the admin deletes a badge, it must actually disappear.
+   */
+  const trustBadges = (flavor.trustBadges ?? []).filter((b) => b.enabled !== false);
+  const labels = (flavor.labels ?? []).filter(
+    (l) => l.enabled !== false && (l.showOn ?? "all") !== "card"
+  );
+  const highlights = flavor.highlights ?? [];
+  const nutrition = flavor.nutrition ?? {};
+  const productInfo = flavor.productInfo ?? {};
+  const delivery = flavor.delivery ?? {};
 
   // Show the mobile sticky bar only while the inline Add button is off-screen.
   const inlineRef = React.useRef<HTMLDivElement>(null);
@@ -65,11 +98,7 @@ export function ProductDetailClient({ flavor }: { flavor: Flavor }) {
   const endInView = useInView(endRef, { margin: "0px 0px -120px 0px" });
   const showStickyBar = !inlineInView && !endInView;
 
-  // Record this product in the customer's "recently viewed" history.
-  const { record } = useRecentlyViewed();
-  React.useEffect(() => {
-    record(flavor.id);
-  }, [flavor.id, record]);
+
 
   const handleAdd = () => {
     addItem(flavor, pack, qty);
@@ -106,34 +135,61 @@ export function ProductDetailClient({ flavor }: { flavor: Flavor }) {
         <div className="flex min-w-0 flex-col gap-6 lg:sticky lg:top-24 lg:self-start">
           <ProductGallery flavor={flavor} />
 
-          {/* Trust badges */}
-          <div className="grid grid-cols-3 gap-2.5 text-center sm:gap-4">
-            {[
-              { icon: Leaf, color: "text-green-600", title: "100% Veg", sub: "Pure ingredients" },
-              { icon: ShieldCheck, color: "text-purple-600", title: "Gluten Free", sub: "No wheat / starch" },
-              { icon: RotateCcw, color: "text-orange-600", title: "Kettle Cooked", sub: "Crafted in batches" },
-            ].map((b) => {
-              const Icon = b.icon;
-              return (
-                <div key={b.title} className="min-w-0 rounded-2xl border border-[var(--color-border)] bg-white/40 p-3 backdrop-blur-sm sm:p-4">
-                  <Icon className={cn("mx-auto size-5", b.color)} />
+          {/*
+            Trust badges come from the database — the admin adds, edits, reorders
+            and removes them. They used to be a hardcoded array of three, so
+            changing "Gluten Free" meant a code deploy.
+          */}
+          {trustBadges.length > 0 && (
+            <div
+              className={cn(
+                "grid gap-2.5 text-center sm:gap-4",
+                trustBadges.length >= 3 ? "grid-cols-3" : "grid-cols-2"
+              )}
+            >
+              {trustBadges.map((b) => (
+                <div
+                  key={b.title}
+                  className="min-w-0 rounded-2xl border border-[var(--color-border)] bg-white/40 p-3 backdrop-blur-sm sm:p-4"
+                >
+                  <CmsIcon
+                    name={b.icon}
+                    className={cn("mx-auto size-5", b.color || "text-purple-600")}
+                  />
                   <p className="mt-1.5 text-xs font-semibold text-charcoal">{b.title}</p>
-                  <p className="mt-0.5 hidden text-[10px] text-charcoal-muted xs:block">{b.sub}</p>
+                  {b.description && (
+                    <p className="mt-0.5 hidden text-[10px] text-charcoal-muted xs:block">
+                      {b.description}
+                    </p>
+                  )}
                 </div>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Right: info & actions */}
         <div className="flex min-w-0 flex-col">
+          {/*
+            The rating is computed on the server from APPROVED reviews. It used
+            to be a hardcoded "4.9" printed regardless of what customers had
+            actually said. With no reviews we now show nothing rather than
+            inventing a score.
+          */}
           <div className="flex items-center gap-2.5">
-            <span className="inline-flex items-center gap-1 text-sm font-semibold text-gold-500">
-              <Star className="size-4 fill-gold-400 text-gold-400" /> 4.9
-            </span>
-            <span className="text-xs text-charcoal-muted">
-              · {flavorReviews.length > 0 ? `${flavorReviews.length} verified review` : "Signature flavour"}
-            </span>
+            {rating.count > 0 ? (
+              <>
+                <span className="inline-flex items-center gap-1 text-sm font-semibold text-gold-500">
+                  <Star className="size-4 fill-gold-400 text-gold-400" />
+                  {rating.average.toFixed(1)}
+                </span>
+                <span className="text-xs text-charcoal-muted">
+                  · {rating.count} verified review{rating.count === 1 ? "" : "s"}
+                </span>
+              </>
+            ) : (
+              <span className="text-xs text-charcoal-muted">Signature flavour</span>
+            )}
             <span className="ml-auto flex items-center gap-1.5 text-xs font-semibold text-green-700">
               <span className="size-2 rounded-full bg-green-500" /> In stock
             </span>
@@ -156,30 +212,35 @@ export function ProductDetailClient({ flavor }: { flavor: Flavor }) {
           <fieldset className="mt-8">
             <div className="mb-3 flex items-center justify-between">
               <legend className="text-xs font-bold uppercase tracking-wider text-charcoal-soft">Select pack size</legend>
-              {savings > 0 && (
+              {savings > 0 && flavor.inStock !== false && (
                 <Badge variant="soft" size="sm" className="font-semibold text-green-700">Save {formatINR(savings)}</Badge>
               )}
             </div>
             <div className="grid grid-cols-4 gap-2 sm:gap-3">
-              {PACK_SIZES.map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => setPackId(p.id)}
-                  aria-pressed={p.id === packId}
-                  className={cn(
-                    "flex min-w-0 flex-col items-center justify-center rounded-2xl border py-3 text-center transition-all",
-                    p.id === packId
-                      ? "border-purple-500 bg-purple-50 text-purple-700 shadow-sm ring-1 ring-purple-500"
-                      : "border-[var(--color-border)] bg-white text-charcoal-muted hover:border-purple-200"
-                  )}
-                >
-                  <span className="block text-sm font-bold">{p.label}</span>
-                  <span className="mt-0.5 block text-xs font-medium">{formatINR(p.price)}</span>
-                  {p.note && (
-                    <span className="mt-1 block text-[8px] font-semibold uppercase tracking-wider text-orange-500">{p.note}</span>
-                  )}
-                </button>
-              ))}
+              {packs.map((p) => {
+                const isOutOfStock = flavor.inStock === false;
+                return (
+                  <button
+                    key={p.id}
+                    disabled={isOutOfStock}
+                    onClick={() => setPackId(p.id)}
+                    aria-pressed={p.id === packId}
+                    className={cn(
+                      "flex min-w-0 flex-col items-center justify-center rounded-2xl border py-3 text-center transition-all",
+                      p.id === packId
+                        ? "border-purple-500 bg-purple-50 text-purple-700 shadow-sm ring-1 ring-purple-500"
+                        : "border-[var(--color-border)] bg-white text-charcoal-muted hover:border-purple-200",
+                      isOutOfStock && "opacity-40 cursor-not-allowed hover:border-[var(--color-border)]"
+                    )}
+                  >
+                    <span className="block text-sm font-bold">{p.label}</span>
+                    <span className="mt-0.5 block text-xs font-medium">{formatINR(p.price)}</span>
+                    {p.note && !isOutOfStock && (
+                      <span className="mt-1 block text-[8px] font-semibold uppercase tracking-wider text-orange-500">{p.note}</span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </fieldset>
 
@@ -189,22 +250,26 @@ export function ProductDetailClient({ flavor }: { flavor: Flavor }) {
             {pack.compareAt && (
               <span className="text-base text-charcoal-soft line-through">{formatINR(pack.compareAt * qty)}</span>
             )}
-            <span className="text-xs text-charcoal-muted">({pack.label} pack · incl. taxes)</span>
+            <span className="text-xs text-charcoal-muted">
+              ({pack.label} pack · {gstEnabled ? (activeInclusive ? `incl. ${activeRate}% GST` : `+${activeRate}% GST`) : "excl. taxes"})
+            </span>
           </div>
 
           {/* Actions */}
           <div ref={inlineRef} className="mt-6 flex items-center gap-2 sm:gap-4">
-            <div className="flex shrink-0 items-center rounded-full border border-[var(--color-border)] bg-white p-1">
-              <button onClick={() => setQty((q) => Math.max(1, q - 1))} className="grid size-9 place-items-center rounded-full text-charcoal-muted transition-colors hover:bg-purple-50 hover:text-purple-700 sm:size-11" aria-label="Decrease quantity">
+            <div className={cn("flex shrink-0 items-center rounded-full border border-[var(--color-border)] bg-white p-1", flavor.inStock === false && "opacity-40 cursor-not-allowed")}>
+              <button disabled={flavor.inStock === false} onClick={() => setQty((q) => Math.max(1, q - 1))} className="grid size-9 place-items-center rounded-full text-charcoal-muted transition-colors hover:bg-purple-50 hover:text-purple-700 disabled:pointer-events-none sm:size-11" aria-label="Decrease quantity">
                 <Minus className="size-4" />
               </button>
               <span className="w-7 text-center text-base font-bold tabular-nums text-charcoal sm:w-8">{qty}</span>
-              <button onClick={() => setQty((q) => Math.min(99, q + 1))} className="grid size-9 place-items-center rounded-full text-charcoal-muted transition-colors hover:bg-purple-50 hover:text-purple-700 sm:size-11" aria-label="Increase quantity">
+              <button disabled={flavor.inStock === false} onClick={() => setQty((q) => Math.min(99, q + 1))} className="grid size-9 place-items-center rounded-full text-charcoal-muted transition-colors hover:bg-purple-50 hover:text-purple-700 disabled:pointer-events-none sm:size-11" aria-label="Increase quantity">
                 <Plus className="size-4" />
               </button>
             </div>
-            <Button onClick={handleAdd} variant={added ? "accent" : "primary"} size="xl" className="min-w-0 flex-1">
-              {added ? (
+            <Button disabled={flavor.inStock === false} onClick={handleAdd} variant={flavor.inStock === false ? "outline" : (added ? "accent" : "primary")} size="xl" className="min-w-0 flex-1">
+              {flavor.inStock === false ? (
+                <span className="truncate">Out of Stock</span>
+              ) : added ? (
                 <><Check className="size-5" /> <span className="truncate">Added to cart</span></>
               ) : (
                 <>
@@ -224,9 +289,11 @@ export function ProductDetailClient({ flavor }: { flavor: Flavor }) {
             </button>
           </div>
 
-          <Button onClick={buyNow} variant="secondary" size="xl" className="mt-3 w-full">
-            <Zap className="size-5" /> Buy Now
-          </Button>
+          {flavor.inStock !== false && (
+            <Button onClick={buyNow} variant="secondary" size="xl" className="mt-3 w-full">
+              <Zap className="size-5" /> Buy Now
+            </Button>
+          )}
 
           {/* Delivery estimate */}
           <div className="mt-6">
@@ -394,7 +461,7 @@ export function ProductDetailClient({ flavor }: { flavor: Flavor }) {
 
       {/* Mobile sticky Add-to-Cart bar */}
       <AnimatePresence>
-        {showStickyBar && (
+        {showStickyBar && flavor.inStock !== false && (
           <motion.div
             initial={{ y: 100 }}
             animate={{ y: 0 }}

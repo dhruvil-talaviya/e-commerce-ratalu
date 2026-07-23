@@ -6,7 +6,6 @@ import { AccountProvider } from "@/components/account/account-provider";
 import { ProductProvider } from "@/components/shop/product-provider";
 import { OrderProvider } from "@/components/shop/order-provider";
 import { StoreSettingsProvider } from "@/components/common/settings-provider";
-import { RecentlyViewedProvider } from "@/components/shop/recently-viewed-provider";
 import { LanguageProvider } from "@/components/common/language-provider";
 import { CartSheet } from "@/components/cart/cart-sheet";
 import { Toaster } from "@/components/ui/toast";
@@ -19,15 +18,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
         <StoreSettingsProvider>
           <ProductProvider>
             <OrderProvider>
-              <RecentlyViewedProvider>
-                <WishlistProvider>
-                  <CartProvider>
-                    {children}
-                    <CartSheet />
-                    <Toaster />
-                  </CartProvider>
-                </WishlistProvider>
-              </RecentlyViewedProvider>
+              <WishlistProvider>
+                <CartProvider>
+                  {children}
+                  <CartSheet />
+                  <Toaster />
+                </CartProvider>
+              </WishlistProvider>
             </OrderProvider>
           </ProductProvider>
         </StoreSettingsProvider>

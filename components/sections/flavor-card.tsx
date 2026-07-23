@@ -27,7 +27,12 @@ export function FlavorCard({ flavor, index = 0 }: { flavor: Flavor; index?: numb
   const pack = getPack(DEFAULT_PACK_ID)!;
   const wished = has(flavor.id);
 
+  // Out of stock is a simple availability flag — no quantities. When off, the
+  // card is dimmed and the buy button is disabled, so it can't be added to cart.
+  const isOutOfStock = flavor.inStock === false;
+
   const handleAdd = () => {
+    if (isOutOfStock) return;
     addItem(flavor, pack, 1);
     setAdded(true);
     setTimeout(() => setAdded(false), 1600);
@@ -54,10 +59,26 @@ export function FlavorCard({ flavor, index = 0 }: { flavor: Flavor; index?: numb
         }}
       >
         <div className="absolute inset-0 flex items-center justify-center p-6 transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-105">
-          <WaferVisual flavor={flavor} seed={index} className="max-h-full" />
+          <WaferVisual
+            flavor={flavor}
+            seed={index}
+            className={cn(
+              "max-h-full transition-all",
+              isOutOfStock && "opacity-50 grayscale blur-[0.5px]"
+            )}
+          />
         </div>
 
-        {flavor.badge && (
+        {/* Out-of-stock overlay label */}
+        {isOutOfStock && (
+          <div className="absolute inset-0 flex items-center justify-center bg-white/30 backdrop-blur-[1px]">
+            <span className="rounded-full bg-charcoal/85 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-white shadow-sm">
+              Out of stock
+            </span>
+          </div>
+        )}
+
+        {flavor.badge && !isOutOfStock && (
           <div className="absolute left-4 top-4">
             <Badge variant={badgeVariant[flavor.badge] ?? "soft"} size="md">
               {flavor.badge}
@@ -106,18 +127,26 @@ export function FlavorCard({ flavor, index = 0 }: { flavor: Flavor; index?: numb
           )}
         </div>
 
-        {/* Footer */}
-        <div className="mt-6 flex items-center justify-between gap-3 border-t border-[var(--color-border)] pt-5">
-          <div>
+        {/*
+          Pinned to the bottom with mt-auto so the price and Add-to-Cart line up
+          across every card. Cards vary in height above this — a 1-line vs
+          3-line description, one row of ingredient chips vs two — which used to
+          leave each card's button floating at a different height.
+        */}
+        <div className="mt-auto flex flex-wrap items-center justify-between gap-y-3 gap-x-2 border-t border-[var(--color-border)] pt-5">
+          <div className="min-w-0">
             <p className="text-[11px] uppercase tracking-wide text-charcoal-soft">200g pack</p>
-            <p className="font-serif text-xl font-bold text-purple-700">{formatINR(pack.price)}</p>
+            <p className="font-serif text-xl font-bold text-purple-700 whitespace-nowrap">{formatINR(pack.price)}</p>
           </div>
           <Button
             onClick={handleAdd}
-            variant={added ? "accent" : "primary"}
-            className="min-w-32"
+            disabled={isOutOfStock}
+            variant={isOutOfStock ? "outline" : added ? "accent" : "primary"}
+            className="min-w-32 flex-1 xs:flex-none"
           >
-            {added ? (
+            {isOutOfStock ? (
+              "Out of stock"
+            ) : added ? (
               <>
                 <Check /> Added
               </>

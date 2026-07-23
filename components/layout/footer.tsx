@@ -3,21 +3,21 @@
 import Link from "next/link";
 import { Mail, Phone, MapPin } from "lucide-react";
 import { Logo } from "./logo";
-import { InstagramIcon, FacebookIcon, XIcon, YoutubeIcon } from "./social-icons";
 import { SITE } from "@/lib/constants";
 import { useStoreSettings } from "@/components/common/settings-provider";
 import { useLanguage } from "@/components/common/language-provider";
-
-const SOCIAL = [
-  { icon: InstagramIcon, href: SITE.social.instagram, label: "Instagram" },
-  { icon: FacebookIcon, href: SITE.social.facebook, label: "Facebook" },
-  { icon: XIcon, href: SITE.social.twitter, label: "X (Twitter)" },
-  { icon: YoutubeIcon, href: SITE.social.youtube, label: "YouTube" },
-];
+import { useSocialLinks } from "@/lib/hooks/use-social-links";
+import { SocialIcon, SOCIAL_LABELS } from "./social-icons";
 
 export function Footer() {
   const { settings } = useStoreSettings();
   const { t } = useLanguage();
+
+  /**
+   * Channels come from the console, not a hardcoded list. Editing a handle in
+   * "Social Media Channels" used to change nothing here.
+   */
+  const socials = useSocialLinks();
 
   const COLUMNS = [
     {
@@ -43,7 +43,7 @@ export function Footer() {
       links: [
         { label: "FAQ", href: "/faq" },
         { label: "Shipping & Returns", href: "/policies/shipping" },
-        { label: "Track Order", href: "/account" },
+        { label: "Track Order", href: "/account?tab=orders" },
         { label: "My Account", href: "/account" },
       ],
     },
@@ -85,39 +85,38 @@ export function Footer() {
             <ul className="mt-6 flex flex-col gap-2.5 text-sm">
               <li className="flex items-center gap-3">
                 <Mail className="size-4 text-yellow-400" />
-                <a href={`mailto:${settings.footerEmail}`} className="text-white/80 hover:text-white transition-colors">
-                  {settings.footerEmail}
+                <a href={`mailto:${settings.supportEmail}`} className="text-white/80 hover:text-white transition-colors">
+                  {settings.supportEmail}
                 </a>
               </li>
               <li className="flex items-center gap-3">
                 <Phone className="size-4 text-yellow-400" />
-                <a href={`tel:${settings.footerPhone}`} className="text-white/80 hover:text-white transition-colors">
-                  {settings.footerPhone}
+                <a href={`tel:${settings.customerCareNumber}`} className="text-white/80 hover:text-white transition-colors">
+                  {settings.customerCareNumber}
                 </a>
               </li>
               <li className="flex items-start gap-3">
                 <MapPin className="mt-0.5 size-4 shrink-0 text-yellow-400" />
-                <span className="text-white/80">{settings.footerAddress}</span>
+                <span className="text-white/80">{settings.businessAddress}</span>
               </li>
             </ul>
 
-            <div className="mt-6 flex gap-2.5">
-              {SOCIAL.map((s) => {
-                const Icon = s.icon;
-                return (
+            {socials.length > 0 && (
+              <div className="mt-6 flex flex-wrap gap-2.5">
+                {socials.map((s) => (
                   <a
-                    key={s.label}
-                    href={s.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={s.label}
+                    key={s._id}
+                    href={s.url}
+                    target={s.openInNewTab ? "_blank" : undefined}
+                    rel={s.openInNewTab ? "noopener noreferrer" : undefined}
+                    aria-label={SOCIAL_LABELS[s.platform] ?? s.platform}
                     className="grid size-10 place-items-center rounded-full bg-white/10 text-white transition-all hover:-translate-y-0.5 hover:bg-yellow-400 hover:text-orange-900"
                   >
-                    <Icon className="size-4.5" />
+                    <SocialIcon platform={s.platform} className="size-4.5" />
                   </a>
-                );
-              })}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Link columns */}
@@ -139,8 +138,8 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-14 flex flex-col items-center justify-between gap-4 border-t border-white/15 pt-8 text-xs text-white/55 sm:flex-row">
-          <p>© {new Date().getFullYear()} {SITE.legalName}. All rights reserved.</p>
+        <div className="mt-14 flex flex-col items-center justify-between gap-4 border-t border-white/15 pt-8 text-xs text-white/70 sm:flex-row font-medium">
+          <p>© {new Date().getFullYear()} {settings.storeName || settings.businessName || SITE.name}. All rights reserved.</p>
           <p className="flex items-center gap-2">
             <span>{t("footer_made_in")}</span>
             <span aria-hidden>·</span>

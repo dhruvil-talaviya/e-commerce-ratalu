@@ -1,61 +1,79 @@
-import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+"use client";
+
+import * as React from "react";
+import { useParams, notFound } from "next/navigation";
 import { PageHeader } from "@/components/common/page-header";
-import { POLICIES, getPolicy } from "@/lib/data/policies";
+import { getPolicy } from "@/lib/data/policies";
+import { CmsProvider, useSection } from "@/components/cms/cms-provider";
 
-export function generateStaticParams() {
-  return POLICIES.map((p) => ({ slug: p.slug }));
-}
-
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}): Promise<Metadata> {
-  const { slug } = await params;
-  const policy = getPolicy(slug);
-  if (!policy) return { title: "Policy not found" };
-  return {
-    title: policy.title,
-    description: policy.summary,
-    alternates: { canonical: `/policies/${policy.slug}` },
-  };
-}
-
-export default async function PolicyPage({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
-  const { slug } = await params;
+export default function PolicyPage() {
+  const params = useParams() as { slug?: string };
+  const slug = params?.slug || "";
   const policy = getPolicy(slug);
   if (!policy) notFound();
+
+  // Map slug to PageKey
+  const pageKey = slug === "refunds" ? "refund" : slug;
+
+  return (
+    <CmsProvider page={pageKey}>
+      <PolicyView defaultPolicy={policy} />
+    </CmsProvider>
+  );
+}
+
+function formatCmsBody(body: string): string {
+  if (!body) return "";
+
+  // Normalize headings by ensuring they start on newlines
+  let normalized = body
+    .replace(/(?:\s+|\n)*(##|#)\s+([^#\n\r]+?)(?=\s+(?:##|#)|\n|\r|$)/g, "\n\n$1 $2\n\n");
+
+  let html = normalized
+    // Convert ## Heading
+    .replace(/^##\s+(.+)$/gm, '<h2 class="font-serif text-2xl font-semibold text-charcoal mt-8 mb-4">$1</h2>')
+    // Convert # Heading
+    .replace(/^#\s+(.+)$/gm, '<h1 class="font-serif text-3xl font-bold text-charcoal mt-10 mb-6">$1</h1>')
+    // Convert bullet lists
+    .replace(/^\-\s+(.+)$/gm, '<li class="list-disc ml-6 text-charcoal-muted mb-2">$1</li>');
+
+  // Convert double newlines to paragraph tags
+  const paragraphs = html.split(/\r?\n\r?\n/).map(p => p.trim()).filter(Boolean);
+  const wrapped = paragraphs.map(p => {
+    if (p.startsWith("<h") || p.startsWith("<li")) {
+      return p;
+    }
+    // Convert single newlines inside paragraph to <br/>
+    return `<p class="text-lg leading-relaxed text-charcoal-muted mb-4">${p.replace(/\r?\n/g, "<br/>")}</p>`;
+  });
+
+  return wrapped.join("\n");
+}
+
+function PolicyView({ defaultPolicy }: { defaultPolicy: any }) {
+  // Load page details from CMS section "details"
+  const cms = useSection("details", {
+    title: defaultPolicy.title,
+    subtitle: defaultPolicy.summary,
+    body: defaultPolicy.sections.map((s: any) => `## ${s.heading}\n\n${s.body.join("\n\n")}`).join("\n\n")
+  });
+
+  const formattedHtml = formatCmsBody(cms.body || "");
 
   return (
     <>
       <PageHeader
         eyebrow="Policies"
-        title={policy.title}
-        description={policy.summary}
-        crumbs={[{ label: "Home", href: "/" }, { label: policy.title }]}
+        title={cms.title || defaultPolicy.title}
+        description={cms.subtitle || defaultPolicy.summary}
+        crumbs={[{ label: "Home", href: "/" }, { label: cms.title || defaultPolicy.title }]}
       />
 
       <article className="container-px mx-auto max-w-3xl py-12">
-        <p className="mb-10 text-sm text-charcoal-soft">Last updated: {policy.updated}</p>
-        <div className="flex flex-col gap-10">
-          {policy.sections.map((section) => (
-            <section key={section.heading}>
-              <h2 className="font-serif text-2xl font-semibold text-charcoal">{section.heading}</h2>
-              <div className="mt-3 flex flex-col gap-3">
-                {section.body.map((p, i) => (
-                  <p key={i} className="text-lg leading-relaxed text-charcoal-muted">
-                    {p}
-                  </p>
-                ))}
-              </div>
-            </section>
-          ))}
-        </div>
+        <div 
+          className="prose prose-purple max-w-none"
+          dangerouslySetInnerHTML={{ __html: formattedHtml }}
+        />
 
         <div className="mt-12 rounded-3xl border border-[var(--color-border)] bg-white/70 p-6 text-center">
           <p className="text-charcoal-muted">

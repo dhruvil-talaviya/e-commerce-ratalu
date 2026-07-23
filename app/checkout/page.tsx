@@ -6,9 +6,9 @@ import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import {
   CreditCard,
+  Banknote,
   Smartphone,
   Landmark,
-  Lock,
   ShoppingBag,
   Check,
   ArrowLeft,
@@ -21,27 +21,57 @@ import {
   ShieldCheck,
   MapPin,
   CheckCircle,
+  AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { useStoreSettings } from "@/components/common/settings-provider";
 import { useCart } from "@/components/cart/cart-provider";
-import { useAccount } from "@/components/account/account-provider";
+import { useAccount, type SavedAddress } from "@/components/account/account-provider";
 import { useOrders } from "@/components/shop/order-provider";
 import { formatINR, cn } from "@/lib/utils";
 import { SITE } from "@/lib/constants";
 import { toast } from "@/components/ui/toast";
+import { apiFetch } from "@/lib/api";
+import { AddressForm } from "@/components/shop/address-form";
+import { Edit2, Trash2, CheckCircle2 } from "lucide-react";
 
-type PayMethod = "upi" | "card" | "netbanking";
-const PAY_METHODS: { key: PayMethod; label: string; icon: React.ElementType; hint: string }[] = [
-  { key: "upi", label: "UPI", icon: Smartphone, hint: "GPay, PhonePe, Paytm & more" },
-  { key: "card", label: "Card", icon: CreditCard, hint: "Credit / Debit cards" },
-  { key: "netbanking", label: "Net Banking", icon: Landmark, hint: "All major banks" },
+type PayMethod = "Razorpay" | "COD";
+
+interface PayOption {
+  key: PayMethod;
+  title: string;
+  description: string;
+  badge?: string;
+  icon: typeof CreditCard;
+}
+
+/**
+ * The payment methods offered at checkout, filtered by what the admin has
+ * enabled in Settings. "Pay Online" is Razorpay, whose own screen includes UPI
+ * QR, Google Pay / PhonePe / Paytm, cards, net-banking and wallets.
+ */
+const ALL_PAYMENT_OPTIONS: PayOption[] = [
+  {
+    key: "Razorpay",
+    title: "Pay Online",
+    description: "UPI & QR, cards, net-banking and wallets — secured by Razorpay",
+    badge: "Recommended",
+    icon: CreditCard,
+  },
+  {
+    key: "COD",
+    title: "Cash on Delivery",
+    description: "Pay in cash when your order arrives",
+    icon: Banknote,
+  },
 ];
 
 export default function CheckoutPage() {
+  const { settings } = useStoreSettings();
   const { items, totals, clear, coupon } = useCart();
-  const { user, isLoggedIn, sendOtp, verifyOtp, addAddress, setActiveAddress } = useAccount();
+  const { user, isLoggedIn, sendOtp, verifyOtp, updateProfile, addAddress, updateAddress, deleteAddress, setDefaultAddress, setActiveAddress } = useAccount();
   const { placeOrder } = useOrders();
   const router = useRouter();
 
@@ -67,18 +97,79 @@ export default function CheckoutPage() {
   const [regTag, setRegTag] = React.useState<"Home" | "Work" | "Other">("Home");
   const [saveRegAddress, setSaveRegAddress] = React.useState(true);
 
+  // Payment methods the admin has switched on, in Settings.
+  const paymentOptions = React.useMemo(
+    () =>
+      ALL_PAYMENT_OPTIONS.filter((o) =>
+        o.key === "COD" ? settings.codEnabled !== false : settings.razorpayEnabled !== false
+      ),
+    [settings.codEnabled, settings.razorpayEnabled]
+  );
+
   // Normal Checkout States
-  const [method, setMethod] = React.useState<PayMethod>("upi");
+  const [method, setMethod] = React.useState<PayMethod>("Razorpay");
+
+  // Keep the selection valid as the enabled methods load/change.
+  React.useEffect(() => {
+    if (paymentOptions.length && !paymentOptions.some((o) => o.key === method)) {
+      setMethod(paymentOptions[0].key);
+    }
+  }, [paymentOptions, method]);
   const [placing, setPlacing] = React.useState(false);
   const [orderId, setOrderId] = React.useState<string | null>(null);
   const [showAddForm, setShowAddForm] = React.useState(false);
-  const [newTag, setNewTag] = React.useState<"Home" | "Work" | "Other">("Home");
-  const [addressLine, setAddressLine] = React.useState("");
-  const [city, setCity] = React.useState("");
-  const [state, setState] = React.useState("");
-  const [pincode, setPincode] = React.useState("");
-  const [locLoading, setLocLoading] = React.useState(false);
   const [checkoutError, setCheckoutError] = React.useState("");
+  const [editingAddress, setEditingAddress] = React.useState<SavedAddress | null>(null);
+  const [paymentFailed, setPaymentFailed] = React.useState(false);
+  /**
+   * The order that was already created for this cart (online payment only).
+   * Kept so a failed attempt can be RETRIED against the SAME order — no new
+   * order id, no second stock decrement, no second coupon use. Holds everything
+   * needed to re-open the Razorpay modal without hitting create-order again.
+   */
+  const [createdOrder, setCreatedOrder] = React.useState<{
+    orderId: string;
+    rzpOrderId: string;
+    amount: number;
+    currency: string;
+    keyId: string;
+  } | null>(null);
+
+  const selectedAddress = user?.addresses?.find((a) => a.id === user?.activeAddressId);
+
+  const distanceKm = React.useMemo(() => {
+    if (!selectedAddress?.latitude || !selectedAddress?.longitude) return null;
+    const hubLat = 21.1702;
+    const hubLon = 72.8311;
+    const R = 6371;
+    const dLat = ((selectedAddress.latitude - hubLat) * Math.PI) / 180;
+    const dLon = ((selectedAddress.longitude - hubLon) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((hubLat * Math.PI) / 180) *
+        Math.cos((selectedAddress.latitude * Math.PI) / 180) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }, [selectedAddress]);
+
+  const alertStyles = React.useMemo(() => {
+    const bg = settings.announcementBgColor || "";
+    const isHex = bg.startsWith("#") && bg.length === 7;
+    return {
+      bgTint: isHex ? `${bg}12` : "rgba(251, 191, 36, 0.08)",
+      borderTint: isHex ? `${bg}25` : "rgba(251, 191, 36, 0.2)",
+      solidBg: bg || "#f59e0b",
+      textColor: settings.announcementTextColor || "#92400e",
+    };
+  }, [settings.announcementBgColor, settings.announcementTextColor]);
+
+  React.useEffect(() => {
+    if (isLoggedIn && user && (!user.addresses || user.addresses.length === 0)) {
+      setShowAddForm(true);
+    }
+  }, [isLoggedIn, user]);
 
   // OTP Box Refs
   const otpRefs = React.useRef<(HTMLInputElement | null)[]>([]);
@@ -171,17 +262,22 @@ export default function CheckoutPage() {
   const handleVerifyOtp = async (code: string) => {
     setAuthError("");
     setAuthLoading(true);
-    const result = await verifyOtp(phone, code, "login");
+    // Unified passwordless verify: existing customers are signed in, brand-new
+    // numbers are auto-registered — either way we're authenticated afterwards.
+    const result = await verifyOtp(phone, code);
     setAuthLoading(false);
 
-    if (result.success) {
-      toast.success("Welcome back!", { description: "Logged in successfully. Saved details pre-filled." });
+    if (!result.success) {
+      setAuthError(result.message || "Invalid verification code. Please enter the correct OTP.");
+      return;
+    }
+
+    if (result.isNewUser || !result.profileComplete) {
+      // Account exists now; we just need their name + delivery address.
+      setAuthStep("register");
+      toast.success("Mobile verified", { description: "Just add your details to continue." });
     } else {
-      if (result.message && result.message.includes("No profile registered")) {
-        setAuthStep("register");
-      } else {
-        setAuthError(result.message || "Invalid verification code. Please enter the correct OTP.");
-      }
+      toast.success("Welcome back!", { description: "Logged in successfully. Saved details pre-filled." });
     }
   };
 
@@ -248,41 +344,125 @@ export default function CheckoutPage() {
     }
 
     setAuthLoading(true);
-    // Register user profile via verifyOtp in "register" mode
-    const result = await verifyOtp(phone, "000000", "register", regName);
-    
-    if (result.success) {
-      // Save and link delivery address
+    try {
+      // The customer is ALREADY authenticated (auto-registered on OTP verify).
+      // This step only completes their profile and saves the delivery address.
+      await updateProfile({ name: regName.trim() });
+
       const fullLine = `${regHouse}, ${regStreet}, ${regArea} ${regLandmark ? `(Landmark: ${regLandmark})` : ""}`.trim();
       if (saveRegAddress) {
-        try {
-          await addAddress({
-            tag: regTag,
-            addressLine: fullLine,
-            city: regCity,
-            state: regState,
-            pincode: regPin,
-          });
-        } catch (err) {
-          console.error("Failed to save delivery address:", err);
-        }
+        await addAddress({
+          tag: regTag,
+          addressLine: fullLine,
+          city: regCity,
+          state: regState,
+          pincode: regPin,
+        });
       }
-      toast.success("Welcome!", { description: "Account created successfully. Processing your order..." });
-    } else {
-      setAuthError(result.message || "Failed to register account.");
+
+      toast.success("Welcome!", { description: "Your details are saved. Continue to payment." });
+    } catch (err) {
+      setAuthError(err instanceof Error ? err.message : "Failed to save your details.");
+    } finally {
+      setAuthLoading(false);
     }
-    setAuthLoading(false);
+  };
+
+  const loadRazorpayScript = () =>
+    new Promise<boolean>((resolve) => {
+      if ((window as any).Razorpay) return resolve(true);
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.async = true;
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+
+  /**
+   * Open the Razorpay modal for an ALREADY-created order.
+   *
+   * This is what makes retry safe: a failed payment re-opens the gateway against
+   * the same order id (and the same Razorpay order), so no duplicate order is
+   * created and stock/coupon aren't consumed twice.
+   */
+  const launchRazorpay = async (co: NonNullable<typeof createdOrder>) => {
+    setCheckoutError("");
+    setPaymentFailed(false);
+    setPlacing(true);
+
+    try {
+      if (!(await loadRazorpayScript())) {
+        throw new Error("Couldn't load the payment gateway. Please try again.");
+      }
+
+      const options = {
+        key: co.keyId,
+        amount: co.amount,
+        currency: co.currency,
+        name: settings.storeName || "Ratalu Wafers",
+        description: `Order ${co.orderId}`,
+        order_id: co.rzpOrderId,
+        handler: async function (response: any) {
+          setPlacing(true);
+          try {
+            await apiFetch("/payment/verify", {
+              method: "POST",
+              body: {
+                orderId: co.orderId,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              },
+            });
+            setOrderId(co.orderId);
+            clear();
+            toast.success("Payment successful! Order placed.");
+          } catch (err: any) {
+            setCheckoutError(err.message || "We couldn't verify your payment.");
+            setPaymentFailed(true);
+          } finally {
+            setPlacing(false);
+          }
+        },
+        prefill: {
+          name: user?.name || "",
+          contact: user?.phone || "",
+          email: user?.email || "",
+        },
+        theme: { color: "#7c3aed" },
+        modal: { ondismiss: () => setPlacing(false) },
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+      rzp.on("payment.failed", function (response: any) {
+        setCheckoutError(response.error?.description || "Payment failed. Please try again.");
+        setPaymentFailed(true);
+        setPlacing(false);
+      });
+      rzp.open();
+    } catch (err: any) {
+      setCheckoutError(err.message || "Something went wrong opening the payment gateway.");
+      setPlacing(false);
+    }
   };
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     setCheckoutError("");
 
+    // ── Retry ──────────────────────────────────────────────────────────────
+    // An order already exists for this cart (a previous attempt). Re-open the
+    // gateway for THAT order — never create a new one.
+    if (createdOrder) {
+      await launchRazorpay(createdOrder);
+      return;
+    }
+
     if (!user?.activeAddressId) {
       setCheckoutError("Please select or add a delivery address to place your order.");
       return;
     }
-
     const activeAddr = user?.addresses?.find((a) => a.id === user?.activeAddressId);
     if (!activeAddr) {
       setCheckoutError("Selected address details are missing.");
@@ -290,119 +470,109 @@ export default function CheckoutPage() {
     }
 
     setPlacing(true);
-    await new Promise((r) => setTimeout(r, 1200));
 
-    // Save to global order provider
-    const newId = await placeOrder(
-      user?.name || "",
-      user?.phone || "",
-      items,
-      totals,
-      activeAddr,
-      method,
-      coupon?.code
-    );
-
-    setOrderId(newId);
-    clear();
-    setPlacing(false);
-  };
-
-  const handleUseLocation = () => {
-    setLocLoading(true);
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        () => {
-          const mockLocations = [
-            { line: "Flat 402, Sea Breeze, Marine Drive", city: "Mumbai", state: "Maharashtra", pin: "400021" },
-            { line: "Block G, Naman BKC Centre, Bandra East", city: "Mumbai", state: "Maharashtra", pin: "400051" },
-            { line: "B-204 Dev Aurum, Prahlad Nagar", city: "Ahmedabad", state: "Gujarat", pin: "380015" },
-          ];
-          const randomLoc = mockLocations[Math.floor(Math.random() * mockLocations.length)];
-          setAddressLine(randomLoc.line);
-          setCity(randomLoc.city);
-          setState(randomLoc.state);
-          setPincode(randomLoc.pin);
-          setLocLoading(false);
+    try {
+      const res = await apiFetch<{
+        order: any;
+        requiresPayment: boolean;
+        razorpay: { orderId: string; amount: number; currency: string; keyId: string };
+      }>("/payment/create-order", {
+        method: "POST",
+        body: {
+          items: items.map((i) => ({
+            flavorId: i.flavorId,
+            flavorName: i.flavorName,
+            packId: i.packId,
+            packLabel: i.packLabel,
+            grams: i.grams,
+            unitPrice: i.unitPrice,
+            quantity: i.quantity,
+            gradient: i.gradient,
+          })),
+          couponCode: coupon?.code,
+          address: activeAddr,
+          paymentMethod: method,
         },
-        () => {
-          setAddressLine("Flat 12, Royal Palms Mansion, Park Street");
-          setCity("Kolkata");
-          setState("West Bengal");
-          setPincode("700016");
-          setLocLoading(false);
-        }
-      );
-    } else {
-      setLocLoading(false);
+      });
+
+      // COD (and any offline method): the order is placed, nothing to collect.
+      if (!res.requiresPayment) {
+        setOrderId(res.order.id);
+        clear();
+        return;
+      }
+
+      const co = {
+        orderId: res.order.id,
+        rzpOrderId: res.razorpay.orderId,
+        amount: res.razorpay.amount,
+        currency: res.razorpay.currency,
+        keyId: res.razorpay.keyId,
+      };
+      setCreatedOrder(co);
+      await launchRazorpay(co);
+    } catch (err: any) {
+      setCheckoutError(err.message || "An error occurred while placing your order.");
+      setPlacing(false);
     }
   };
 
-  const handleSaveAddress = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!addressLine || !city || !state || !pincode) return;
-
-    addAddress({
-      tag: newTag,
-      addressLine,
-      city,
-      state,
-      pincode,
-    });
-
-    setNewTag("Home");
-    setAddressLine("");
-    setCity("");
-    setState("");
-    setPincode("");
-    setShowAddForm(false);
-  };
-
-  const selectedAddress = user?.addresses?.find((a) => a.id === user?.activeAddressId);
+  // Placed AFTER the handlers so onRetry can reference launchRazorpay (a const
+  // arrow function). Retry re-opens the gateway for the SAME order — no new id.
+  if (paymentFailed) {
+    return (
+      <OrderFailed
+        onRetry={() => {
+          if (createdOrder) void launchRazorpay(createdOrder);
+          else setPaymentFailed(false);
+        }}
+      />
+    );
+  }
 
   return (
-    <div className="container-px mx-auto max-w-6xl py-8 sm:py-12">
+    <div className="container-px mx-auto max-w-6xl py-6 sm:py-12">
       {/* Checkout Progress Steps */}
-      <div className="mb-8 w-full max-w-3xl mx-auto flex items-center justify-between text-[10px] sm:text-xs font-bold text-gray-400">
+      <div className="mb-6 sm:mb-8 w-full max-w-3xl mx-auto flex items-center justify-between text-[9px] sm:text-xs font-bold text-gray-400">
         <div className="flex flex-col items-center gap-1">
-          <span className="flex size-6 items-center justify-center rounded-full bg-purple-100 text-purple-700 font-bold border border-purple-200">
+          <span className="flex size-5 sm:size-6 items-center justify-center rounded-full bg-purple-100 text-purple-700 font-bold border border-purple-200">
             ✓
           </span>
           <span className="text-gray-900">Cart</span>
         </div>
-        <div className="flex-1 h-0.5 bg-purple-200 mx-2" />
+        <div className="flex-1 h-0.5 bg-purple-200 mx-1.5 sm:mx-2" />
         <div className="flex flex-col items-center gap-1">
           <span className={cn(
-            "flex size-6 items-center justify-center rounded-full border",
+            "flex size-5 sm:size-6 items-center justify-center rounded-full border",
             currentStepNum >= 2 ? "bg-purple-600 border-purple-600 text-white" : "bg-white border-gray-200"
           )}>
             {currentStepNum > 2 ? "✓" : "2"}
           </span>
           <span className={cn(currentStepNum >= 2 ? "text-gray-900" : "text-gray-400")}>Verification</span>
         </div>
-        <div className={cn("flex-1 h-0.5 mx-2", currentStepNum >= 3 ? "bg-purple-200" : "bg-gray-200")} />
+        <div className={cn("flex-1 h-0.5 mx-1.5 sm:mx-2", currentStepNum >= 3 ? "bg-purple-200" : "bg-gray-200")} />
         <div className="flex flex-col items-center gap-1">
           <span className={cn(
-            "flex size-6 items-center justify-center rounded-full border",
+            "flex size-5 sm:size-6 items-center justify-center rounded-full border",
             isLoggedIn ? "bg-purple-600 border-purple-600 text-white" : "bg-white border-gray-200"
           )}>
             3
           </span>
-          <span className={cn(isLoggedIn ? "text-gray-900" : "text-gray-400")}>Shipping & Pay</span>
+          <span className={cn(isLoggedIn ? "text-gray-900" : "text-gray-400")}>Shipping &amp; Pay</span>
         </div>
-        <div className="flex-1 h-0.5 bg-gray-200 mx-2" />
+        <div className="flex-1 h-0.5 bg-gray-200 mx-1.5 sm:mx-2" />
         <div className="flex flex-col items-center gap-1">
-          <span className="flex size-6 items-center justify-center rounded-full bg-white border border-gray-200 text-gray-400">
+          <span className="flex size-5 sm:size-6 items-center justify-center rounded-full bg-white border border-gray-200 text-gray-400">
             4
           </span>
           <span>Confirmation</span>
         </div>
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-[1.4fr_1fr]">
-        
+      <div className="grid gap-5 sm:gap-8 lg:grid-cols-[1.4fr_1fr]">
+
         {/* --- LEFT AREA --- */}
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-4 sm:gap-6">
           {!isLoggedIn ? (
             <div className="bg-white border border-gray-200 rounded-3xl p-6 sm:p-8 shadow-sm flex flex-col gap-5">
               
@@ -511,6 +681,28 @@ export default function CheckoutPage() {
                     <h2 className="text-xl font-bold text-gray-900">Customer Registration</h2>
                     <p className="text-xs text-gray-500 mt-1">Complete your registration to save delivery settings.</p>
                   </div>
+
+                  {settings.announcementEnabled && settings.announcementText && (
+                    <div 
+                      className="flex items-start gap-3 rounded-2xl border p-4.5 shadow-sm"
+                      style={{ 
+                        backgroundColor: alertStyles.bgTint, 
+                        borderColor: alertStyles.borderTint,
+                        borderLeftWidth: "4px",
+                        borderLeftColor: alertStyles.solidBg,
+                        color: alertStyles.textColor 
+                      }}
+                    >
+                      <AlertCircle 
+                        className="size-5 shrink-0 mt-0.5" 
+                        style={{ color: alertStyles.solidBg }}
+                      />
+                      <div>
+                        <p className="text-[9px] font-extrabold uppercase tracking-wider opacity-60">Delivery Notice</p>
+                        <p className="mt-0.5 text-xs font-bold leading-relaxed">{settings.announcementText}</p>
+                      </div>
+                    </div>
+                  )}
 
                   {authError && (
                     <div className="flex items-start gap-2 rounded-xl bg-red-50 p-3 text-xs font-semibold text-red-700 border border-red-100">
@@ -625,16 +817,39 @@ export default function CheckoutPage() {
             <>
               {/* Authenticated Checkout Form */}
               {checkoutError && (
-                <div className="rounded-2xl border border-red-150 bg-red-50 p-4 text-xs font-semibold text-red-700">
-                  {checkoutError}
+                <div className="flex items-start gap-2.5 rounded-2xl border border-red-100 bg-red-50 p-3.5 text-xs font-semibold text-red-700 sm:text-sm">
+                  <AlertCircle className="mt-0.5 size-4 shrink-0" />
+                  <span>{checkoutError}</span>
                 </div>
               )}
 
-              <form onSubmit={handlePlaceOrder} className="flex flex-col gap-6">
+              <div className="flex flex-col gap-4 sm:gap-6">
                 {/* Delivery Address Section */}
                 <Section step={1} title="Contact & Delivery Address">
+                  {settings.announcementEnabled && settings.announcementText && (
+                    <div 
+                      className="mb-4 flex items-start gap-3 rounded-2xl border p-4.5 shadow-sm"
+                      style={{ 
+                        backgroundColor: alertStyles.bgTint, 
+                        borderColor: alertStyles.borderTint,
+                        borderLeftWidth: "4px",
+                        borderLeftColor: alertStyles.solidBg,
+                        color: alertStyles.textColor 
+                      }}
+                    >
+                      <AlertCircle 
+                        className="size-5 shrink-0 mt-0.5" 
+                        style={{ color: alertStyles.solidBg }}
+                      />
+                      <div>
+                        <p className="text-[9px] font-extrabold uppercase tracking-wider opacity-60">Delivery Notice</p>
+                        <p className="mt-0.5 text-xs font-bold leading-relaxed">{settings.announcementText}</p>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Contact Preview */}
-                  <div className="grid gap-4 sm:grid-cols-2 rounded-2xl bg-gray-50 border border-gray-150 p-4 mb-5">
+                  <div className="grid gap-2.5 sm:gap-4 sm:grid-cols-2 rounded-xl sm:rounded-2xl bg-gray-50 border border-gray-150 p-3 sm:p-4 mb-4 sm:mb-5">
                     <div className="flex flex-col gap-0.5">
                       <span className="text-[9px] font-bold uppercase tracking-wider text-gray-400">Customer Name</span>
                       <span className="text-xs font-bold text-gray-800">{user?.name}</span>
@@ -646,180 +861,220 @@ export default function CheckoutPage() {
                   </div>
 
                   {/* Address List Selection */}
-                  <div className="flex flex-col gap-4">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Select Delivery Address</span>
-                    
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      {user?.addresses?.map((addr) => {
-                        const active = user?.activeAddressId === addr.id;
-                        return (
-                          <div
-                            key={addr.id}
-                            onClick={() => setActiveAddress(addr.id)}
-                            className={cn(
-                              "relative flex flex-col justify-between rounded-2xl border p-4 cursor-pointer text-left transition-all",
-                              active
-                                ? "border-purple-600 bg-purple-50/40 ring-1 ring-purple-500 shadow-sm"
-                                : "border-gray-200 bg-white hover:border-purple-200"
-                            )}
-                          >
-                            <div>
-                              <Badge variant={addr.tag === "Home" ? "primary" : addr.tag === "Work" ? "gold" : "orange"} size="sm">
-                                {addr.tag}
-                              </Badge>
-                              <p className="mt-3 text-xs font-semibold text-gray-600 leading-relaxed">
-                                {addr.addressLine},
-                                <br />
-                                {addr.city}, {addr.state} {addr.pincode}
-                              </p>
-                            </div>
-
-                            {active && (
-                              <div className="mt-3 text-[9px] font-bold text-purple-700 uppercase tracking-wider border-t border-purple-100 pt-2">
-                                ✓ Selected Address
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-
-                      {!showAddForm ? (
-                        <button
-                          type="button"
-                          onClick={() => setShowAddForm(true)}
-                          className="flex min-h-[120px] flex-col items-center justify-center gap-1.5 rounded-2xl border border-dashed border-purple-200 text-purple-600 transition-colors hover:border-purple-400 hover:bg-purple-50/30"
-                        >
-                          <Plus className="size-5" />
-                          <span className="text-xs font-bold">Add New Address</span>
-                        </button>
-                      ) : (
-                        <div className="rounded-2xl border border-dashed border-purple-300 bg-purple-50/10 p-4 flex flex-col gap-4 sm:col-span-2">
-                          <div className="flex flex-col gap-2">
-                            <span className="text-[9px] font-bold uppercase tracking-wider text-gray-400">Address Type</span>
-                            <div className="flex flex-wrap items-center gap-2">
-                              {(["Home", "Work", "Other"] as const).map((t) => (
-                                <button
-                                  type="button"
-                                  key={t}
-                                  onClick={() => setNewTag(t)}
-                                  className={cn(
-                                    "rounded-lg px-3 py-1 text-xs font-semibold border transition-all focus:outline-none",
-                                    newTag === t
-                                      ? "bg-purple-600 border-purple-600 text-white"
-                                      : "bg-white border-gray-250 text-gray-600 hover:border-purple-200"
-                                  )}
-                                >
-                                  {t}
-                                </button>
-                              ))}
-
-                              <button
-                                type="button"
-                                onClick={handleUseLocation}
-                                disabled={locLoading}
-                                className="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-purple-200 bg-white px-3 py-1 text-xs font-semibold text-purple-700 transition-colors hover:bg-purple-50 focus:outline-none"
+                  <div className="flex flex-col gap-4 mt-5">
+                    {showAddForm ? (
+                      <div className="border border-purple-200 rounded-3xl p-5 bg-purple-50/5">
+                        <h4 className="text-sm font-bold text-purple-900 mb-4">Add New Delivery Address</h4>
+                        <AddressForm
+                          onSubmit={async (addr) => {
+                            await addAddress(addr);
+                            setShowAddForm(false);
+                          }}
+                          onCancel={() => setShowAddForm(false)}
+                        />
+                      </div>
+                    ) : editingAddress ? (
+                      <div className="border border-purple-200 rounded-3xl p-5 bg-purple-50/5">
+                        <h4 className="text-sm font-bold text-purple-900 mb-4">Edit Delivery Address</h4>
+                        <AddressForm
+                          initialAddress={editingAddress}
+                          onSubmit={async (addr) => {
+                            await updateAddress(editingAddress.id, addr);
+                            setEditingAddress(null);
+                          }}
+                          onCancel={() => setEditingAddress(null)}
+                        />
+                      </div>
+                    ) : (
+                      <>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Select Delivery Address</span>
+                        
+                        <div className="grid gap-3 sm:gap-4 sm:grid-cols-2">
+                          {user?.addresses?.map((addr) => {
+                            const active = user?.activeAddressId === addr.id;
+                            return (
+                              <div
+                                key={addr.id}
+                                onClick={() => setActiveAddress(addr.id)}
+                                className={cn(
+                                  "relative flex flex-col justify-between rounded-xl sm:rounded-2xl border p-3 sm:p-4 cursor-pointer text-left transition-all",
+                                  active
+                                    ? "border-purple-600 bg-purple-50/40 ring-1 ring-purple-500 shadow-sm"
+                                    : "border-gray-200 bg-white hover:border-purple-200"
+                                )}
                               >
-                                <Compass className={cn("size-3.5", locLoading && "animate-spin")} />
-                                {locLoading ? "Locating..." : "Use Current Location"}
-                              </button>
-                            </div>
-                          </div>
+                                <div>
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-1.5">
+                                      <Badge variant={addr.addressType === "Home" ? "primary" : addr.addressType === "Work" ? "gold" : "orange"} size="sm">
+                                        {addr.addressType || addr.tag}
+                                      </Badge>
+                                      {addr.isDefault && (
+                                        <Badge variant="soft" className="text-green-700 bg-green-50 border-green-200">
+                                          Default
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setEditingAddress(addr);
+                                        }}
+                                        className="p-1 text-gray-400 hover:text-purple-600 transition-colors"
+                                        title="Edit Address"
+                                      >
+                                        <Edit2 className="size-3.5" />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          deleteAddress(addr.id);
+                                        }}
+                                        className="p-1 text-gray-400 hover:text-red-650 transition-colors"
+                                        title="Delete Address"
+                                      >
+                                        <Trash2 className="size-3.5" />
+                                      </button>
+                                    </div>
+                                  </div>
 
-                          <div className="flex flex-col gap-1">
-                            <label className="text-[9px] font-bold uppercase tracking-wider text-gray-400">Address details</label>
-                            <textarea
-                              required
-                              rows={2}
-                              placeholder="Flat / House no, building, street, area"
-                              value={addressLine}
-                              onChange={(e) => setAddressLine(e.target.value)}
-                              className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2 text-xs text-gray-800 outline-none transition-all focus-visible:border-purple-400 focus-visible:ring-2 focus-visible:ring-purple-200"
-                            />
-                          </div>
+                                  <p className="mt-2.5 sm:mt-3 text-[11px] sm:text-xs font-semibold text-gray-800">
+                                    {addr.fullName} • {addr.phone}
+                                  </p>
+                                  <p className="mt-1 text-[11px] sm:text-xs font-medium text-gray-500 leading-relaxed">
+                                    {addr.houseNo ? `${addr.houseNo}, ` : ""}
+                                    {addr.building ? `${addr.building}, ` : ""}
+                                    {addr.street ? `${addr.street}, ` : ""}
+                                    {addr.area ? `${addr.area}, ` : ""}
+                                    {addr.landmark ? `(Landmark: ${addr.landmark}), ` : ""}
+                                    {addr.city}, {addr.state} {addr.pinCode || addr.pincode}
+                                  </p>
+                                  
+                                  {addr.latitude && (
+                                    <p className="mt-1.5 flex items-center gap-1 text-[10px] text-green-600 font-semibold">
+                                      <CheckCircle2 className="size-3" />
+                                      <span>📍 GPS Captured</span>
+                                    </p>
+                                  )}
+                                </div>
 
-                          <div className="grid gap-3 sm:grid-cols-3">
-                            <div className="flex flex-col gap-1">
-                              <label className="text-[9px] font-bold uppercase tracking-wider text-gray-400">City</label>
-                              <Input required placeholder="Mumbai" className="h-9 text-xs" value={city} onChange={(e) => setCity(e.target.value)} />
-                            </div>
-                            <div className="flex flex-col gap-1">
-                              <label className="text-[9px] font-bold uppercase tracking-wider text-gray-400">State</label>
-                              <Input required placeholder="Maharashtra" className="h-9 text-xs" value={state} onChange={(e) => setState(e.target.value)} />
-                            </div>
-                            <div className="flex flex-col gap-1">
-                              <label className="text-[9px] font-bold uppercase tracking-wider text-gray-400">PIN Code</label>
-                              <Input required placeholder="400001" className="h-9 text-xs" value={pincode} onChange={(e) => setPincode(e.target.value)} />
-                            </div>
-                          </div>
+                                {active ? (
+                                  <div className="mt-3 text-[9px] font-bold text-purple-700 uppercase tracking-wider border-t border-purple-100 pt-2 flex items-center justify-between">
+                                    <span>✓ Selected Address</span>
+                                    {!addr.isDefault && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setDefaultAddress(addr.id);
+                                        }}
+                                        className="text-[9px] font-bold text-purple-500 hover:text-purple-700 underline uppercase"
+                                      >
+                                        Set Default
+                                      </button>
+                                    )}
+                                  </div>
+                                ) : (
+                                  !addr.isDefault && (
+                                    <div className="mt-3 border-t border-gray-100 pt-2 text-right">
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setDefaultAddress(addr.id);
+                                        }}
+                                        className="text-[9px] font-bold text-gray-400 hover:text-purple-600 uppercase"
+                                      >
+                                        Set Default
+                                      </button>
+                                    </div>
+                                  )
+                                )}
+                              </div>
+                            );
+                          })}
 
-                          <div className="flex gap-2 mt-1">
-                            <button
-                              type="button"
-                              onClick={handleSaveAddress}
-                              className="rounded-lg bg-purple-600 hover:bg-purple-700 px-4 py-2 text-xs font-bold text-white transition-colors"
-                            >
-                              Save Address
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setShowAddForm(false)}
-                              className="rounded-lg hover:bg-gray-100 px-4 py-2 text-xs font-bold text-gray-700 transition-colors"
-                            >
-                              Cancel
-                            </button>
-                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setShowAddForm(true)}
+                            className="flex min-h-22 sm:min-h-35 flex-col items-center justify-center gap-1.5 rounded-xl sm:rounded-2xl border border-dashed border-purple-200 text-purple-600 transition-colors hover:border-purple-400 hover:bg-purple-50/30"
+                          >
+                            <Plus className="size-4 sm:size-5" />
+                            <span className="text-[11px] sm:text-xs font-bold">Add New Address</span>
+                          </button>
                         </div>
-                      )}
-                    </div>
+                      </>
+                    )}
                   </div>
                 </Section>
 
                 {/* Payment Method Section */}
                 <Section step={2} title="Payment method">
-                  <div className="grid gap-3 sm:grid-cols-3">
-                    {PAY_METHODS.map((m) => {
-                      const Icon = m.icon;
-                      const active = method === m.key;
+                  <div className="flex flex-col gap-3">
+                    {paymentOptions.map((opt) => {
+                      const Icon = opt.icon;
+                      const active = method === opt.key;
                       return (
-                        <button
-                          type="button"
-                          key={m.key}
-                          onClick={() => setMethod(m.key)}
+                        <div
+                          key={opt.key}
+                          onClick={() => setMethod(opt.key)}
                           className={cn(
-                            "flex flex-col items-start gap-2 rounded-2xl border p-4 text-left transition-all focus:outline-none",
+                            "relative flex items-center justify-between rounded-xl sm:rounded-2xl border p-3 sm:p-5 cursor-pointer transition-all select-none",
                             active
-                              ? "border-purple-600 bg-purple-50 shadow-sm"
-                              : "border-gray-200 bg-white hover:border-purple-200"
+                              ? "border-purple-600 bg-purple-50/40 ring-1 ring-purple-500 shadow-sm"
+                              : "border-gray-200 bg-white hover:border-purple-200 hover:bg-gray-50/30"
                           )}
                         >
-                          <span className={cn(
-                            "grid size-9 place-items-center rounded-xl",
-                            active ? "bg-purple-600 text-white" : "bg-gray-100 text-gray-400"
-                          )}>
-                            <Icon className="size-4.5" />
-                          </span>
-                          <span className="text-xs font-bold text-gray-800">{m.label}</span>
-                          <span className="text-[10px] text-gray-400">{m.hint}</span>
-                        </button>
+                          <div className="flex min-w-0 items-center gap-2.5 sm:gap-4">
+                            <span className={cn(
+                              "grid size-9 sm:size-11 place-items-center rounded-lg sm:rounded-xl shrink-0",
+                              active ? "bg-purple-600 text-white" : "bg-gray-100 text-gray-500"
+                            )}>
+                              <Icon className="size-4 sm:size-5" />
+                            </span>
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                                <span className="text-xs sm:text-sm font-bold text-gray-900">{opt.title}</span>
+                                {opt.badge && (
+                                  <span className="text-[8px] sm:text-[9px] font-extrabold uppercase tracking-wider bg-purple-100 text-purple-700 px-1.5 sm:px-2 py-0.5 rounded-full">
+                                    {opt.badge}
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-[10px] sm:text-xs text-gray-500 mt-0.5 block">{opt.description}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-center shrink-0 ml-2 sm:ml-4">
+                            <span className={cn(
+                              "size-5 rounded-full border flex items-center justify-center transition-all",
+                              active ? "border-purple-600 bg-purple-600" : "border-gray-300 bg-white"
+                            )}>
+                              {active && <span className="size-2 rounded-full bg-white" />}
+                            </span>
+                          </div>
+                        </div>
                       );
                     })}
                   </div>
                 </Section>
-              </form>
+              </div>
             </>
           )}
         </div>
 
         {/* --- RIGHT AREA (Order Summary) --- */}
         <aside className="lg:sticky lg:top-24 lg:self-start">
-          <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm flex flex-col">
-            <h2 className="text-base font-bold text-gray-800">Order Summary</h2>
-            
-            <ul className="mt-4 flex flex-col gap-3">
+          <div className="rounded-2xl sm:rounded-3xl border border-gray-200 bg-white p-4 sm:p-6 shadow-sm flex flex-col">
+            <h2 className="text-sm sm:text-base font-bold text-gray-800">Order Summary</h2>
+
+            <ul className="mt-3 sm:mt-4 flex flex-col gap-2.5 sm:gap-3">
               {items.map((item) => (
-                <li key={item.key} className="flex items-center gap-3">
+                <li key={item.key} className="flex items-center gap-2.5 sm:gap-3">
                   <span
-                    className="grid size-10 shrink-0 place-items-center rounded-xl text-xs font-bold text-white"
+                    className="grid size-9 sm:size-10 shrink-0 place-items-center rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold text-white"
                     style={{
                       background: `radial-gradient(120% 120% at 30% 20%, ${item.gradient.from}, ${item.gradient.to})`,
                     }}
@@ -837,12 +1092,30 @@ export default function CheckoutPage() {
               ))}
             </ul>
 
-            <dl className="mt-5 flex flex-col gap-2.5 border-t border-gray-100 pt-5 text-xs font-semibold text-gray-500">
+            <dl className="mt-4 sm:mt-5 flex flex-col gap-2 sm:gap-2.5 border-t border-gray-100 pt-4 sm:pt-5 text-[11px] sm:text-xs font-semibold text-gray-500">
               <Row label="Subtotal" value={formatINR(totals.subtotal)} />
               {totals.discount > 0 && (
                 <Row label="Discount" value={`− ${formatINR(totals.discount)}`} accent />
               )}
-              <Row label={`GST (${Math.round(SITE.gstRate * 100)}%)`} value={formatINR(totals.gst)} />
+              {settings.gstEnabled !== false && (
+                (() => {
+                  const orderState = (selectedAddress?.state || regState || "").trim().toLowerCase();
+                  const storeState = (settings.businessState || "Maharashtra").trim().toLowerCase();
+                  const isSameState = orderState ? orderState === storeState : true;
+                  const cgst = isSameState ? totals.gst / 2 : 0;
+                  const sgst = isSameState ? totals.gst / 2 : 0;
+                  const igst = isSameState ? 0 : totals.gst;
+
+                  return isSameState ? (
+                    <>
+                      <Row label="CGST" value={formatINR(cgst)} />
+                      <Row label="SGST" value={formatINR(sgst)} />
+                    </>
+                  ) : (
+                    <Row label="IGST" value={formatINR(igst)} />
+                  );
+                })()
+              )}
               <Row
                 label="Shipping"
                 value={totals.shipping === 0 ? "Free" : formatINR(totals.shipping)}
@@ -852,28 +1125,42 @@ export default function CheckoutPage() {
 
             {selectedAddress && (
               <div className="mt-4 border-t border-gray-100 pt-4 text-[10px] text-gray-400">
-                <p className="font-bold text-purple-600 uppercase tracking-wider text-[9px] mb-1">Shipping Details ({selectedAddress.tag})</p>
-                <p className="truncate font-semibold">{selectedAddress.addressLine}, {selectedAddress.city}</p>
+                <p className="font-bold text-purple-600 uppercase tracking-wider text-[9px] mb-1">
+                  Shipping Details ({selectedAddress.addressType || selectedAddress.tag})
+                </p>
+                <p className="truncate font-semibold">
+                  {selectedAddress.houseNo ? `${selectedAddress.houseNo}, ` : ""}
+                  {selectedAddress.building ? `${selectedAddress.building}, ` : ""}
+                  {selectedAddress.street ? `${selectedAddress.street}, ` : ""}
+                  {selectedAddress.city}
+                </p>
+                {distanceKm !== null && (
+                  <p className="mt-1 flex items-center gap-1 text-[9px] text-green-600 font-bold uppercase tracking-wider">
+                    <CheckCircle2 className="size-3" />
+                    <span>📍 {distanceKm.toFixed(1)} km from hub</span>
+                  </p>
+                )}
               </div>
             )}
 
             <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-4">
-              <span className="text-sm font-bold text-gray-800">Total Amount</span>
-              <span className="text-xl font-bold text-purple-700">
+              <span className="text-xs sm:text-sm font-bold text-gray-800">Total Amount</span>
+              <span className="text-lg sm:text-xl font-bold text-purple-700">
                 {formatINR(totals.total)}
               </span>
             </div>
 
             {isLoggedIn ? (
-              <Button type="button" onClick={handlePlaceOrder} size="lg" disabled={placing} className="mt-6 w-full">
+              <Button type="button" onClick={handlePlaceOrder} size="lg" disabled={placing} className="mt-4 sm:mt-6 w-full">
                 {placing ? (
                   <>
-                    <Loader2 className="animate-spin" /> Placing Order…
+                    <Loader2 className="animate-spin" />{" "}
+                    {method === "COD" ? "Placing order…" : "Processing payment…"}
                   </>
+                ) : method === "COD" ? (
+                  `Place order · ${formatINR(totals.total)}`
                 ) : (
-                  <>
-                    <Lock className="size-4" /> Place Order ({formatINR(totals.total)})
-                  </>
+                  `Pay ${formatINR(totals.total)}`
                 )}
               </Button>
             ) : (
@@ -894,14 +1181,14 @@ export default function CheckoutPage() {
 
 function Section({ step, title, children }: { step: number; title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm sm:p-7">
-      <div className="flex items-center gap-3">
-        <span className="grid size-7 place-items-center rounded-lg bg-purple-600 text-xs font-bold text-white">
+    <div className="rounded-2xl sm:rounded-3xl border border-gray-200 bg-white p-4 shadow-sm sm:p-7">
+      <div className="flex items-center gap-2.5 sm:gap-3">
+        <span className="grid size-6 sm:size-7 place-items-center rounded-lg bg-purple-600 text-[10px] sm:text-xs font-bold text-white">
           {step}
         </span>
-        <h2 className="text-base font-bold text-gray-800">{title}</h2>
+        <h2 className="text-sm sm:text-base font-bold text-gray-800">{title}</h2>
       </div>
-      <div className="mt-6">{children}</div>
+      <div className="mt-4 sm:mt-6">{children}</div>
     </div>
   );
 }
@@ -941,10 +1228,49 @@ function OrderConfirmation({ orderId }: { orderId: string }) {
         </p>
         <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
           <Button asChild size="lg">
-            <Link href="/account">Track Order</Link>
+            <Link href="/account?tab=orders">Track Order</Link>
           </Button>
           <Button asChild size="lg" variant="outline">
             <Link href="/shop">Continue Shopping</Link>
+          </Button>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+function OrderFailed({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="container-px mx-auto max-w-xl py-16 text-center sm:py-24">
+      <motion.div
+        initial={{ scale: 0, rotate: 20 }}
+        animate={{ scale: 1, rotate: 0 }}
+        transition={{ type: "spring", stiffness: 200, damping: 15 }}
+        className="mx-auto grid size-16 place-items-center rounded-full bg-gradient-to-br from-red-400 to-red-600 text-white shadow-lg sm:size-20"
+      >
+        <AlertCircle className="size-8 sm:size-10" strokeWidth={3} />
+      </motion.div>
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+      >
+        <Badge variant="soft" className="mt-6 border-red-200 bg-red-50 px-3 py-1 text-xs text-red-600 sm:mt-8">
+          Payment not completed
+        </Badge>
+        <h1 className="mt-4 text-xl font-bold text-gray-900 sm:mt-5 sm:text-2xl">
+          Your payment didn&apos;t go through
+        </h1>
+        <p className="mx-auto mt-3 max-w-md text-xs leading-relaxed text-gray-500 sm:text-sm">
+          Your order is saved and waiting — <strong>retry to pay for the same order</strong>, no need
+          to start over. If any amount was debited, your bank refunds it within 3–5 business days.
+        </p>
+        <div className="mt-7 flex flex-col justify-center gap-3 sm:mt-8 sm:flex-row">
+          <Button onClick={onRetry} size="lg" className="w-full sm:w-auto">
+            Retry payment
+          </Button>
+          <Button asChild size="lg" variant="outline" className="w-full sm:w-auto">
+            <Link href="/account?tab=orders">View my orders</Link>
           </Button>
         </div>
       </motion.div>

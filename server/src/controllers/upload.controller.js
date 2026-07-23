@@ -16,22 +16,30 @@ const storage = multer.diskStorage({
 });
 
 // File filter (images only)
-const fileFilter = (req, file, cb) => {
-  const allowedTypes = /jpeg|jpg|png|gif|webp|avif/;
-  const ext = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-  const mime = allowedTypes.test(file.mimetype);
+/**
+ * Refund requests need photo/video evidence of a damaged or wrong item, so
+ * video is allowed alongside images. The extension AND the reported mime type
+ * must both match — checking only one is trivially spoofed.
+ */
+const IMAGE_TYPES = /jpeg|jpg|png|gif|webp|avif/;
+const VIDEO_TYPES = /mp4|webm|mov|quicktime/;
 
-  if (ext && mime) {
-    return cb(null, true);
-  } else {
-    cb(new Error('Images and graphics only are allowed!'));
-  }
+const fileFilter = (req, file, cb) => {
+  const ext = path.extname(file.originalname).toLowerCase();
+
+  const isImage = IMAGE_TYPES.test(ext) && IMAGE_TYPES.test(file.mimetype);
+  const isVideo = VIDEO_TYPES.test(ext) && VIDEO_TYPES.test(file.mimetype);
+
+  if (isImage || isVideo) return cb(null, true);
+
+  cb(new Error('Only images (jpg, png, webp, gif, avif) and video (mp4, webm, mov) are allowed.'));
 };
 
 const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+  // Video needs more headroom than a product photo.
+  limits: { fileSize: 25 * 1024 * 1024 }
 }).single('file');
 
 // @desc    Upload Single Image

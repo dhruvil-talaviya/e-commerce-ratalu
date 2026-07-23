@@ -28,3 +28,34 @@ export function slugify(value: string) {
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-");
 }
+
+export function sanitizeMediaUrl(url: string): string {
+  if (!url) return "";
+  const trimmed = url.trim();
+  if (trimmed.includes("res-console.cloudinary.com")) {
+    try {
+      const parts = trimmed.split("/");
+      const cloudName = parts[3];
+      const isVideo = trimmed.includes("/video/");
+      const v1Index = parts.lastIndexOf("v1");
+      if (v1Index !== -1 && parts[v1Index + 1]) {
+        const base64Segment = parts[v1Index + 1];
+        const decode = (str: string) => {
+          if (typeof window !== "undefined" && typeof window.atob === "function") {
+            return window.atob(str);
+          }
+          return Buffer.from(str, "base64").toString("utf-8");
+        };
+        const publicId = decode(base64Segment);
+        if (publicId) {
+          const type = isVideo ? "video" : "image";
+          const ext = isVideo ? "mp4" : "jpg";
+          return `https://res.cloudinary.com/${cloudName}/${type}/upload/${publicId}.${ext}`;
+        }
+      }
+    } catch (e) {
+      console.error("Failed to parse Cloudinary Console URL:", e);
+    }
+  }
+  return trimmed;
+}

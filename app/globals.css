@@ -16,7 +16,9 @@
   --color-purple-400: #a855f7;
   --color-purple-500: #5b2c83; /* Primary — Deep Purple */
   --color-purple-600: #4a206d;
+  --color-purple-650: #421b62;
   --color-purple-700: #3b1757;
+  --color-purple-750: #34134d;
   --color-purple-800: #2d1043;
   --color-purple-900: #1d072d;
 
@@ -88,10 +90,14 @@
   --color-cream-200:       #f3f4f6;
 
   /* ---- Typography ------------------------------------------------- */
-  /* Heading: Poppins Bold | Body: Inter Regular | Brand: Baloo 2 */
-  --font-heading:    var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  --font-plus-jakarta: var(--font-plus-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-manrope:      var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+
   --font-sans:       var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-brand:      var(--font-baloo2), ui-sans-serif, system-ui, sans-serif;
+  --font-serif:      var(--font-plus-jakarta), ui-serif, Georgia, serif;
+  --font-heading:    var(--font-plus-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-brand:      var(--font-plus-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-numbers:    var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
   --font-devanagari: var(--font-devanagari), "Noto Sans Devanagari", sans-serif;
   --font-gujarati:   var(--font-gujarati), "Noto Sans Gujarati", sans-serif;
 
@@ -174,12 +180,153 @@
     }
   }
 
-  /* Headings: Poppins Bold */
-  h1, h2, h3, h4, h5 {
-    font-family: var(--font-heading);
+  /* Headings: Plus Jakarta Sans */
+  h1, h2, h3, h4, h5, h6, .font-serif {
+    font-family: var(--font-heading) !important;
     font-weight: 700;
     letter-spacing: -0.02em;
     text-wrap: balance;
+  }
+
+  /* Hero Headings */
+  .hero-heading, .hero-title {
+    font-family: var(--font-heading) !important;
+    font-weight: 800 !important;
+    font-size: 34px !important;
+    line-height: 1.1 !important;
+    letter-spacing: -0.03em !important;
+  }
+  @media (min-width: 640px) {
+    .hero-heading, .hero-title {
+      font-size: 44px !important;
+    }
+  }
+  @media (min-width: 1024px) {
+    .hero-heading, .hero-title {
+      font-size: 56px !important;
+    }
+  }
+
+  /* Section Titles */
+  .section-title, .section-heading h2 {
+    font-family: var(--font-heading) !important;
+    font-weight: 700 !important;
+    font-size: 28px !important;
+    letter-spacing: -0.02em !important;
+  }
+  @media (min-width: 640px) {
+    .section-title, .section-heading h2 {
+      font-size: 32px !important;
+    }
+  }
+  @media (min-width: 1024px) {
+    .section-title, .section-heading h2 {
+      font-size: 36px !important;
+    }
+  }
+
+  /* Product Name */
+  .product-name, .product-title {
+    font-family: var(--font-heading) !important;
+    font-weight: 600 !important;
+    font-size: 20px !important;
+    letter-spacing: -0.015em !important;
+  }
+  @media (min-width: 768px) {
+    .product-name, .product-title {
+      font-size: 22px !important;
+    }
+  }
+  @media (min-width: 1024px) {
+    .product-name, .product-title {
+      font-size: 24px !important;
+    }
+  }
+
+  /* Numbers & Price Styling */
+  .font-numbers, .tabular-nums, .font-mono, [data-numbers="true"] {
+    font-family: var(--font-numbers) !important;
+  }
+
+  /* Product Price */
+  .product-price, .price-display {
+    font-family: var(--font-numbers) !important;
+    font-weight: 800 !important;
+    font-size: 28px !important;
+    letter-spacing: -0.02em !important;
+  }
+  @media (min-width: 768px) {
+    .product-price, .price-display {
+      font-size: 30px !important;
+    }
+  }
+  @media (min-width: 1024px) {
+    .product-price, .price-display {
+      font-size: 34px !important;
+    }
+  }
+
+  /* Original Price */
+  .original-price {
+    font-family: var(--font-numbers) !important;
+    font-weight: 600 !important;
+    font-size: 18px !important;
+    text-decoration: line-through !important;
+    color: var(--color-gray-400) !important;
+  }
+
+  /* Discount Badge */
+  .discount-badge {
+    font-family: var(--font-numbers) !important;
+    font-weight: 700 !important;
+    font-size: 16px !important;
+    color: var(--color-success) !important;
+  }
+
+  /* Product Description */
+  .product-description {
+    font-family: var(--font-sans) !important;
+    font-weight: 400 !important;
+    font-size: 16px !important;
+    line-height: 1.7 !important;
+    max-width: 650px !important;
+  }
+  @media (min-width: 1024px) {
+    .product-description {
+      font-size: 17px !important;
+    }
+  }
+
+  /* Buttons */
+  button, .btn, .button {
+    font-family: var(--font-sans) !important;
+    font-weight: 600 !important;
+    font-size: 16px !important;
+    letter-spacing: 0.2px !important;
+    border-radius: 12px !important;
+  }
+
+  /* Navigation Link */
+  .nav-link {
+    font-family: var(--font-sans) !important;
+    font-weight: 500 !important;
+    font-size: 15px !important;
+    transition: font-weight 0.2s ease !important;
+  }
+  .nav-link:hover {
+    font-weight: 600 !important;
+  }
+
+  /* Inputs and Labels */
+  label, .form-label {
+    font-family: var(--font-sans) !important;
+    font-weight: 500 !important;
+    font-size: 15px !important;
+  }
+  input, select, textarea, .form-input {
+    font-family: var(--font-sans) !important;
+    font-weight: 400 !important;
+    font-size: 16px !important;
   }
 
   ::selection {

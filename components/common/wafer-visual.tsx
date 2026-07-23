@@ -22,6 +22,18 @@ export function WaferVisual({
   className?: string;
   seed?: number;
 }) {
+  if (flavor.image) {
+    return (
+      <div className={cn("relative flex h-full w-full items-center justify-center p-2 overflow-hidden", className)}>
+        <img
+          src={flavor.image}
+          alt={`${flavor.name} Ratalu Chips`}
+          className="h-full w-auto object-contain max-h-full rounded-2xl drop-shadow-md select-none transition-transform duration-300"
+        />
+      </div>
+    );
+  }
+
   const uid = React.useId().replace(/[:]/g, "");
   const { from, via, to } = flavor.gradient;
 

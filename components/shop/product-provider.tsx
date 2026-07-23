@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { apiFetch } from "@/lib/api";
+import { useLiveRefresh } from "@/lib/hooks/use-live-refresh";
 import type { Flavor } from "@/lib/types";
 
 interface ProductContextValue {
@@ -12,6 +13,7 @@ interface ProductContextValue {
   addProduct: (flavor: Omit<Flavor, "id" | "slug">) => Promise<void>;
   updateProduct: (id: string, updated: Omit<Flavor, "id" | "slug">) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
+  refreshProducts: () => Promise<void>;
 }
 
 const ProductContext = React.createContext<ProductContextValue | null>(null);
@@ -35,6 +37,8 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
   React.useEffect(() => {
     fetchFlavors();
   }, [fetchFlavors]);
+
+  useLiveRefresh(fetchFlavors, { minIntervalMs: 2500 });
 
   const getFlavor = React.useCallback(
     (id: string) => flavors.find((f) => f.id === id),
@@ -77,9 +81,10 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
       getFlavorBySlug,
       addProduct,
       updateProduct,
-      deleteProduct
+      deleteProduct,
+      refreshProducts: fetchFlavors
     }),
-    [flavors, hydrated, getFlavor, getFlavorBySlug, addProduct, updateProduct, deleteProduct]
+    [flavors, hydrated, getFlavor, getFlavorBySlug, addProduct, updateProduct, deleteProduct, fetchFlavors]
   );
 
   return <ProductContext.Provider value={value}>{children}</ProductContext.Provider>;

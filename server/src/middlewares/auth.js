@@ -19,8 +19,8 @@ const protect = async (req, res, next) => {
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // If Customer token
-    if (decoded.role === 'Customer') {
+    // If Customer token (case-insensitive: tolerate 'Customer' | 'customer')
+    if (String(decoded.role || '').toLowerCase() === 'customer') {
       const customer = await Customer.findById(decoded.id);
       if (!customer) {
         return next(new ErrorResponse('User account no longer exists', 401));
@@ -45,6 +45,37 @@ const protect = async (req, res, next) => {
   }
 };
 
+/**
+ * Attach the customer if they're logged in, but let guests through.
+ *
+ * Needed by routes that are public yet answer differently per account — the
+ * coupon list, for instance, must hide a first-order-only code from someone who
+ * has already ordered. `protect` would 401 the guest; no auth at all would make
+ * the per-account rules unenforceable at the point where we show them.
+ *
+ * Never throws: a bad or expired token simply means "guest".
+ */
+const softAuth = async (req, res, next) => {
+  const header = req.headers.authorization || '';
+  if (!header.startsWith('Bearer ')) return next();
+
+  try {
+    const decoded = jwt.verify(header.split(' ')[1], process.env.JWT_SECRET);
+
+    if (String(decoded.role || '').toLowerCase() === 'customer') {
+      const customer = await Customer.findById(decoded.id);
+      if (customer && customer.status !== 'Blocked') {
+        req.user = customer;
+        req.user.role = 'Customer';
+      }
+    }
+  } catch {
+    // Guest. Deliberately silent.
+  }
+
+  next();
+};
+
 // Grant access to specific roles (RBAC)
 const authorize = (...roles) => {
   return (req, res, next) => {
@@ -62,5 +93,6 @@ const authorize = (...roles) => {
 
 module.exports = {
   protect,
+  softAuth,
   authorize
 };

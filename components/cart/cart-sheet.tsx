@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
-import { Minus, Plus, ShoppingBag, Tag, Trash2, Truck, X, ArrowRight, Loader2, Lock } from "lucide-react";
+import { Minus, Plus, ShoppingBag, Tag, Ticket, Trash2, Truck, X, ArrowRight, Loader2, Lock } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -13,12 +13,14 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useStoreSettings } from "@/components/common/settings-provider";
 import { useCart } from "./cart-provider";
 import { useAccount } from "@/components/account/account-provider";
 import { formatINR, cn } from "@/lib/utils";
 import { SITE } from "@/lib/constants";
 
 export function CartSheet() {
+  const { settings } = useStoreSettings();
   const {
     items,
     isOpen,
@@ -30,6 +32,7 @@ export function CartSheet() {
     removeItem,
     applyCoupon,
     removeCoupon,
+    availableCoupons,
   } = useCart();
   const { isLoggedIn } = useAccount();
   const router = useRouter();
@@ -37,9 +40,9 @@ export function CartSheet() {
   const [code, setCode] = React.useState("");
   const [checkingOut, setCheckingOut] = React.useState(false);
 
-  const handleApply = (e: React.FormEvent) => {
+  const handleApply = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (applyCoupon(code)) setCode("");
+    if (await applyCoupon(code)) setCode("");
   };
 
   const handleCheckoutClick = async () => {
@@ -187,6 +190,46 @@ export function CartSheet() {
                   </Button>
                 </form>
               )}
+              {!coupon && availableCoupons.length > 0 && (
+                <div className="mb-4">
+                  <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-gray-500">
+                    Available offers
+                  </p>
+                  <div className="flex flex-col gap-2.5">
+                    {availableCoupons.map((c) => (
+                      <div
+                        key={c.code}
+                        className="group flex items-center gap-3 rounded-2xl border border-dashed border-purple-200 bg-purple-50/50 p-3 transition-colors hover:border-purple-400 hover:bg-purple-50"
+                      >
+                        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-purple-100 text-purple-600">
+                          <Ticket className="size-5" />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-serif text-sm font-bold tracking-wide text-purple-700">
+                            {c.code}
+                          </p>
+                          {c.description && (
+                            <p className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-gray-500">
+                              {c.description}
+                            </p>
+                          )}
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="shrink-0 border-purple-200 text-purple-700 hover:border-purple-400 hover:bg-purple-100"
+                          onClick={() => {
+                            void applyCoupon(c.code);
+                            setCode("");
+                          }}
+                        >
+                          Apply
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               {couponError && (
                 <p className="-mt-2 mb-3 text-xs text-red-500">{couponError}</p>
               )}
@@ -200,7 +243,9 @@ export function CartSheet() {
                     className="text-green-700"
                   />
                 )}
-                <Row label={`GST (${Math.round(SITE.gstRate * 100)}%)`} value={formatINR(totals.gst)} />
+                 {settings.gstEnabled !== false && (
+                   <Row label={`GST (${settings.taxRate || 5}%)`} value={formatINR(totals.gst)} />
+                 )}
                 <Row
                   label="Shipping"
                   value={totals.shipping === 0 ? "Free" : formatINR(totals.shipping)}

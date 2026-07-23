@@ -11,7 +11,7 @@ import { WaferVisual } from "@/components/common/wafer-visual";
 import { useCart } from "@/components/cart/cart-provider";
 import { useWishlist } from "@/components/cart/wishlist-provider";
 import { toast } from "@/components/ui/toast";
-import { PACK_SIZES, DEFAULT_PACK_ID } from "@/lib/data/products";
+import { getPacks, getPackFor, DEFAULT_PACK_ID } from "@/lib/data/products";
 import { formatINR, cn } from "@/lib/utils";
 import type { Flavor } from "@/lib/types";
 
@@ -36,7 +36,7 @@ export function QuickView({
   const [packId, setPackId] = React.useState(DEFAULT_PACK_ID);
   const [qty, setQty] = React.useState(1);
 
-  const pack = PACK_SIZES.find((p) => p.id === packId)!;
+  const pack = getPackFor(flavor, packId);
   const wished = has(flavor.id);
   const discount = pack.compareAt ? Math.round((1 - pack.price / pack.compareAt) * 100) : 0;
   const reviews = reviewCount(flavor);
@@ -120,18 +120,21 @@ export function QuickView({
             {/* Pack selector */}
             <p className="mt-5 text-xs font-bold uppercase tracking-wider text-gray-400">Select pack size</p>
             <div className="mt-2 grid grid-cols-4 gap-2">
-              {PACK_SIZES.map((p) => {
+              {getPacks(flavor).map((p) => {
                 const active = p.id === packId;
+                const isOutOfStock = flavor.inStock === false;
                 return (
                   <button
                     key={p.id}
+                    disabled={isOutOfStock}
                     onClick={() => setPackId(p.id)}
                     aria-pressed={active}
                     className={cn(
                       "flex min-w-0 flex-col items-center rounded-xl border px-1 py-2 text-center transition-all",
                       active
                         ? "border-purple-500 bg-purple-50 text-purple-700 shadow-sm ring-1 ring-purple-500"
-                        : "border-gray-200 bg-white text-gray-500 hover:border-purple-200"
+                        : "border-gray-200 bg-white text-gray-500 hover:border-purple-200",
+                      isOutOfStock && "opacity-40 cursor-not-allowed hover:border-gray-200"
                     )}
                   >
                     <span className="text-sm font-bold">{p.label}</span>
@@ -174,9 +177,15 @@ export function QuickView({
 
             {/* Trust */}
             <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-medium text-gray-500">
-              <span className="flex items-center gap-1.5 text-green-600">
-                <span className="size-2 rounded-full bg-green-500" /> In stock
-              </span>
+              {flavor.inStock === false ? (
+                <span className="flex items-center gap-1.5 text-red-650">
+                  <span className="size-2 rounded-full bg-red-500 animate-pulse" /> Out of stock
+                </span>
+              ) : (
+                <span className="flex items-center gap-1.5 text-green-600">
+                  <span className="size-2 rounded-full bg-green-500" /> In stock
+                </span>
+              )}
               <span className="flex items-center gap-1.5">
                 <Truck className="size-3.5 text-orange-500" /> Free shipping over ₹599
               </span>
@@ -184,26 +193,28 @@ export function QuickView({
 
             {/* Quantity + Add to Cart */}
             <div className="mt-5 flex items-center gap-3">
-              <div className="flex shrink-0 items-center rounded-full border border-gray-200 bg-white">
+              <div className={cn("flex shrink-0 items-center rounded-full border border-gray-200 bg-white", flavor.inStock === false && "opacity-40 cursor-not-allowed")}>
                 <button
+                  disabled={flavor.inStock === false}
                   onClick={() => setQty((q) => Math.max(1, q - 1))}
-                  className="grid size-9 place-items-center rounded-full text-gray-500 transition-colors hover:bg-gray-50 hover:text-purple-700"
+                  className="grid size-9 place-items-center rounded-full text-gray-500 transition-colors hover:bg-gray-50 hover:text-purple-700 disabled:pointer-events-none"
                   aria-label="Decrease quantity"
                 >
                   <Minus className="size-4" />
                 </button>
                 <span className="w-7 text-center text-base font-bold tabular-nums text-gray-900">{qty}</span>
                 <button
+                  disabled={flavor.inStock === false}
                   onClick={() => setQty((q) => Math.min(99, q + 1))}
-                  className="grid size-9 place-items-center rounded-full text-gray-500 transition-colors hover:bg-gray-50 hover:text-purple-700"
+                  className="grid size-9 place-items-center rounded-full text-gray-500 transition-colors hover:bg-gray-50 hover:text-purple-700 disabled:pointer-events-none"
                   aria-label="Increase quantity"
                 >
                   <Plus className="size-4" />
                 </button>
               </div>
-              <Button onClick={handleAdd} size="lg" className="min-w-0 flex-1 px-4 sm:px-5">
+              <Button disabled={flavor.inStock === false} onClick={handleAdd} size="lg" className="min-w-0 flex-1 px-4 sm:px-5">
                 <ShoppingBag className="size-5" />
-                <span className="truncate">Add to Cart</span>
+                <span className="truncate">{flavor.inStock === false ? "Out of Stock" : "Add to Cart"}</span>
               </Button>
             </div>
 
@@ -213,9 +224,7 @@ export function QuickView({
               className="mt-3.5 justify-center sm:justify-start"
               onClick={() => onOpenChange(false)}
             >
-              <Link href={`/shop/${flavor.slug}`}>
-                View full details <ArrowRight className="size-4" />
-              </Link>
+              <Link href={`/shop/${flavor.slug}`}>View full details →</Link>
             </Button>
           </div>
         </div>

@@ -9,7 +9,6 @@ import { WhyChooseUs } from "@/components/sections/why-choose-us";
 import { Reviews } from "@/components/sections/reviews";
 import { InstagramGallery } from "@/components/sections/instagram-gallery";
 import { Faq } from "@/components/sections/faq";
-import { Newsletter } from "@/components/sections/newsletter";
 import { ProductJsonLd, FaqJsonLd } from "@/components/seo/json-ld";
 
 export default function HomePage() {
@@ -37,9 +36,8 @@ export default function HomePage() {
       <InstagramGallery />
 
       {/* Convert */}
-      <Faq />
-      <div className="pb-24 pt-4">
-        <Newsletter />
+      <div className="pb-24">
+        <Faq />
       </div>
     </>
   );

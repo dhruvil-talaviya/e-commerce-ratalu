@@ -3,15 +3,17 @@
 import * as React from "react";
 import Link from "next/link";
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from "motion/react";
-import { Heart, Menu, ShoppingBag, User, X, ShieldCheck } from "lucide-react";
+import { Menu, ShoppingBag, User, X, ShieldCheck, Bell } from "lucide-react";
 import { Logo } from "./logo";
 import { Button } from "@/components/ui/button";
 import { NAV_LINKS } from "@/lib/constants";
 import { useCart } from "@/components/cart/cart-provider";
-import { useWishlist } from "@/components/cart/wishlist-provider";
-import { useAccount } from "@/components/account/account-provider";
+import { useAccount, isAdminSession } from "@/components/account/account-provider";
+import { useUnreadNotifications } from "@/lib/hooks/use-unread-notifications";
 import { useLanguage } from "@/components/common/language-provider";
 import { cn } from "@/lib/utils";
+
+import { usePathname } from "next/navigation";
 
 // Map href to translation key
 const NAV_KEY_MAP: Record<string, string> = {
@@ -24,14 +26,20 @@ const NAV_KEY_MAP: Record<string, string> = {
 };
 
 export function Navbar() {
+  const pathname = usePathname();
   const [scrolled, setScrolled] = React.useState(false);
   const [menuOpen, setMenuOpen] = React.useState(false);
   const { scrollY } = useScroll();
   const { totals, openCart } = useCart();
-  const { count: wishlistCount } = useWishlist();
   const { user, isLoggedIn } = useAccount();
   const { t } = useLanguage();
-  const isAdminUser = isLoggedIn && user?.phone === "9999999999";
+
+  /**
+   * Keyed on the session role, never a phone number — the previous hardcoded
+   * check silently broke the moment the admin's number changed.
+   */
+  const isAdmin = isLoggedIn && isAdminSession(user);
+  const unreadNotifications = useUnreadNotifications();
 
   useMotionValueEvent(scrollY, "change", (latest) => {
     setScrolled(latest > 16);
@@ -89,18 +97,40 @@ export function Navbar() {
 
           {/* Actions */}
           <div className="flex items-center gap-1 sm:gap-2">
-            {isAdminUser && (
+            {/* Only the store owner sees this — it's their way back to the console. */}
+            {isAdmin && (
               <Link
-                href="/admin"
-                className="hidden size-11 place-items-center rounded-full text-gray-700 transition-colors hover:bg-orange-50 hover:text-orange-600 sm:grid"
-                aria-label={t("nav_admin")}
+                href="/admin/dashboard"
+                className="grid size-11 place-items-center rounded-full text-purple-700 transition-colors hover:bg-purple-50"
+                aria-label="Back to admin dashboard"
+                title="Back to admin dashboard"
               >
-                <ShieldCheck className="size-5.5 text-orange-500" />
+                <ShieldCheck className="size-5.5" />
+              </Link>
+            )}
+
+            {/* Notifications live in the header, not buried in the profile page. */}
+            {isLoggedIn && (
+              <Link
+                href="/notifications"
+                className="relative grid size-11 place-items-center rounded-full text-gray-700 transition-colors hover:bg-orange-50 hover:text-orange-600"
+                aria-label={
+                  unreadNotifications > 0
+                    ? `Notifications, ${unreadNotifications} unread`
+                    : "Notifications"
+                }
+              >
+                <Bell className="size-5.5" />
+                {unreadNotifications > 0 && (
+                  <span className="absolute right-1.5 top-1.5 grid min-w-4 place-items-center rounded-full bg-orange-500 px-1 text-[9px] font-bold text-white shadow-sm">
+                    {unreadNotifications > 9 ? "9+" : unreadNotifications}
+                  </span>
+                )}
               </Link>
             )}
 
             <Link
-              href="/account"
+              href={isLoggedIn ? "/account" : `${pathname}?login=true`}
               className="hidden size-11 place-items-center rounded-full text-gray-700 transition-colors hover:bg-orange-50 hover:text-orange-600 sm:grid"
               aria-label={isLoggedIn && user ? `Account of ${(user.name || "Snacker").split(" ")[0]}` : t("nav_account")}
             >
@@ -110,19 +140,6 @@ export function Navbar() {
                 </span>
               ) : (
                 <User className="size-5" />
-              )}
-            </Link>
-
-            <Link
-              href="/account"
-              className="relative hidden size-11 place-items-center rounded-full text-gray-700 transition-colors hover:bg-orange-50 hover:text-orange-600 sm:grid"
-              aria-label={t("nav_wishlist")}
-            >
-              <Heart className="size-5" />
-              {wishlistCount > 0 && (
-                <span className="absolute right-1.5 top-1.5 grid min-w-4 place-items-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">
-                  {wishlistCount}
-                </span>
               )}
             </Link>
 
@@ -220,17 +237,30 @@ export function Navbar() {
                   <Link href="/shop">{t("nav_shop_now")}</Link>
                 </Button>
                 <div className="flex flex-col gap-2">
-                  <div className="flex gap-3">
-                    <Button asChild variant="outline" size="lg" className="flex-1" onClick={() => setMenuOpen(false)}>
-                      <Link href="/account">{isLoggedIn && user ? `Hi, ${(user.name || "Snacker").split(" ")[0]}` : t("nav_account")}</Link>
+                  <Button asChild variant="outline" size="lg" className="w-full" onClick={() => setMenuOpen(false)}>
+                    <Link href={isLoggedIn ? "/account" : `${pathname}?login=true`}>{isLoggedIn && user ? `Hi, ${(user.name || "Snacker").split(" ")[0]}` : t("nav_account")}</Link>
+                  </Button>
+                  {isLoggedIn && (
+                    <Button asChild variant="outline" size="lg" className="w-full" onClick={() => setMenuOpen(false)}>
+                      <Link href="/notifications">
+                        Notifications
+                        {unreadNotifications > 0 && (
+                          <span className="ml-1.5 grid min-w-4.5 place-items-center rounded-full bg-orange-500 px-1 text-[10px] font-bold text-white">
+                            {unreadNotifications}
+                          </span>
+                        )}
+                      </Link>
                     </Button>
-                    <Button asChild variant="outline" size="lg" className="flex-1" onClick={() => setMenuOpen(false)}>
-                      <Link href="/account">{t("nav_wishlist")}</Link>
-                    </Button>
-                  </div>
-                  {isAdminUser && (
-                    <Button asChild variant="outline" size="lg" className="w-full text-orange-700 border-orange-200" onClick={() => setMenuOpen(false)}>
-                      <Link href="/admin">{t("nav_admin")}</Link>
+                  )}
+                  {isAdmin && (
+                    <Button
+                      asChild
+                      variant="outline"
+                      size="lg"
+                      className="w-full border-purple-200 text-purple-700"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      <Link href="/admin/dashboard">Back to Admin Dashboard</Link>
                     </Button>
                   )}
                 </div>

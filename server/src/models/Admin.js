@@ -5,6 +5,7 @@ const AdminSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true, trim: true },
   phone: { type: String, required: true, unique: true, trim: true },
   password: { type: String, required: true },
+  passwordLoginEnabled: { type: Boolean, default: true },
   role: {
     type: String,
     enum: ['Super Admin', 'Admin', 'Manager'],

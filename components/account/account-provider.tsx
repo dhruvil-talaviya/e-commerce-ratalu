@@ -6,36 +6,85 @@ import { apiFetch, saveTokens, clearTokens, getTokens } from "@/lib/api";
 export interface SavedAddress {
   id: string;
   _id?: string;
-  tag: "Home" | "Work" | "Other";
-  addressLine: string;
+  fullName: string;
+  phone: string;
+  houseNo: string;
+  building?: string;
+  street: string;
+  area: string;
+  landmark?: string;
   city: string;
   state: string;
-  pincode: string;
+  country: string;
+  pinCode: string;
+  latitude: number | null;
+  longitude: number | null;
+  accuracy: number | null;
+  addressType: "Home" | "Work" | "Other";
+  isDefault: boolean;
+
+  // Backward compatibility fields
+  tag?: "Home" | "Work" | "Other";
+  addressLine?: string;
+  pincode?: string;
 }
 
 export interface UserProfile {
   id?: string;
   _id?: string;
   name: string;
+  /**
+   * Admin sessions carry `username` instead of `name` — the two auth payloads
+   * differ. Anything rendering a display name must fall back across both.
+   */
+  username?: string;
   phone: string;
+  email?: string;
+  profileComplete?: boolean;
   addresses: SavedAddress[];
   activeAddressId: string | null;
   status?: "Active" | "Blocked";
   role?: string;
+  passwordLoginEnabled?: boolean;
 }
 
 interface AccountContextValue {
   user: UserProfile | null;
   isLoggedIn: boolean;
   hydrated: boolean;
-  sendOtp: (phone: string) => Promise<{ success: boolean; isRegistered: boolean; otp?: string; message?: string }>;
-  verifyOtp: (phone: string, otp: string, mode: "login" | "register", name?: string) => Promise<{ success: boolean; message?: string }>;
+  sendOtp: (phone: string) => Promise<{
+    success: boolean;
+    isRegistered: boolean;
+    /** True when the number entered is the store admin's. */
+    isAdmin?: boolean;
+    passwordRequired?: boolean;
+    otp?: string;
+    message?: string;
+    remainingSeconds?: number;
+    errorType?: string;
+  }>;
+  verifyOtp: (phone: string, otp: string) => Promise<{
+    success: boolean;
+    /** Signed in as the admin — the caller should send them to the console. */
+    isAdmin?: boolean;
+    isNewUser?: boolean;
+    profileComplete?: boolean;
+    message?: string;
+    remainingSeconds?: number;
+    errorType?: string;
+  }>;
+  verifyAdminPassword: (phone: string, password: string) => Promise<{
+    success: boolean;
+    message?: string;
+  }>;
   sendAdminOtp: (phone: string) => Promise<{ success: boolean; otp?: string; message?: string }>;
   verifyAdminOtp: (phone: string, otp: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
-  updateProfile: (details: { name: string; phone: string }) => Promise<void>;
-  addAddress: (address: Omit<SavedAddress, "id" | "_id">) => Promise<void>;
+  updateProfile: (details: { name?: string; phone?: string; email?: string }) => Promise<void>;
+  addAddress: (address: any) => Promise<void>;
+  updateAddress: (id: string, address: any) => Promise<void>;
   deleteAddress: (id: string) => Promise<void>;
+  setDefaultAddress: (id: string) => Promise<void>;
   setActiveAddress: (id: string) => Promise<void>;
 }
 
@@ -78,6 +127,14 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user, hydrated]);
 
+  /**
+   * The store owner's number is not a customer identity — it must be verified
+   * against the admin endpoint, never the customer one (which used to
+   * auto-register a shadow customer for it). The OTP send step tells us which
+   * number we're dealing with; remember it so verifyOtp can route correctly.
+   */
+  const adminPhoneHint = React.useRef<string | null>(null);
+
   const sendOtp = React.useCallback(async (phone: string) => {
     try {
       const res = await fetch("/api/v1/auth/otp/send", {
@@ -87,11 +144,22 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
       });
       const data = await res.json();
       if (!res.ok) {
-        return { success: false, isRegistered: false, message: data.message || "Failed to request code" };
+        return { 
+          success: false, 
+          isRegistered: false, 
+          message: data.message || "Failed to request code",
+          errorType: data.errorType,
+          remainingSeconds: data.remainingSeconds
+        };
       }
+
+      adminPhoneHint.current = data.data.isAdmin ? phone : null;
+
       return {
         success: true,
         isRegistered: data.data.isRegistered,
+        isAdmin: Boolean(data.data.isAdmin),
+        passwordRequired: Boolean(data.data.passwordRequired),
         otp: data.data.otp,
         message: data.message
       };
@@ -100,68 +168,36 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const verifyOtp = React.useCallback(async (phone: string, otp: string, mode: "login" | "register", name?: string) => {
-    try {
-      if (mode === "register") {
-        // Register API endpoint
-        const res = await fetch("/api/v1/auth/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, phone })
-        });
-        const data = await res.json();
-        if (!res.ok) {
-          return { success: false, message: data.message || "Registration failed" };
-        }
-        
-        saveTokens({
-          accessToken: data.data.accessToken,
-          refreshToken: data.data.refreshToken
-        });
-        setUser(data.data.user);
-        return { success: true };
-      } else {
-        // Verify OTP Login API endpoint
-        const res = await fetch("/api/v1/auth/otp/verify", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ phone, otp })
-        });
-        const data = await res.json();
-        if (!res.ok) {
-          return { success: false, message: data.message || "Invalid OTP verification code" };
-        }
-
-        if (data.data.isRegistered) {
-          saveTokens({
-            accessToken: data.data.accessToken,
-            refreshToken: data.data.refreshToken
-          });
-          setUser(data.data.user);
-          return { success: true };
-        } else {
-          return { success: false, message: "No profile registered for this number." };
-        }
-      }
-    } catch (err: any) {
-      return { success: false, message: err.message || "Verification network error" };
+  /** Verify an OTP against the admin endpoint and store the admin session. */
+  const runAdminVerify = React.useCallback(async (phone: string, otp: string) => {
+    const res = await fetch("/api/v1/admin/login/otp", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone, otp })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      return { success: false as const, message: data.message || "Access denied" };
     }
+
+    saveTokens({
+      accessToken: data.data.accessToken,
+      refreshToken: data.data.refreshToken
+    });
+    setUser(data.data.user);
+    return { success: true as const };
   }, []);
 
-  const sendAdminOtp = React.useCallback(async (phone: string) => {
-    return await sendOtp(phone);
-  }, [sendOtp]);
-
-  const verifyAdminOtp = React.useCallback(async (phone: string, otp: string) => {
+  const verifyAdminPassword = React.useCallback(async (phone: string, password: string) => {
     try {
-      const res = await fetch("/api/v1/admin/login/otp", {
+      const res = await fetch("/api/v1/admin/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone, otp })
+        body: JSON.stringify({ phone, password })
       });
       const data = await res.json();
       if (!res.ok) {
-        return { success: false, message: data.message || "Access denied" };
+        return { success: false, message: data.message || "Invalid password credentials" };
       }
 
       saveTokens({
@@ -174,6 +210,67 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
       return { success: false, message: err.message || "Network error" };
     }
   }, []);
+
+  /**
+   * Unified passwordless verification. The customer never chooses
+   * "login" vs "register": the backend logs an existing customer in, or
+   * auto-creates one for a brand-new number. Either way we get a JWT.
+   * `isNewUser` tells the UI whether to ask for a name (Complete Profile).
+   */
+  const verifyOtp = React.useCallback(async (phone: string, otp: string) => {
+    try {
+      // Owner's number: verify as the admin instead of auto-registering a
+      // customer. Callers redirect to the console on `isAdmin`.
+      if (adminPhoneHint.current === phone) {
+        const result = await runAdminVerify(phone, otp);
+        return result.success
+          ? { success: true, isAdmin: true, isNewUser: false, profileComplete: true }
+          : { success: false, message: result.message };
+      }
+
+      const res = await fetch("/api/v1/auth/otp/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone, otp })
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        return { 
+          success: false, 
+          message: data.message || "Invalid verification code",
+          errorType: data.errorType,
+          remainingSeconds: data.remainingSeconds
+        };
+      }
+
+      saveTokens({
+        accessToken: data.data.accessToken,
+        refreshToken: data.data.refreshToken
+      });
+      setUser(data.data.user);
+
+      return {
+        success: true,
+        isNewUser: Boolean(data.data.isNewUser),
+        profileComplete: Boolean(data.data.profileComplete)
+      };
+    } catch (err: any) {
+      return { success: false, message: err?.message || "Verification network error" };
+    }
+  }, [runAdminVerify]);
+
+  const sendAdminOtp = React.useCallback(async (phone: string) => {
+    return await sendOtp(phone);
+  }, [sendOtp]);
+
+  const verifyAdminOtp = React.useCallback(async (phone: string, otp: string) => {
+    try {
+      return await runAdminVerify(phone, otp);
+    } catch (err: any) {
+      return { success: false, message: err.message || "Network error" };
+    }
+  }, [runAdminVerify]);
 
   const logout = React.useCallback(async () => {
     try {
@@ -192,7 +289,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const updateProfile = React.useCallback(async (details: { name: string; phone: string }) => {
+  const updateProfile = React.useCallback(async (details: { name?: string; phone?: string; email?: string }) => {
     const updated = await apiFetch<UserProfile>("/auth/profile", {
       method: "PUT",
       body: details
@@ -200,27 +297,51 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
     setUser(updated);
   }, []);
 
-  const addAddress = React.useCallback(async (address: Omit<SavedAddress, "id" | "_id">) => {
-    const res = await apiFetch<{ addresses: SavedAddress[]; activeAddressId: string }>("/auth/addresses", {
+  const refreshProfile = React.useCallback(async () => {
+    try {
+      const profile = await apiFetch<UserProfile>("/auth/profile");
+      setUser(profile);
+    } catch (err) {
+      console.error("Failed to refresh user profile:", err);
+    }
+  }, []);
+
+  const addAddress = React.useCallback(async (address: any) => {
+    await apiFetch("/user/addresses", {
       method: "POST",
       body: address
     });
-    setUser(prev => prev ? { ...prev, addresses: res.addresses, activeAddressId: res.activeAddressId } : null);
-  }, []);
+    await refreshProfile();
+  }, [refreshProfile]);
+
+  const updateAddress = React.useCallback(async (id: string, address: any) => {
+    await apiFetch(`/user/addresses/${id}`, {
+      method: "PUT",
+      body: address
+    });
+    await refreshProfile();
+  }, [refreshProfile]);
 
   const deleteAddress = React.useCallback(async (id: string) => {
-    const res = await apiFetch<{ addresses: SavedAddress[]; activeAddressId: string }>(`/auth/addresses/${id}`, {
+    await apiFetch(`/user/addresses/${id}`, {
       method: "DELETE"
     });
-    setUser(prev => prev ? { ...prev, addresses: res.addresses, activeAddressId: res.activeAddressId } : null);
-  }, []);
+    await refreshProfile();
+  }, [refreshProfile]);
+
+  const setDefaultAddress = React.useCallback(async (id: string) => {
+    await apiFetch(`/user/addresses/${id}/default`, {
+      method: "PATCH"
+    });
+    await refreshProfile();
+  }, [refreshProfile]);
 
   const setActiveAddress = React.useCallback(async (id: string) => {
-    const res = await apiFetch<{ activeAddressId: string }>(`/auth/addresses/${id}/active`, {
-      method: "PUT"
+    await apiFetch(`/user/addresses/${id}/default`, {
+      method: "PATCH"
     });
-    setUser(prev => prev ? { ...prev, activeAddressId: res.activeAddressId } : null);
-  }, []);
+    await refreshProfile();
+  }, [refreshProfile]);
 
   const value = React.useMemo(
     () => ({
@@ -231,13 +352,31 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
       verifyOtp,
       sendAdminOtp,
       verifyAdminOtp,
+      verifyAdminPassword,
       logout,
       updateProfile,
       addAddress,
+      updateAddress,
       deleteAddress,
+      setDefaultAddress,
       setActiveAddress
     }),
-    [user, hydrated, sendOtp, verifyOtp, sendAdminOtp, verifyAdminOtp, logout, updateProfile, addAddress, deleteAddress, setActiveAddress]
+    [
+      user,
+      hydrated,
+      sendOtp,
+      verifyOtp,
+      sendAdminOtp,
+      verifyAdminOtp,
+      verifyAdminPassword,
+      logout,
+      updateProfile,
+      addAddress,
+      updateAddress,
+      deleteAddress,
+      setDefaultAddress,
+      setActiveAddress
+    ]
   );
 
   return <AccountContext.Provider value={value}>{children}</AccountContext.Provider>;
@@ -249,4 +388,15 @@ export function useAccount() {
     throw new Error("useAccount must be used within an AccountProvider");
   }
   return context;
+}
+
+/**
+ * Is this session the store admin?
+ *
+ * Keyed on the role carried in the JWT, not on a phone number. Route guards
+ * used to compare against a hardcoded number, so changing the admin's phone
+ * silently locked them out of their own dashboard.
+ */
+export function isAdminSession(user: UserProfile | null | undefined): boolean {
+  return Boolean(user?.role && user.role !== "Customer");
 }

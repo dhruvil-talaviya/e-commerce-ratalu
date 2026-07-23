@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 
 const NotificationSchema = new mongoose.Schema({
   customerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Customer' }, // null if broadcast to all
+  isAdmin: { type: Boolean, default: false },
   title: { type: String, required: true },
   message: { type: String, required: true },
   read: { type: Boolean, default: false },

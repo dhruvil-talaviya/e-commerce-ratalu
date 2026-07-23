@@ -1,29 +1,31 @@
 import type { Metadata, Viewport } from "next";
-import { Poppins, Inter, Baloo_2, Noto_Sans_Devanagari, Noto_Sans_Gujarati } from "next/font/google";
+import { Plus_Jakarta_Sans, Inter, Manrope, Noto_Sans_Devanagari, Noto_Sans_Gujarati } from "next/font/google";
 import "./globals.css";
 import { SITE } from "@/lib/constants";
 import { Providers } from "./providers";
 import { StorefrontLayoutWrapper } from "@/components/layout/storefront-layout-wrapper";
 import { OrganizationJsonLd, WebsiteJsonLd } from "@/components/seo/json-ld";
+import { getPageContent } from "@/lib/cms-server";
 
-const poppins = Poppins({
-  variable: "--font-poppins",
+const plusJakartaSans = Plus_Jakarta_Sans({
+  variable: "--font-plus-jakarta",
   subsets: ["latin"],
   display: "swap",
-  weight: ["400", "500", "600", "700", "800"],
+  weight: ["600", "700", "800"],
 });
 
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
   display: "swap",
+  weight: ["400", "500", "600", "700"],
 });
 
-const baloo2 = Baloo_2({
-  variable: "--font-baloo2",
+const manrope = Manrope({
+  variable: "--font-manrope",
   subsets: ["latin"],
   display: "swap",
-  weight: ["400", "500", "600", "700", "800"],
+  weight: ["600", "700", "800"],
 });
 
 const notoSansDevanagari = Noto_Sans_Devanagari({
@@ -89,16 +91,23 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({
+import { TrackingScripts } from "@/components/common/tracking-scripts";
+
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  // Fetched on the server so Website Builder copy lands in the initial HTML —
+  // visible to crawlers, and no flash of fallback text on load.
+  const cms = await getPageContent("homepage");
+
   return (
-    <html lang="en" className={`${poppins.variable} ${inter.variable} ${baloo2.variable} ${notoSansDevanagari.variable} ${notoSansGujarati.variable}`}>
+    <html lang="en" className={`${plusJakartaSans.variable} ${inter.variable} ${manrope.variable} ${notoSansDevanagari.variable} ${notoSansGujarati.variable}`}>
       <body className="bg-background text-foreground">
         <OrganizationJsonLd />
         <WebsiteJsonLd />
         <Providers>
-          <StorefrontLayoutWrapper>{children}</StorefrontLayoutWrapper>
+          <TrackingScripts />
+          <StorefrontLayoutWrapper cms={cms}>{children}</StorefrontLayoutWrapper>
         </Providers>
       </body>
     </html>

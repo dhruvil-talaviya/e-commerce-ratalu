@@ -1,89 +1,198 @@
 "use client";
 
 import * as React from "react";
-import { Plus, Check, ShoppingBag } from "lucide-react";
+import { Plus, Check, ShoppingBag, Gift } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WaferVisual } from "@/components/common/wafer-visual";
 import { useCart } from "@/components/cart/cart-provider";
+import { useProducts } from "@/components/shop/product-provider";
 import { toast } from "@/components/ui/toast";
-import { FLAVORS } from "@/lib/data/flavors";
-import { getPack, DEFAULT_PACK_ID } from "@/lib/data/products";
+import { apiFetch } from "@/lib/api";
 import { formatINR, cn } from "@/lib/utils";
 import type { Flavor } from "@/lib/types";
 
-/** "Frequently bought together" bundle with per-item toggles + combined price. */
+interface ComboItem {
+  flavorId: string;
+  flavorName: string;
+  packId: string;
+  packLabel: string;
+  quantity: number;
+}
+
+interface Combo {
+  _id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  items: ComboItem[];
+  comboPrice: number;
+  originalPrice: number;
+  savings: number;
+  discountPercent: number;
+  badge?: string;
+}
+
 export function FrequentlyBoughtTogether({ flavor }: { flavor: Flavor }) {
   const { addItem } = useCart();
-  const pack = getPack(DEFAULT_PACK_ID)!;
+  const { getFlavorBySlug } = useProducts();
+  const [combos, setCombos] = React.useState<Combo[]>([]);
+  const [loading, setLoading] = React.useState(true);
 
-  // The current flavour + two complementary flavours.
-  const companions = FLAVORS.filter((f) => f.id !== flavor.id).slice(0, 2);
-  const bundle = [flavor, ...companions];
+  React.useEffect(() => {
+    let cancelled = false;
+    apiFetch<Combo[]>("/combos")
+      .then((res) => {
+        if (!cancelled) setCombos(res ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setCombos([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-  const [selected, setSelected] = React.useState<Record<string, boolean>>(
-    Object.fromEntries(bundle.map((f) => [f.id, true]))
-  );
+  // Filter combos that contain the current flavor slug or id
+  const matchingCombos = React.useMemo(() => {
+    if (!combos.length) return [];
+    return combos.filter((c) =>
+      c.items.some((item) => item.flavorId === flavor.id || item.flavorId === flavor.slug)
+    );
+  }, [combos, flavor.id, flavor.slug]);
 
-  const chosen = bundle.filter((f) => selected[f.id]);
-  const total = chosen.length * pack.price;
+  // Fallback: If no combo specifically contains this flavor, suggest general combos
+  const displayCombos = matchingCombos.length > 0 ? matchingCombos : combos.slice(0, 3);
 
-  const addAll = () => {
-    chosen.forEach((f) => addItem(f, pack, 1));
-    toast.success(`${chosen.length} packs added`, { description: `Bundle total ${formatINR(total)}` });
+  const handleAddCombo = (combo: Combo) => {
+    combo.items.forEach((item) => {
+      // Resolve the flavor details
+      const itemFlavor = getFlavorBySlug(item.flavorId) || getFlavorBySlug(item.flavorId.replace("flavor-", ""));
+      if (itemFlavor) {
+        const packSize = {
+          id: item.packId,
+          label: item.packLabel,
+          grams: item.packId.includes("200") ? 200 : 400, // simple inference
+          price: combo.originalPrice / combo.items.length // mock or proportional price
+        };
+        addItem(itemFlavor, packSize, item.quantity);
+      }
+    });
+
+    toast.success(`Combo "${combo.name}" added to cart!`, {
+      description: `Saved ${formatINR(combo.savings)} on this bundle.`
+    });
   };
 
+  if (loading) {
+    return (
+      <div className="rounded-3xl border border-[var(--color-border)] bg-white/60 p-8 text-center animate-pulse">
+        <p className="text-charcoal-muted text-sm font-semibold">Loading custom combo offers...</p>
+      </div>
+    );
+  }
+
+  if (displayCombos.length === 0) {
+    return null; // Don't show the section if no combos exist
+  }
+
   return (
-    <div className="rounded-3xl border border-[var(--color-border)] bg-white/60 p-6 sm:p-8">
-      <h3 className="font-serif text-xl font-bold text-charcoal sm:text-2xl">Frequently bought together</h3>
-      <p className="mt-1 text-sm text-charcoal-muted">Build the perfect snack box and save on shipping.</p>
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-1">
+        <span className="inline-flex max-w-fit items-center gap-1.5 rounded-full bg-purple-100 px-3 py-1 text-xs font-bold text-purple-700">
+          <Gift className="size-3.5" /> Special Combos & Bundles
+        </span>
+        <h3 className="font-serif text-2xl font-bold text-charcoal sm:text-3xl mt-1">Super Saver Combo Offers</h3>
+        <p className="text-sm text-charcoal-muted">Unlock bulk pricing and extra savings by choosing a pre-packaged bundle.</p>
+      </div>
 
-      <div className="mt-6 flex flex-col gap-5 lg:flex-row lg:items-center">
-        {/* Item chips with + connectors */}
-        <div className="flex flex-1 items-center gap-2 overflow-x-auto pb-2 no-scrollbar">
-          {bundle.map((f, i) => (
-            <React.Fragment key={f.id}>
-              {i > 0 && <Plus className="size-5 shrink-0 text-charcoal-soft" />}
-              <button
-                onClick={() => setSelected((s) => ({ ...s, [f.id]: !s[f.id] }))}
-                aria-pressed={selected[f.id]}
-                className={cn(
-                  "group relative flex w-28 shrink-0 flex-col items-center gap-2 rounded-2xl border-2 p-3 text-center transition-all",
-                  selected[f.id] ? "border-purple-500 bg-purple-50/50" : "border-[var(--color-border)] bg-white opacity-60 hover:opacity-100"
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {displayCombos.map((combo) => (
+          <div
+            key={combo._id}
+            className="flex flex-col justify-between rounded-3xl border border-[var(--color-border)] bg-white/70 p-6 shadow-sm hover:shadow-md transition-shadow duration-300"
+          >
+            <div>
+              {/* Combo title and badge */}
+              <div className="flex items-start justify-between gap-2 mb-3">
+                <h4 className="font-bold text-charcoal text-base leading-snug">{combo.name}</h4>
+                {combo.badge && (
+                  <span className="shrink-0 rounded-full bg-green-100 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-green-700">
+                    {combo.badge}
+                  </span>
                 )}
-              >
-                <span
-                  className={cn(
-                    "absolute right-2 top-2 grid size-5 place-items-center rounded-full border transition-colors",
-                    selected[f.id] ? "border-purple-500 bg-purple-500 text-cream" : "border-charcoal-soft/40 bg-white"
-                  )}
-                >
-                  {selected[f.id] && <Check className="size-3.5" />}
-                </span>
-                <div
-                  className="size-14 rounded-xl p-1.5"
-                  style={{ background: `radial-gradient(120% 120% at 30% 20%, ${f.gradient.from}22, transparent)` }}
-                >
-                  <WaferVisual flavor={f} seed={i + 7} />
-                </div>
-                <span className="line-clamp-1 text-xs font-semibold text-charcoal">{f.name}</span>
-                <span className="text-xs text-purple-700">{formatINR(pack.price)}</span>
-              </button>
-            </React.Fragment>
-          ))}
-        </div>
+              </div>
 
-        {/* Total + CTA */}
-        <div className="flex shrink-0 flex-col gap-3 border-t border-[var(--color-border)] pt-4 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
-          <div>
-            <p className="text-xs uppercase tracking-wide text-charcoal-soft">
-              {chosen.length} {chosen.length === 1 ? "item" : "items"} ({pack.label} each)
-            </p>
-            <p className="font-serif text-2xl font-bold text-purple-700">{formatINR(total)}</p>
+              {combo.description && (
+                <p className="text-xs text-charcoal-muted line-clamp-2 mb-4 leading-relaxed">
+                  {combo.description}
+                </p>
+              )}
+
+              {/* Items grid */}
+              <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-4 no-scrollbar">
+                {combo.items.map((item, idx) => {
+                  const itemFlavor = getFlavorBySlug(item.flavorId) || getFlavorBySlug(item.flavorId.replace("flavor-", ""));
+                  return (
+                    <React.Fragment key={idx}>
+                      {idx > 0 && <span className="text-charcoal-soft font-bold text-xs shrink-0">+</span>}
+                      <div className="flex flex-col items-center gap-1 w-20 shrink-0 text-center">
+                        <div
+                          className="size-12 rounded-xl p-1.5 border border-purple-50 bg-purple-50/20"
+                          style={{
+                            background: itemFlavor
+                              ? `radial-gradient(120% 120% at 30% 20%, ${itemFlavor.gradient?.from}22, transparent)`
+                              : undefined
+                          }}
+                        >
+                          {itemFlavor ? (
+                            <WaferVisual flavor={itemFlavor} seed={idx + 3} />
+                          ) : (
+                            <span className="grid size-full place-items-center bg-gray-100 rounded-lg text-gray-400 font-mono text-[9px] font-bold">
+                              {item.quantity}x
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[10px] font-semibold text-charcoal truncate w-full">
+                          {item.flavorName}
+                        </span>
+                        <span className="text-[9px] text-charcoal-muted">
+                          {item.quantity}x {item.packLabel}
+                        </span>
+                      </div>
+                    </React.Fragment>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-gray-100 flex items-center justify-between gap-4 mt-auto">
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-serif text-lg font-extrabold text-purple-700">
+                    {formatINR(combo.comboPrice)}
+                  </span>
+                  <span className="text-xs text-charcoal-muted line-through">
+                    {formatINR(combo.originalPrice)}
+                  </span>
+                </div>
+                <span className="text-[10px] font-bold text-green-600">
+                  Save {formatINR(combo.savings)} ({combo.discountPercent}% off)
+                </span>
+              </div>
+
+              <Button
+                onClick={() => handleAddCombo(combo)}
+                size="sm"
+                className="bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs"
+              >
+                <ShoppingBag className="size-3.5 mr-1" /> Add Bundle
+              </Button>
+            </div>
           </div>
-          <Button onClick={addAll} disabled={chosen.length === 0} size="lg">
-            <ShoppingBag /> Add {chosen.length} to cart
-          </Button>
-        </div>
+        ))}
       </div>
     </div>
   );

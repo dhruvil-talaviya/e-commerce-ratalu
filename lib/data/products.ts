@@ -22,3 +22,24 @@ export const DEFAULT_PACK_ID = "200g";
 export function getPack(packId: string): PackSize | undefined {
   return PACK_SIZES.find((p) => p.id === packId);
 }
+
+/**
+ * The pack sizes a product actually sells, from the database.
+ *
+ * The storefront used to read the static PACK_SIZES above for every product,
+ * which meant the admin could change a price and customers would keep seeing —
+ * and paying — the hardcoded one. (They matched only by coincidence.) Always
+ * prefer what the API returned.
+ *
+ * PACK_SIZES remains as a last-resort fallback so a product that somehow has no
+ * packs still renders instead of crashing on `undefined`.
+ */
+export function getPacks(flavor: { packs?: PackSize[] }): PackSize[] {
+  return flavor?.packs?.length ? flavor.packs : PACK_SIZES;
+}
+
+/** One pack by id, falling back to the first available size. */
+export function getPackFor(flavor: { packs?: PackSize[] }, packId: string): PackSize {
+  const packs = getPacks(flavor);
+  return packs.find((p) => p.id === packId) ?? packs[0];
+}

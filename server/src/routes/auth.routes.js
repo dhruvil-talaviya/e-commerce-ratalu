@@ -9,6 +9,7 @@ const {
   getProfile,
   updateProfile,
   addAddress,
+  updateAddress,
   deleteAddress,
   setActiveAddress
 } = require('../controllers/auth.controller');
@@ -32,9 +33,10 @@ router.post('/logout', protect, logout);
 router.get('/profile', protect, getProfile);
 router.put('/profile', protect, updateProfile);
 
-// Address endpoints
+// Address endpoints (address book lives on the customer profile)
 router.post('/addresses', protect, addAddress);
+router.put('/addresses/:id/active', protect, setActiveAddress); // must precede /:id
+router.put('/addresses/:id', protect, updateAddress);
 router.delete('/addresses/:id', protect, deleteAddress);
-router.put('/addresses/:id/active', protect, setActiveAddress);
 
 module.exports = router;

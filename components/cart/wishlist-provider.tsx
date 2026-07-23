@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useAccount } from "@/components/account/account-provider";
+import { useAccount, isAdminSession } from "@/components/account/account-provider";
 import { apiFetch } from "@/lib/api";
 
 const STORAGE_KEY = "ratalu.wishlist.v1";
@@ -16,58 +16,70 @@ interface WishlistContextValue {
 const WishlistContext = React.createContext<WishlistContextValue | null>(null);
 
 export function WishlistProvider({ children }: { children: React.ReactNode }) {
-  const { isLoggedIn } = useAccount();
+  const { isLoggedIn, user } = useAccount();
+
+  /** An admin previewing the shop is not a shopper — see CartProvider. */
+  const isShopper = isLoggedIn && !isAdminSession(user);
   const [ids, setIds] = React.useState<string[]>([]);
   const [hydrated, setHydrated] = React.useState(false);
 
-  // Sync / Load wishlist
-  React.useEffect(() => {
-    const syncWishlist = async () => {
-      if (isLoggedIn) {
-        try {
-          const localData = localStorage.getItem(STORAGE_KEY);
-          let localIds: string[] = [];
-          if (localData) {
-            localIds = JSON.parse(localData);
-          }
+  /**
+   * Whose wishlist is in state. Same leak the cart had: logging out left the
+   * previous customer's saved items in memory, which were then written to the
+   * guest key and merged into whoever signed in next on this device.
+   */
+  const ownerId = isShopper ? user?.id ?? null : null;
+  const [loadedOwner, setLoadedOwner] = React.useState<string | null | undefined>(undefined);
 
-          let syncedIds: string[] = [];
-          if (localIds.length > 0) {
-            syncedIds = await apiFetch<string[]>("/wishlist/sync", {
-              method: "POST",
-              body: { ids: localIds }
-            });
-            localStorage.removeItem(STORAGE_KEY);
-          } else {
-            syncedIds = await apiFetch<string[]>("/wishlist");
-          }
-          setIds(syncedIds);
+  React.useEffect(() => {
+    const load = async () => {
+      // Someone signed out, or a different account signed in. Nothing carries over.
+      if (loadedOwner != null && loadedOwner !== ownerId) {
+        setIds([]);
+        localStorage.removeItem(STORAGE_KEY);
+        setLoadedOwner(ownerId);
+        return;
+      }
+
+      if (isShopper) {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          const localIds: string[] = raw ? JSON.parse(raw) : [];
+
+          const synced = localIds.length
+            ? await apiFetch<string[]>("/wishlist/sync", { method: "POST", body: { ids: localIds } })
+            : await apiFetch<string[]>("/wishlist");
+
+          localStorage.removeItem(STORAGE_KEY);
+          setIds(synced ?? []);
         } catch (err) {
           console.error("Failed to sync wishlist with backend:", err);
         }
       } else {
-        // Load guest wishlist
         try {
           const raw = localStorage.getItem(STORAGE_KEY);
-          if (raw) setIds(JSON.parse(raw));
+          const parsed = raw ? JSON.parse(raw) : null;
+          setIds(Array.isArray(parsed) ? parsed : []);
         } catch {
-          /* ignore */
+          setIds([]);
         }
       }
+
+      setLoadedOwner(ownerId);
       setHydrated(true);
     };
 
-    syncWishlist();
-  }, [isLoggedIn]);
+    load();
+  }, [ownerId, isShopper]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Persist guest wishlist changes
+  // Persist the guest wishlist — only once the right one has loaded.
   React.useEffect(() => {
-    if (!hydrated || isLoggedIn) return;
+    if (!hydrated || isShopper || loadedOwner !== ownerId) return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
-  }, [ids, hydrated, isLoggedIn]);
+  }, [ids, hydrated, isShopper, loadedOwner, ownerId]);
 
   const toggle = React.useCallback(async (id: string) => {
-    if (isLoggedIn) {
+    if (isShopper) {
       try {
         const syncedIds = await apiFetch<string[]>("/wishlist/toggle", {
           method: "POST",
@@ -80,7 +92,7 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
     } else {
       setIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
     }
-  }, [isLoggedIn]);
+  }, [isShopper]);
 
   const value: WishlistContextValue = {
     ids,

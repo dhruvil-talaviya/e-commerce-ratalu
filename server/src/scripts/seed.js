@@ -16,6 +16,7 @@ const Settings = require('../models/Settings');
 const Admin = require('../models/Admin');
 const Customer = require('../models/Customer');
 const Inventory = require('../models/Inventory');
+const { ADMIN_PHONE, ADMIN_USERNAME } = require('../config/admin');
 
 const FLAVORS = [
   {
@@ -174,18 +175,26 @@ const CUSTOMERS = [
     phone: "9825000000",
     addresses: [
       {
-        tag: "Home",
-        addressLine: "14 Marine Drive, Nariman Point",
+        fullName: "Ananya Mehta",
+        phone: "9825000000",
+        houseNo: "14",
+        street: "Marine Drive",
+        area: "Nariman Point",
         city: "Mumbai",
         state: "Maharashtra",
-        pincode: "400021"
+        pinCode: "400021",
+        addressType: "Home"
       },
       {
-        tag: "Work",
-        addressLine: "Naman Centre, G Block, Bandra Kurla Complex",
+        fullName: "Ananya Mehta",
+        phone: "9825000000",
+        houseNo: "Naman Centre",
+        street: "G Block",
+        area: "Bandra Kurla Complex",
         city: "Mumbai",
         state: "Maharashtra",
-        pincode: "400051"
+        pinCode: "400051",
+        addressType: "Work"
       }
     ]
   },
@@ -194,11 +203,15 @@ const CUSTOMERS = [
     phone: "9876543210",
     addresses: [
       {
-        tag: "Home",
-        addressLine: "Apt 201, Green Glades, HSR Layout",
+        fullName: "Rahul Sharma",
+        phone: "9876543210",
+        houseNo: "Apt 201",
+        street: "Green Glades",
+        area: "HSR Layout",
         city: "Bengaluru",
         state: "Karnataka",
-        pincode: "560102"
+        pinCode: "560102",
+        addressType: "Home"
       }
     ]
   },
@@ -236,14 +249,15 @@ const seed = async () => {
     await Inventory.deleteMany();
     console.log('Collections cleared.');
 
-    // Seed Admin
+    // Seed the single admin. Auth is OTP-only, so the password is random
+    // filler that satisfies the schema and is never used to sign in.
     await Admin.create({
-      username: 'StoreOwner',
-      phone: '9999999999',
-      password: 'admin_password_123', // will be hashed automatically by schema middleware
-      role: 'Admin'
+      username: ADMIN_USERNAME,
+      phone: ADMIN_PHONE,
+      password: process.env.ADMIN_PASSWORD || 'Admin@123',
+      role: 'Super Admin'
     });
-    console.log('Default Admin Owner seeded (Phone: 9999999999).');
+    console.log(`Single admin seeded (Phone: ${ADMIN_PHONE}, OTP login only).`);
 
     // Seed Settings
     await Settings.create({});
