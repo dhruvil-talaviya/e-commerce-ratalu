@@ -58,7 +58,7 @@ export function FlavorCard({ flavor, index = 0 }: { flavor: Flavor; index?: numb
           background: `radial-gradient(130% 130% at 50% 15%, ${flavor.gradient.from}22, transparent 60%)`,
         }}
       >
-        <div className="absolute inset-0 flex items-center justify-center p-6 transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-105">
+        <Link href={`/shop/${flavor.slug}`} className="absolute inset-0 flex items-center justify-center p-6 transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-105">
           <WaferVisual
             flavor={flavor}
             seed={index}
@@ -67,7 +67,7 @@ export function FlavorCard({ flavor, index = 0 }: { flavor: Flavor; index?: numb
               isOutOfStock && "opacity-50 grayscale blur-[0.5px]"
             )}
           />
-        </div>
+        </Link>
 
         {/* Out-of-stock overlay label */}
         {isOutOfStock && (
@@ -99,10 +99,10 @@ export function FlavorCard({ flavor, index = 0 }: { flavor: Flavor; index?: numb
       {/* Body */}
       <div className="flex flex-1 flex-col p-3.5 sm:p-5 lg:p-6">
         <div className="flex items-start justify-between gap-1.5 sm:gap-3">
-          <div className="min-w-0 flex-1">
+          <Link href={`/shop/${flavor.slug}`} className="min-w-0 flex-1 transition-colors hover:text-purple-700">
             <h3 className="line-clamp-2 font-serif text-sm font-bold text-charcoal sm:text-lg lg:text-xl">{flavor.name}</h3>
             <p className="mt-0.5 hidden text-xs text-charcoal-soft md:block">{flavor.tagline}</p>
-          </div>
+          </Link>
           <HeatMeter level={flavor.heat} showLabel={false} className="mt-0.5 shrink-0" />
         </div>
 

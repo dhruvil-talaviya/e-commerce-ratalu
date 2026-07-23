@@ -143,6 +143,31 @@ export function ProductCard({
             <HeatMeter level={flavor.heat} showLabel={false} className="mt-0.5 shrink-0" />
           </div>
 
+          {/* Mobile pack selector chips */}
+          <div className="mt-2 flex items-center gap-1 overflow-x-auto no-scrollbar md:hidden">
+            {getPacks(flavor).map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                disabled={isOutOfStock}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPackId(p.id);
+                }}
+                aria-pressed={p.id === packId}
+                className={cn(
+                  "rounded-lg px-1.5 py-0.5 text-[10px] font-bold border transition-all shrink-0",
+                  p.id === packId
+                    ? "border-purple-600 bg-purple-600 text-white shadow-xs"
+                    : "border-gray-200 bg-white text-gray-700 hover:border-purple-300",
+                  isOutOfStock && "opacity-40 cursor-not-allowed"
+                )}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+
           <p className="mt-1 hidden text-sm text-charcoal-soft md:block">{flavor.tagline}</p>
           <p className={cn("mt-3 hidden text-sm leading-relaxed text-charcoal-muted md:block", isList ? "line-clamp-2 sm:line-clamp-3" : "line-clamp-2")}>
             {flavor.description}
