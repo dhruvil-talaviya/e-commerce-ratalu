@@ -63,168 +63,145 @@ export function ProductCard({
           },
         }}
         className={cn(
-          "group flex overflow-hidden rounded-3xl border border-[var(--color-border)] bg-white/80 shadow-[var(--shadow-soft)] backdrop-blur-sm transition-shadow duration-300 hover:shadow-[var(--shadow-lift)]",
+          "group relative flex h-full flex-col overflow-hidden rounded-2xl sm:rounded-3xl border border-[var(--color-border)] bg-white/90 shadow-[var(--shadow-soft)] backdrop-blur-sm transition-all duration-300 hover:shadow-[var(--shadow-lift)]",
           isList ? "flex-col sm:flex-row" : "flex-col"
         )}
       >
         {/* Visual */}
         <div
           className={cn(
-            "relative shrink-0",
-            isList ? "aspect-[4/3] sm:aspect-auto sm:w-56 lg:w-64" : "aspect-[4/3]"
+            "relative shrink-0 overflow-hidden",
+            isList ? "aspect-[4/3] sm:aspect-auto sm:w-56 lg:w-64" : "aspect-[4/3] w-full"
           )}
           style={{
             background: `radial-gradient(130% 130% at 50% 10%, ${flavor.gradient.from}22, transparent 62%)`,
           }}
         >
-          <Link href={`/shop/${flavor.slug}`} className="absolute inset-0 flex items-center justify-center p-6">
-            <WaferVisual flavor={flavor} seed={index} className={cn("max-h-full transition-transform duration-500 group-hover:scale-105", isOutOfStock && "grayscale opacity-50 blur-[0.5px]")} />
+          <Link href={`/shop/${flavor.slug}`} className="absolute inset-0 flex items-center justify-center p-4 sm:p-6 transition-transform duration-500 group-hover:scale-105">
+            <WaferVisual flavor={flavor} seed={index} className={cn("max-h-full transition-transform duration-500", isOutOfStock && "grayscale opacity-50 blur-[0.5px]")} />
           </Link>
 
           {isOutOfStock && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-[1px] z-10">
-              <span className="relative flex items-center justify-center px-5 py-2.5 bg-gradient-to-r from-red-650 via-red-500 to-red-700 text-white font-black text-[11px] uppercase tracking-widest rounded-full shadow-[0_0_15px_rgba(239,68,68,0.5)] border border-white/20 select-none overflow-hidden animate-pulse">
-                {/* Glossy light effect shimmer */}
-                <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
+              <span className="relative flex items-center justify-center px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white font-black text-[10px] sm:text-[11px] uppercase tracking-widest rounded-full shadow-md border border-white/20 select-none">
                 Out of Stock
               </span>
             </div>
           )}
 
           {/* Badges */}
-          <div className="absolute left-4 top-4 flex flex-col gap-1.5">
+          <div className="absolute left-2.5 top-2.5 sm:left-4 sm:top-4 flex flex-col gap-1 z-10">
             {flavor.bestSeller && (
-              <Badge variant="gold" size="sm">★ Best seller</Badge>
+              <Badge variant="gold" size="sm" className="text-[9px] sm:text-xs">★ Best seller</Badge>
             )}
             {flavor.badge && (
-              <Badge variant={badgeVariant[flavor.badge] ?? "soft"} size="sm">{flavor.badge}</Badge>
-            )}
-            {savings > 0 && (
-              <Badge variant="orange" size="sm">-{Math.round((savings / (pack.compareAt ?? 1)) * 100)}%</Badge>
+              <Badge variant={badgeVariant[flavor.badge] ?? "soft"} size="sm" className="text-[9px] sm:text-xs">{flavor.badge}</Badge>
             )}
           </div>
 
-          {/* Actions: wishlist + quick view */}
-          <div className="absolute right-4 top-4 flex flex-col gap-2">
-            <button
-              onClick={() => toggle(flavor.id)}
-              aria-label={wished ? "Remove from wishlist" : "Add to wishlist"}
-              aria-pressed={wished}
-              className="grid size-9 place-items-center rounded-full bg-white/85 text-charcoal-muted shadow-sm backdrop-blur transition-all hover:scale-110 hover:text-red-500"
-            >
-              <Heart className={cn("size-4.5 transition-all", wished && "fill-red-500 text-red-500")} />
-            </button>
-            <button
-              onClick={() => setQuickOpen(true)}
-              aria-label={`Quick view ${flavor.name}`}
-              className="grid size-9 place-items-center rounded-full bg-white/85 text-charcoal-muted shadow-sm backdrop-blur transition-all hover:scale-110 hover:text-purple-700 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
-            >
-              <Eye className="size-4.5" />
-            </button>
-          </div>
-
-          {/* Hover Quick View bar (desktop) */}
-          {!isOutOfStock && (
-            <button
-              onClick={() => setQuickOpen(true)}
-              className="absolute inset-x-4 bottom-4 hidden items-center justify-center gap-2 rounded-full bg-charcoal/85 py-2.5 text-sm font-medium text-cream backdrop-blur transition-all duration-300 hover:bg-charcoal sm:flex sm:translate-y-3 sm:opacity-0 sm:group-hover:translate-y-0 sm:group-hover:opacity-100"
-            >
-              <Eye className="size-4" /> Quick view
-            </button>
-          )}
+          {/* Wishlist */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              toggle(flavor.id);
+            }}
+            aria-label={wished ? "Remove from wishlist" : "Add to wishlist"}
+            aria-pressed={wished}
+            className="absolute right-2.5 top-2.5 sm:right-4 sm:top-4 grid size-8 sm:size-9 place-items-center rounded-full bg-white/85 text-charcoal-muted shadow-sm backdrop-blur transition-transform active:scale-95 hover:text-red-500 z-10"
+          >
+            <Heart className={cn("size-4 transition-colors", wished && "fill-red-500 text-red-500")} />
+          </button>
         </div>
 
         {/* Body */}
-        <div className="flex flex-1 flex-col p-3.5 sm:p-5 lg:p-6">
-          <div className="flex items-start justify-between gap-1.5 sm:gap-2">
-            <Link href={`/shop/${flavor.slug}`} className="min-w-0 flex-1 transition-colors hover:text-purple-700">
-              <h3 className="line-clamp-2 font-serif text-sm font-bold text-charcoal sm:text-lg lg:text-2xl">{flavor.name}</h3>
-            </Link>
-            <HeatMeter level={flavor.heat} showLabel={false} className="mt-0.5 shrink-0" />
-          </div>
+        <div className="flex flex-1 flex-col justify-between p-3 sm:p-5 lg:p-6">
+          <div>
+            <div className="flex items-start justify-between gap-1.5">
+              <Link href={`/shop/${flavor.slug}`} className="min-w-0 flex-1 transition-colors hover:text-purple-700">
+                <h3 className="line-clamp-2 font-serif text-xs font-bold leading-tight text-charcoal sm:text-lg lg:text-2xl">{flavor.name}</h3>
+              </Link>
+              <HeatMeter level={flavor.heat} showLabel={false} className="mt-0.5 shrink-0" />
+            </div>
 
-          {/* Mobile pack selector chips */}
-          <div className="mt-2 flex items-center gap-1 overflow-x-auto no-scrollbar md:hidden">
-            {getPacks(flavor).map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                disabled={isOutOfStock}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setPackId(p.id);
-                }}
-                aria-pressed={p.id === packId}
-                className={cn(
-                  "rounded-lg px-1.5 py-0.5 text-[10px] font-bold border transition-all shrink-0",
-                  p.id === packId
-                    ? "border-purple-600 bg-purple-600 text-white shadow-xs"
-                    : "border-gray-200 bg-white text-gray-700 hover:border-purple-300",
-                  isOutOfStock && "opacity-40 cursor-not-allowed"
-                )}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
-
-          <p className="mt-1 hidden text-sm text-charcoal-soft md:block">{flavor.tagline}</p>
-          <p className={cn("mt-3 hidden text-sm leading-relaxed text-charcoal-muted md:block", isList ? "line-clamp-2 sm:line-clamp-3" : "line-clamp-2")}>
-            {flavor.description}
-          </p>
-
-          {/* Pack selector — visible on tablet/desktop */}
-          <fieldset className="mt-4 hidden md:block">
-            <legend className="mb-2 text-xs font-semibold uppercase tracking-wide text-charcoal-soft">
-              Choose size
-            </legend>
-            <div className="grid grid-cols-4 gap-2">
+            {/* Mobile pack selector chips */}
+            <div className="mt-2 flex items-center gap-1 overflow-x-auto no-scrollbar md:hidden">
               {getPacks(flavor).map((p) => (
                 <button
                   key={p.id}
+                  type="button"
                   disabled={isOutOfStock}
-                  onClick={() => setPackId(p.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setPackId(p.id);
+                  }}
                   aria-pressed={p.id === packId}
                   className={cn(
-                    "min-w-0 rounded-xl border px-2 py-2 text-center transition-all",
+                    "rounded-md px-1.5 py-0.5 text-[9px] font-bold border transition-all shrink-0",
                     p.id === packId
-                      ? "border-purple-500 bg-purple-50 text-purple-700 shadow-sm"
-                      : "border-[var(--color-border)] bg-white text-charcoal-muted hover:border-purple-200",
-                    isOutOfStock && "opacity-40 cursor-not-allowed hover:border-[var(--color-border)]"
+                      ? "border-purple-600 bg-purple-600 text-white shadow-xs"
+                      : "border-gray-200 bg-white text-gray-700 hover:border-purple-300",
+                    isOutOfStock && "opacity-40 cursor-not-allowed"
                   )}
                 >
-                  <span className="block text-sm font-semibold">{p.label}</span>
-                  <span className="block text-[10px]">{formatINR(p.price)}</span>
+                  {p.label}
                 </button>
               ))}
             </div>
-          </fieldset>
 
-          {/* Price + savings */}
-          <div className="mt-2.5 sm:mt-5 flex flex-wrap items-baseline justify-between gap-1 sm:gap-2">
-            <div className="flex flex-wrap items-baseline gap-1.5">
-              <span className="font-serif text-base font-bold text-purple-700 sm:text-xl lg:text-2xl whitespace-nowrap">{formatINR(pack.price)}</span>
-              {pack.compareAt && (
-                <span className="text-xs text-charcoal-soft line-through sm:text-sm whitespace-nowrap">{formatINR(pack.compareAt)}</span>
-              )}
-            </div>
-            {savings > 0 && !isOutOfStock && (
-              <Badge variant="soft" size="sm" className="text-[10px] sm:text-xs text-green-700 whitespace-nowrap px-1.5 py-0.5">Save {formatINR(savings)}</Badge>
-            )}
+            <p className="mt-1 hidden text-sm text-charcoal-soft md:block">{flavor.tagline}</p>
+            <p className={cn("mt-3 hidden text-sm leading-relaxed text-charcoal-muted md:block", isList ? "line-clamp-2 sm:line-clamp-3" : "line-clamp-2")}>
+              {flavor.description}
+            </p>
+
+            {/* Pack selector — visible on tablet/desktop */}
+            <fieldset className="mt-4 hidden md:block">
+              <legend className="mb-2 text-xs font-semibold uppercase tracking-wide text-charcoal-soft">
+                Choose size
+              </legend>
+              <div className="grid grid-cols-4 gap-2">
+                {getPacks(flavor).map((p) => (
+                  <button
+                    key={p.id}
+                    disabled={isOutOfStock}
+                    onClick={() => setPackId(p.id)}
+                    aria-pressed={p.id === packId}
+                    className={cn(
+                      "min-w-0 rounded-xl border px-2 py-2 text-center transition-all",
+                      p.id === packId
+                        ? "border-purple-500 bg-purple-50 text-purple-700 shadow-sm"
+                        : "border-[var(--color-border)] bg-white text-charcoal-muted hover:border-purple-200",
+                      isOutOfStock && "opacity-40 cursor-not-allowed hover:border-[var(--color-border)]"
+                    )}
+                  >
+                    <span className="block text-sm font-semibold">{p.label}</span>
+                    <span className="block text-[10px]">{formatINR(p.price)}</span>
+                  </button>
+                ))}
+              </div>
+            </fieldset>
           </div>
 
-          {/* Quantity + add */}
-          <div className="mt-3 sm:mt-5 flex items-center gap-2 sm:gap-3 mt-auto">
-            <div className={cn("hidden md:flex shrink-0 items-center rounded-full border border-[var(--color-border)] bg-white", isOutOfStock && "opacity-40 cursor-not-allowed")}>
-              <button disabled={isOutOfStock} onClick={() => setQty((q) => Math.max(1, q - 1))} className="grid size-9 place-items-center rounded-full text-charcoal-muted transition-colors hover:bg-purple-50 hover:text-purple-700 disabled:pointer-events-none" aria-label="Decrease quantity">
-                <Minus className="size-3.5" />
-              </button>
-              <span className="w-7 text-center font-semibold tabular-nums text-sm">{qty}</span>
-              <button disabled={isOutOfStock} onClick={() => setQty((q) => Math.min(99, q + 1))} className="grid size-9 place-items-center rounded-full text-charcoal-muted transition-colors hover:bg-purple-50 hover:text-purple-700 disabled:pointer-events-none" aria-label="Increase quantity">
-                <Plus className="size-3.5" />
-              </button>
+          {/* Bottom pinned price & Add button area */}
+          <div className="mt-3 border-t border-gray-100 pt-2.5">
+            <div className="flex items-baseline justify-between gap-1">
+              <div className="flex items-baseline gap-1">
+                <span className="font-serif text-sm sm:text-xl lg:text-2xl font-bold text-purple-700 whitespace-nowrap">{formatINR(pack.price)}</span>
+                {pack.compareAt && (
+                  <span className="text-[10px] sm:text-xs text-charcoal-soft line-through whitespace-nowrap">{formatINR(pack.compareAt)}</span>
+                )}
+              </div>
+              {savings > 0 && !isOutOfStock && (
+                <Badge variant="soft" size="sm" className="text-[9px] sm:text-xs text-green-700 whitespace-nowrap px-1 py-0.2">Save {formatINR(savings)}</Badge>
+              )}
             </div>
-            <Button disabled={isOutOfStock} onClick={handleAdd} variant={isOutOfStock ? "outline" : (added ? "accent" : "primary")} size="sm" className="min-w-0 flex-1 h-9 sm:h-11 text-xs sm:text-sm font-bold rounded-xl sm:rounded-2xl">
+
+            <Button
+              disabled={isOutOfStock}
+              onClick={handleAdd}
+              variant={isOutOfStock ? "outline" : (added ? "accent" : "primary")}
+              size="sm"
+              className="mt-2 w-full h-8.5 sm:h-11 text-xs sm:text-sm font-bold rounded-xl active:scale-95"
+            >
               {isOutOfStock ? (
                 <span className="truncate">Out of Stock</span>
               ) : added ? (
