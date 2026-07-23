@@ -346,11 +346,11 @@ function LoginGateContent() {
               <label htmlFor="phone" className="text-xs font-bold text-gray-700">
                 Mobile Number
               </label>
-              <div className="flex h-12 w-full items-center rounded-2xl border border-gray-200 bg-gray-50/50 px-3.5 transition-all focus-within:border-[#5B2C83] focus-within:bg-white focus-within:ring-4 focus-within:ring-[#5B2C83]/10 shadow-2xs">
-                <span className="flex items-center gap-1.5 border-r border-gray-200 pr-3 text-sm font-bold text-gray-700">
+              <div className="flex h-12 w-full items-center overflow-hidden rounded-2xl border border-gray-200 bg-white transition-all focus-within:border-[#5B2C83] focus-within:ring-4 focus-within:ring-[#5B2C83]/10 shadow-2xs">
+                <div className="flex h-full items-center gap-1.5 border-r border-gray-200 bg-gray-50/80 px-3.5 text-sm font-extrabold text-gray-700 shrink-0 select-none">
                   <Phone className="size-4 text-[#5B2C83]" />
                   <span>+91</span>
-                </span>
+                </div>
                 <input
                   id="phone"
                   type="tel"
@@ -363,7 +363,7 @@ function LoginGateContent() {
                     setPhone(e.target.value.replace(/\D/g, "").slice(0, 10));
                     setError("");
                   }}
-                  className="h-full flex-1 bg-transparent pl-3 text-sm font-bold text-gray-900 placeholder:text-gray-400 focus:outline-none"
+                  className="h-full w-full flex-1 bg-transparent px-3.5 text-base font-extrabold tracking-wide text-gray-900 placeholder:text-gray-400 placeholder:font-normal focus:outline-none"
                 />
               </div>
             </div>
@@ -391,8 +391,10 @@ function LoginGateContent() {
               <label htmlFor="otp" className="text-xs font-bold text-gray-700">
                 Verification Code
               </label>
-              <div className="flex h-12 w-full items-center rounded-2xl border border-gray-200 bg-gray-50/50 px-3.5 transition-all focus-within:border-[#5B2C83] focus-within:bg-white focus-within:ring-4 focus-within:ring-[#5B2C83]/10 shadow-2xs">
-                <KeyRound className="size-4 shrink-0 text-[#5B2C83]" />
+              <div className="flex h-12 w-full items-center overflow-hidden rounded-2xl border border-gray-200 bg-white transition-all focus-within:border-[#5B2C83] focus-within:ring-4 focus-within:ring-[#5B2C83]/10 shadow-2xs">
+                <div className="flex h-full items-center justify-center border-r border-gray-200 bg-gray-50/80 px-3.5 shrink-0">
+                  <KeyRound className="size-4 text-[#5B2C83]" />
+                </div>
                 <input
                   id="otp"
                   type="text"
@@ -405,7 +407,7 @@ function LoginGateContent() {
                     setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6));
                     setError("");
                   }}
-                  className="h-full flex-1 bg-transparent text-center text-base font-extrabold tracking-[0.35em] text-gray-900 placeholder:text-gray-300 focus:outline-none"
+                  className="h-full w-full flex-1 bg-transparent px-3 text-center text-base font-extrabold tracking-[0.35em] text-gray-900 placeholder:text-gray-300 focus:outline-none"
                 />
               </div>
             </div>
@@ -446,8 +448,10 @@ function LoginGateContent() {
               <label htmlFor="password" className="text-xs font-bold text-gray-700">
                 Security Password
               </label>
-              <div className="flex h-12 w-full items-center rounded-2xl border border-gray-200 bg-gray-50/50 px-3.5 transition-all focus-within:border-[#5B2C83] focus-within:bg-white focus-within:ring-4 focus-within:ring-[#5B2C83]/10 shadow-2xs">
-                <Lock className="size-4 shrink-0 text-[#5B2C83]" />
+              <div className="flex h-12 w-full items-center overflow-hidden rounded-2xl border border-gray-200 bg-white transition-all focus-within:border-[#5B2C83] focus-within:ring-4 focus-within:ring-[#5B2C83]/10 shadow-2xs">
+                <div className="flex h-full items-center justify-center border-r border-gray-200 bg-gray-50/80 px-3.5 shrink-0">
+                  <Lock className="size-4 text-[#5B2C83]" />
+                </div>
                 <input
                   id="password"
                   type={showPassword ? "text" : "password"}
@@ -457,12 +461,12 @@ function LoginGateContent() {
                     setPassword(e.target.value);
                     setError("");
                   }}
-                  className="h-full flex-1 bg-transparent px-3 text-sm font-semibold text-gray-900 placeholder:text-gray-400 focus:outline-none"
+                  className="h-full w-full flex-1 bg-transparent px-3 text-sm font-semibold text-gray-900 placeholder:text-gray-400 focus:outline-none"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="grid size-8 place-items-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 focus:outline-none"
+                  className="grid size-10 place-items-center pr-2 text-gray-400 transition-colors hover:text-gray-600 focus:outline-none"
                 >
                   {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                 </button>
@@ -482,8 +486,10 @@ function LoginGateContent() {
               <label htmlFor="name" className="text-xs font-bold text-gray-700">
                 Full Name
               </label>
-              <div className="flex h-12 w-full items-center rounded-2xl border border-gray-200 bg-gray-50/50 px-3.5 transition-all focus-within:border-[#5B2C83] focus-within:bg-white focus-within:ring-4 focus-within:ring-[#5B2C83]/10 shadow-2xs">
-                <User className="size-4 shrink-0 text-[#5B2C83]" />
+              <div className="flex h-12 w-full items-center overflow-hidden rounded-2xl border border-gray-200 bg-white transition-all focus-within:border-[#5B2C83] focus-within:ring-4 focus-within:ring-[#5B2C83]/10 shadow-2xs">
+                <div className="flex h-full items-center justify-center border-r border-gray-200 bg-gray-50/80 px-3.5 shrink-0">
+                  <User className="size-4 text-[#5B2C83]" />
+                </div>
                 <input
                   id="name"
                   type="text"
@@ -494,7 +500,7 @@ function LoginGateContent() {
                     setName(e.target.value);
                     setError("");
                   }}
-                  className="h-full flex-1 bg-transparent px-3 text-sm font-semibold text-gray-900 placeholder:text-gray-400 focus:outline-none"
+                  className="h-full w-full flex-1 bg-transparent px-3 text-sm font-semibold text-gray-900 placeholder:text-gray-400 focus:outline-none"
                 />
               </div>
             </div>
@@ -503,8 +509,10 @@ function LoginGateContent() {
               <label htmlFor="email" className="text-xs font-bold text-gray-700">
                 Email Address <span className="font-normal text-gray-400">(optional)</span>
               </label>
-              <div className="flex h-12 w-full items-center rounded-2xl border border-gray-200 bg-gray-50/50 px-3.5 transition-all focus-within:border-[#5B2C83] focus-within:bg-white focus-within:ring-4 focus-within:ring-[#5B2C83]/10 shadow-2xs">
-                <Mail className="size-4 shrink-0 text-[#5B2C83]" />
+              <div className="flex h-12 w-full items-center overflow-hidden rounded-2xl border border-gray-200 bg-white transition-all focus-within:border-[#5B2C83] focus-within:ring-4 focus-within:ring-[#5B2C83]/10 shadow-2xs">
+                <div className="flex h-full items-center justify-center border-r border-gray-200 bg-gray-50/80 px-3.5 shrink-0">
+                  <Mail className="size-4 text-[#5B2C83]" />
+                </div>
                 <input
                   id="email"
                   type="email"
@@ -515,7 +523,7 @@ function LoginGateContent() {
                     setEmail(e.target.value);
                     setError("");
                   }}
-                  className="h-full flex-1 bg-transparent px-3 text-sm font-semibold text-gray-900 placeholder:text-gray-400 focus:outline-none"
+                  className="h-full w-full flex-1 bg-transparent px-3 text-sm font-semibold text-gray-900 placeholder:text-gray-400 focus:outline-none"
                 />
               </div>
             </div>
