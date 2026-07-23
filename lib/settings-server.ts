@@ -1,6 +1,6 @@
 import "server-only";
 
-const API_ORIGIN = process.env.BACKEND_ORIGIN || "http://127.0.0.1:5001";
+const API_ORIGIN = process.env.BACKEND_ORIGIN || "https://e-commerce-ratalu-api.onrender.com";
 
 export async function getStoreSettingsServer() {
   try {

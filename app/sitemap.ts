@@ -3,7 +3,7 @@ import { getStoreSettingsServer } from "@/lib/settings-server";
 import { SITE } from "@/lib/constants";
 
 const POLICIES = ["shipping", "privacy", "terms", "refunds", "fssai"];
-const API_ORIGIN = process.env.BACKEND_ORIGIN || "http://localhost:5001";
+const API_ORIGIN = process.env.BACKEND_ORIGIN || "https://e-commerce-ratalu-api.onrender.com";
 
 interface Flavor {
   slug: string;
