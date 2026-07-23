@@ -192,41 +192,110 @@ export function CartSheet() {
               )}
               {!coupon && availableCoupons.length > 0 && (
                 <div className="mb-4">
-                  <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-gray-500">
-                    Available offers
-                  </p>
+                  <div className="mb-2.5 flex items-center justify-between">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-gray-500 flex items-center gap-1.5">
+                      <Ticket className="size-3.5 text-purple-600" />
+                      Available Offers
+                      <span className="ml-1 rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-extrabold text-purple-700">
+                        {availableCoupons.length}
+                      </span>
+                    </p>
+                    {availableCoupons.filter((c) => !c.minSubtotal || totals.subtotal >= c.minSubtotal).length > 0 && (
+                      <span className="text-[10px] font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded-full border border-green-200">
+                        {availableCoupons.filter((c) => !c.minSubtotal || totals.subtotal >= c.minSubtotal).length} unlocked
+                      </span>
+                    )}
+                  </div>
+
                   <div className="flex flex-col gap-2.5">
-                    {availableCoupons.map((c) => (
-                      <div
-                        key={c.code}
-                        className="group flex items-center gap-3 rounded-2xl border border-dashed border-purple-200 bg-purple-50/50 p-3 transition-colors hover:border-purple-400 hover:bg-purple-50"
-                      >
-                        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-purple-100 text-purple-600">
-                          <Ticket className="size-5" />
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <p className="font-serif text-sm font-bold tracking-wide text-purple-700">
-                            {c.code}
-                          </p>
-                          {c.description && (
-                            <p className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-gray-500">
-                              {c.description}
-                            </p>
+                    {availableCoupons.map((c) => {
+                      const minReq = c.minSubtotal ?? 0;
+                      const isEligible = totals.subtotal >= minReq;
+                      const remaining = minReq - totals.subtotal;
+
+                      // Estimate savings
+                      const estSavings = c.type === "percent"
+                        ? Math.round((totals.subtotal * c.value) / 100)
+                        : c.value;
+
+                      return (
+                        <div
+                          key={c.code}
+                          className={cn(
+                            "group relative flex flex-col gap-2 rounded-2xl border p-3 transition-all duration-200",
+                            isEligible
+                              ? "border-purple-300 bg-gradient-to-r from-purple-50/80 via-white to-purple-50/40 shadow-sm hover:border-purple-500 hover:shadow-md"
+                              : "border-gray-200 bg-gray-50/70 opacity-80"
+                          )}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                              <span
+                                className={cn(
+                                  "grid size-9 shrink-0 place-items-center rounded-xl transition-colors",
+                                  isEligible
+                                    ? "bg-purple-600 text-white shadow-sm shadow-purple-200"
+                                    : "bg-gray-200 text-gray-400"
+                                )}
+                              >
+                                <Ticket className="size-4" />
+                              </span>
+
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2">
+                                  <span
+                                    className={cn(
+                                      "font-mono text-xs font-bold tracking-wider uppercase",
+                                      isEligible ? "text-purple-900" : "text-gray-500"
+                                    )}
+                                  >
+                                    {c.code}
+                                  </span>
+                                  {isEligible && estSavings > 0 && (
+                                    <span className="rounded-md bg-green-100 px-1.5 py-0.5 text-[9px] font-bold text-green-800">
+                                      SAVE {formatINR(estSavings)}
+                                    </span>
+                                  )}
+                                </div>
+                                {c.description && (
+                                  <p className="mt-0.5 text-[11px] leading-snug text-gray-500 line-clamp-1">
+                                    {c.description}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+
+                            <button
+                              type="button"
+                              disabled={!isEligible}
+                              onClick={() => {
+                                if (isEligible) {
+                                  void applyCoupon(c.code);
+                                  setCode("");
+                                }
+                              }}
+                              className={cn(
+                                "shrink-0 rounded-xl px-3.5 py-1.5 text-xs font-extrabold transition-all duration-200",
+                                isEligible
+                                  ? "bg-purple-600 text-white hover:bg-purple-700 active:scale-95 shadow-sm shadow-purple-200 cursor-pointer"
+                                  : "bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed opacity-70"
+                              )}
+                            >
+                              {isEligible ? "Apply" : "Locked"}
+                            </button>
+                          </div>
+
+                          {!isEligible && remaining > 0 && (
+                            <div className="mt-1 flex items-center justify-between border-t border-gray-200/60 pt-2 text-[10px]">
+                              <span className="font-semibold text-gray-600">
+                                Add <span className="font-bold text-purple-700">{formatINR(remaining)}</span> more to unlock
+                              </span>
+                              <span className="font-medium text-gray-400">Min {formatINR(minReq)}</span>
+                            </div>
                           )}
                         </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="shrink-0 border-purple-200 text-purple-700 hover:border-purple-400 hover:bg-purple-100"
-                          onClick={() => {
-                            void applyCoupon(c.code);
-                            setCode("");
-                          }}
-                        >
-                          Apply
-                        </Button>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
