@@ -354,7 +354,7 @@
 
 @layer utilities {
   .container-px {
-    padding-inline: 1rem;
+    padding-inline: 0.875rem;
   }
   @media (min-width: 640px) {
     .container-px {
@@ -364,6 +364,23 @@
   @media (min-width: 1024px) {
     .container-px {
       padding-inline: 2.5rem;
+    }
+  }
+
+  .section-py {
+    padding-top: 1.75rem;
+    padding-bottom: 1.75rem;
+  }
+  @media (min-width: 640px) {
+    .section-py {
+      padding-top: 3.5rem;
+      padding-bottom: 3.5rem;
+    }
+  }
+  @media (min-width: 1024px) {
+    .section-py {
+      padding-top: 5rem;
+      padding-bottom: 5rem;
     }
   }
 

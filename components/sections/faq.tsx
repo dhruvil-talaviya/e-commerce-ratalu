@@ -59,10 +59,10 @@ export function Faq() {
     return items.length > 0 ? items : FALLBACK_FAQS;
   }, [content.items]);
 
-  const defaultOpen = faqs[0]?.id || faqs[0]?._id || "faq-0";
+  const defaultOpen = "";
 
   return (
-    <section id="faqs" className="relative scroll-mt-24 py-16 sm:py-20 lg:py-24">
+    <section id="faqs" className="relative scroll-mt-24 py-8 sm:py-16 lg:py-24">
       <div className="container-px mx-auto grid max-w-6xl gap-12 lg:grid-cols-[0.85fr_1.15fr]">
         {/* Left: heading + help card */}
         <div className="lg:sticky lg:top-28 lg:self-start">

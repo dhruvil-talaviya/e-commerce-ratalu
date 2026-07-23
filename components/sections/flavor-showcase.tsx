@@ -15,7 +15,7 @@ export function FlavorShowcase() {
   const { flavors, hydrated } = useProducts();
 
   return (
-    <section id="flavours" className="relative scroll-mt-24 bg-white/40 py-16 sm:py-20 lg:py-24">
+    <section id="flavours" className="relative scroll-mt-24 bg-white/40 py-8 sm:py-16 lg:py-24">
       <div className="container-px mx-auto max-w-7xl">
         <SectionHeading
           eyebrow={`${flavors.length || "Six"} signature flavours`}
@@ -29,8 +29,8 @@ export function FlavorShowcase() {
 
         {/* Loading */}
         {!hydrated && (
-          <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 3 }).map((_, i) => (
+          <div className="mt-6 sm:mt-14 grid gap-3 sm:gap-6 grid-cols-2 md:grid-cols-3 lg:grid-cols-3">
+            {Array.from({ length: 4 }).map((_, i) => (
               <ProductCardSkeleton key={i} />
             ))}
           </div>
@@ -58,7 +58,7 @@ export function FlavorShowcase() {
             whileInView="visible"
             viewport={{ once: true, margin: "-60px" }}
             variants={{ visible: { transition: { staggerChildren: 0.06 } } }}
-            className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
+            className="mt-6 sm:mt-14 grid gap-3 sm:gap-6 grid-cols-2 md:grid-cols-3 lg:grid-cols-3"
           >
             {flavors.map((flavor, i) => (
               <FlavorCard key={flavor.id} flavor={flavor} index={i} />

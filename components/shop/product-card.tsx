@@ -135,24 +135,25 @@ export function ProductCard({
         </div>
 
         {/* Body */}
-        <div className="flex flex-1 flex-col p-6">
-          <div className="flex items-start justify-between gap-2">
-            <Link href={`/shop/${flavor.slug}`} className="min-w-0 transition-colors hover:text-purple-700">
-              <h3 className="truncate font-serif text-2xl font-semibold text-charcoal">{flavor.name}</h3>
+        <div className="flex flex-1 flex-col p-3.5 sm:p-5 lg:p-6">
+          <div className="flex items-start justify-between gap-1.5 sm:gap-2">
+            <Link href={`/shop/${flavor.slug}`} className="min-w-0 flex-1 transition-colors hover:text-purple-700">
+              <h3 className="line-clamp-2 font-serif text-sm font-bold text-charcoal sm:text-lg lg:text-2xl">{flavor.name}</h3>
             </Link>
-            <HeatMeter level={flavor.heat} showLabel={false} className="mt-1.5 shrink-0" />
+            <HeatMeter level={flavor.heat} showLabel={false} className="mt-0.5 shrink-0" />
           </div>
-          <p className="mt-1 text-sm text-charcoal-soft">{flavor.tagline}</p>
-          <p className={cn("mt-3 text-sm leading-relaxed text-charcoal-muted", isList ? "line-clamp-2 sm:line-clamp-3" : "line-clamp-2")}>
+
+          <p className="mt-1 hidden text-sm text-charcoal-soft md:block">{flavor.tagline}</p>
+          <p className={cn("mt-3 hidden text-sm leading-relaxed text-charcoal-muted md:block", isList ? "line-clamp-2 sm:line-clamp-3" : "line-clamp-2")}>
             {flavor.description}
           </p>
 
-          {/* Pack selector */}
-          <fieldset className="mt-5">
+          {/* Pack selector — visible on tablet/desktop */}
+          <fieldset className="mt-4 hidden md:block">
             <legend className="mb-2 text-xs font-semibold uppercase tracking-wide text-charcoal-soft">
               Choose size
             </legend>
-            <div className="grid grid-cols-2 xs:grid-cols-4 gap-1.5 sm:gap-2">
+            <div className="grid grid-cols-4 gap-2">
               {getPacks(flavor).map((p) => (
                 <button
                   key={p.id}
@@ -175,36 +176,36 @@ export function ProductCard({
           </fieldset>
 
           {/* Price + savings */}
-          <div className="mt-5 flex flex-wrap items-end justify-between gap-2">
-            <div className="flex flex-wrap items-baseline gap-2">
-              <span className="font-serif text-2xl font-bold text-purple-700 whitespace-nowrap">{formatINR(pack.price)}</span>
+          <div className="mt-2.5 sm:mt-5 flex flex-wrap items-baseline justify-between gap-1 sm:gap-2">
+            <div className="flex flex-wrap items-baseline gap-1.5">
+              <span className="font-serif text-base font-bold text-purple-700 sm:text-xl lg:text-2xl whitespace-nowrap">{formatINR(pack.price)}</span>
               {pack.compareAt && (
-                <span className="text-sm text-charcoal-soft line-through whitespace-nowrap">{formatINR(pack.compareAt)}</span>
+                <span className="text-xs text-charcoal-soft line-through sm:text-sm whitespace-nowrap">{formatINR(pack.compareAt)}</span>
               )}
             </div>
             {savings > 0 && !isOutOfStock && (
-              <Badge variant="soft" size="sm" className="text-green-700 whitespace-nowrap">Save {formatINR(savings)}</Badge>
+              <Badge variant="soft" size="sm" className="text-[10px] sm:text-xs text-green-700 whitespace-nowrap px-1.5 py-0.5">Save {formatINR(savings)}</Badge>
             )}
           </div>
 
           {/* Quantity + add */}
-          <div className="mt-5 flex items-center gap-3">
-            <div className={cn("flex shrink-0 items-center rounded-full border border-[var(--color-border)] bg-white", isOutOfStock && "opacity-40 cursor-not-allowed")}>
-              <button disabled={isOutOfStock} onClick={() => setQty((q) => Math.max(1, q - 1))} className="grid size-10 place-items-center rounded-full text-charcoal-muted transition-colors hover:bg-purple-50 hover:text-purple-700 disabled:pointer-events-none" aria-label="Decrease quantity">
-                <Minus className="size-4" />
+          <div className="mt-3 sm:mt-5 flex items-center gap-2 sm:gap-3 mt-auto">
+            <div className={cn("hidden md:flex shrink-0 items-center rounded-full border border-[var(--color-border)] bg-white", isOutOfStock && "opacity-40 cursor-not-allowed")}>
+              <button disabled={isOutOfStock} onClick={() => setQty((q) => Math.max(1, q - 1))} className="grid size-9 place-items-center rounded-full text-charcoal-muted transition-colors hover:bg-purple-50 hover:text-purple-700 disabled:pointer-events-none" aria-label="Decrease quantity">
+                <Minus className="size-3.5" />
               </button>
-              <span className="w-8 text-center font-semibold tabular-nums">{qty}</span>
-              <button disabled={isOutOfStock} onClick={() => setQty((q) => Math.min(99, q + 1))} className="grid size-10 place-items-center rounded-full text-charcoal-muted transition-colors hover:bg-purple-50 hover:text-purple-700 disabled:pointer-events-none" aria-label="Increase quantity">
-                <Plus className="size-4" />
+              <span className="w-7 text-center font-semibold tabular-nums text-sm">{qty}</span>
+              <button disabled={isOutOfStock} onClick={() => setQty((q) => Math.min(99, q + 1))} className="grid size-9 place-items-center rounded-full text-charcoal-muted transition-colors hover:bg-purple-50 hover:text-purple-700 disabled:pointer-events-none" aria-label="Increase quantity">
+                <Plus className="size-3.5" />
               </button>
             </div>
-            <Button disabled={isOutOfStock} onClick={handleAdd} variant={isOutOfStock ? "outline" : (added ? "accent" : "primary")} size="lg" className="min-w-0 flex-1">
+            <Button disabled={isOutOfStock} onClick={handleAdd} variant={isOutOfStock ? "outline" : (added ? "accent" : "primary")} size="sm" className="min-w-0 flex-1 h-9 sm:h-11 text-xs sm:text-sm font-bold rounded-xl sm:rounded-2xl">
               {isOutOfStock ? (
                 <span className="truncate">Out of Stock</span>
               ) : added ? (
-                <><Check /> <span className="truncate">Added to cart</span></>
+                <><Check className="size-3.5 sm:size-4" /> <span className="truncate">Added</span></>
               ) : (
-                <><ShoppingBag /> <span className="truncate">Add · {formatINR(pack.price * qty)}</span></>
+                <><Plus className="size-3.5 sm:size-4" /> <span className="truncate">Add</span></>
               )}
             </Button>
           </div>

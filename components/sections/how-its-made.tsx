@@ -34,7 +34,7 @@ export function HowItsMade() {
   const loop = cms.loop !== undefined ? cms.loop : (settings?.loopVideo ?? true);
 
   return (
-    <section id="how-its-made" className="relative scroll-mt-24 bg-white/40 py-16 sm:py-20 lg:py-24">
+    <section id="how-its-made" className="relative scroll-mt-24 bg-white/40 py-8 sm:py-16 lg:py-24">
       <div className="container-px mx-auto max-w-7xl">
         <SectionHeading
           eyebrow={cms.eyebrow}

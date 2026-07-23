@@ -77,7 +77,7 @@ export function Reviews() {
   const loop = heading.loop !== undefined ? heading.loop : (settings?.loopVideo ?? true);
 
   return (
-    <section id="testimonials" className="relative scroll-mt-24 overflow-hidden py-16 sm:py-20 lg:py-24">
+    <section id="testimonials" className="relative scroll-mt-24 overflow-hidden py-8 sm:py-16 lg:py-24">
       <div className="container-px mx-auto max-w-7xl">
         <SectionHeading
           eyebrow={heading.eyebrow}

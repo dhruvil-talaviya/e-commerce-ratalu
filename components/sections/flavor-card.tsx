@@ -97,73 +97,61 @@ export function FlavorCard({ flavor, index = 0 }: { flavor: Flavor; index?: numb
       </div>
 
       {/* Body */}
-      <div className="flex flex-1 flex-col p-6">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h3 className="font-serif text-xl font-semibold text-charcoal">{flavor.name}</h3>
-            <p className="text-sm text-charcoal-soft">{flavor.tagline}</p>
+      <div className="flex flex-1 flex-col p-3.5 sm:p-5 lg:p-6">
+        <div className="flex items-start justify-between gap-1.5 sm:gap-3">
+          <div className="min-w-0 flex-1">
+            <h3 className="line-clamp-2 font-serif text-sm font-bold text-charcoal sm:text-lg lg:text-xl">{flavor.name}</h3>
+            <p className="mt-0.5 hidden text-xs text-charcoal-soft md:block">{flavor.tagline}</p>
           </div>
-          <HeatMeter level={flavor.heat} showLabel={false} className="mt-1 shrink-0" />
+          <HeatMeter level={flavor.heat} showLabel={false} className="mt-0.5 shrink-0" />
         </div>
 
-        <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-charcoal-muted">
+        <p className="mt-2 hidden text-xs leading-relaxed text-charcoal-muted md:line-clamp-2 lg:line-clamp-3">
           {flavor.description}
         </p>
 
-        {/* Ingredients */}
-        <div className="mt-4 flex flex-wrap gap-1.5">
+        {/* Ingredients — visible on tablet/desktop */}
+        <div className="mt-3 hidden flex-wrap gap-1.5 md:flex">
           {flavor.ingredients.slice(0, 3).map((ing) => (
             <span
               key={ing}
-              className="rounded-full bg-cream-100 px-2.5 py-1 text-[11px] font-medium text-charcoal-muted"
+              className="rounded-full bg-cream-100 px-2 py-0.5 text-[10px] font-medium text-charcoal-muted"
             >
               {ing}
             </span>
           ))}
           {flavor.ingredients.length > 3 && (
-            <span className="rounded-full bg-cream-100 px-2.5 py-1 text-[11px] font-medium text-charcoal-soft">
-              +{flavor.ingredients.length - 3} more
+            <span className="rounded-full bg-cream-100 px-2 py-0.5 text-[10px] font-medium text-charcoal-soft">
+              +{flavor.ingredients.length - 3}
             </span>
           )}
         </div>
 
-        {/*
-          Pinned to the bottom with mt-auto so the price and Add-to-Cart line up
-          across every card. Cards vary in height above this — a 1-line vs
-          3-line description, one row of ingredient chips vs two — which used to
-          leave each card's button floating at a different height.
-        */}
-        <div className="mt-auto flex flex-wrap items-center justify-between gap-y-3 gap-x-2 border-t border-[var(--color-border)] pt-5">
+        <div className="mt-auto flex items-center justify-between gap-2 border-t border-[var(--color-border)] pt-3 sm:pt-4">
           <div className="min-w-0">
-            <p className="text-[11px] uppercase tracking-wide text-charcoal-soft">200g pack</p>
-            <p className="font-serif text-xl font-bold text-purple-700 whitespace-nowrap">{formatINR(pack.price)}</p>
+            <p className="hidden text-[10px] uppercase tracking-wide text-charcoal-soft md:block">200g pack</p>
+            <p className="font-serif text-sm font-bold text-purple-700 whitespace-nowrap sm:text-lg lg:text-xl">{formatINR(pack.price)}</p>
           </div>
           <Button
             onClick={handleAdd}
             disabled={isOutOfStock}
             variant={isOutOfStock ? "outline" : added ? "accent" : "primary"}
-            className="min-w-32 flex-1 xs:flex-none"
+            size="sm"
+            className="h-8 px-3 text-xs font-bold sm:h-10 sm:px-4 sm:text-sm flex-1 sm:flex-none"
           >
             {isOutOfStock ? (
               "Out of stock"
             ) : added ? (
               <>
-                <Check /> Added
+                <Check className="size-3.5" /> Added
               </>
             ) : (
               <>
-                <Plus /> Add to Cart
+                <Plus className="size-3.5" /> Add
               </>
             )}
           </Button>
         </div>
-
-        <Link
-          href="/shop"
-          className="mt-3 text-center text-xs font-medium text-charcoal-soft underline-offset-4 transition-colors hover:text-purple-600 hover:underline"
-        >
-          Choose a different size →
-        </Link>
       </div>
     </motion.article>
   );

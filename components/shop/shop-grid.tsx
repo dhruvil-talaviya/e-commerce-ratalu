@@ -303,8 +303,8 @@ export function ShopGrid() {
           animate="visible"
           variants={{ visible: { transition: { staggerChildren: 0.05 } } }}
           className={cn(
-            "grid gap-6",
-            view === "grid" ? "sm:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"
+            "grid gap-3 sm:gap-6",
+            view === "grid" ? "grid-cols-2 md:grid-cols-3 lg:grid-cols-3" : "grid-cols-1"
           )}
         >
           {combosOnThisPage.map((combo, i) => (

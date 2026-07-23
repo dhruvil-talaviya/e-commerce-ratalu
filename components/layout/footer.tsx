@@ -1,7 +1,8 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
-import { Mail, Phone, MapPin } from "lucide-react";
+import { Mail, Phone, MapPin, ChevronDown } from "lucide-react";
 import { Logo } from "./logo";
 import { SITE } from "@/lib/constants";
 import { useStoreSettings } from "@/components/common/settings-provider";
@@ -12,12 +13,12 @@ import { SocialIcon, SOCIAL_LABELS } from "./social-icons";
 export function Footer() {
   const { settings } = useStoreSettings();
   const { t } = useLanguage();
-
-  /**
-   * Channels come from the console, not a hardcoded list. Editing a handle in
-   * "Social Media Channels" used to change nothing here.
-   */
   const socials = useSocialLinks();
+  const [openSection, setOpenSection] = React.useState<string | null>(null);
+
+  const toggleMobileCol = (title: string) => {
+    setOpenSection((prev) => (prev === title ? null : title));
+  };
 
   const COLUMNS = [
     {
@@ -59,7 +60,7 @@ export function Footer() {
   ];
 
   return (
-    <footer className="relative mt-16 overflow-hidden sm:mt-24" style={{
+    <footer className="relative mt-8 overflow-hidden sm:mt-24" style={{
       background: "linear-gradient(135deg, #7c3506 0%, #9a4409 30%, #c2570b 70%, #ea6c0a 100%)"
     }}>
       {/* Top glow */}
@@ -73,36 +74,36 @@ export function Footer() {
         }}
       />
 
-      <div className="container-px relative mx-auto max-w-7xl py-16">
-        <div className="grid gap-12 lg:grid-cols-[1.4fr_2fr]">
+      <div className="container-px relative mx-auto max-w-7xl py-8 sm:py-16">
+        <div className="grid gap-8 sm:gap-12 lg:grid-cols-[1.4fr_2fr]">
           {/* Brand */}
           <div>
             <Logo onDark />
-            <p className="mt-5 max-w-sm text-sm leading-relaxed text-white/70">
+            <p className="mt-3 sm:mt-5 max-w-sm text-xs sm:text-sm leading-relaxed text-white/70">
               {t("footer_tagline")}
             </p>
 
-            <ul className="mt-6 flex flex-col gap-2.5 text-sm">
-              <li className="flex items-center gap-3">
-                <Mail className="size-4 text-yellow-400" />
+            <ul className="mt-4 sm:mt-6 flex flex-col gap-2 text-xs sm:text-sm">
+              <li className="flex items-center gap-2.5">
+                <Mail className="size-3.5 sm:size-4 text-yellow-400" />
                 <a href={`mailto:${settings.supportEmail}`} className="text-white/80 hover:text-white transition-colors">
                   {settings.supportEmail}
                 </a>
               </li>
-              <li className="flex items-center gap-3">
-                <Phone className="size-4 text-yellow-400" />
+              <li className="flex items-center gap-2.5">
+                <Phone className="size-3.5 sm:size-4 text-yellow-400" />
                 <a href={`tel:${settings.customerCareNumber}`} className="text-white/80 hover:text-white transition-colors">
                   {settings.customerCareNumber}
                 </a>
               </li>
-              <li className="flex items-start gap-3">
-                <MapPin className="mt-0.5 size-4 shrink-0 text-yellow-400" />
+              <li className="flex items-start gap-2.5">
+                <MapPin className="mt-0.5 size-3.5 sm:size-4 shrink-0 text-yellow-400" />
                 <span className="text-white/80">{settings.businessAddress}</span>
               </li>
             </ul>
 
             {socials.length > 0 && (
-              <div className="mt-6 flex flex-wrap gap-2.5">
+              <div className="mt-4 sm:mt-6 flex flex-wrap gap-2">
                 {socials.map((s) => (
                   <a
                     key={s._id}
@@ -110,31 +111,40 @@ export function Footer() {
                     target={s.openInNewTab ? "_blank" : undefined}
                     rel={s.openInNewTab ? "noopener noreferrer" : undefined}
                     aria-label={SOCIAL_LABELS[s.platform] ?? s.platform}
-                    className="grid size-10 place-items-center rounded-full bg-white/10 text-white transition-all hover:-translate-y-0.5 hover:bg-yellow-400 hover:text-orange-900"
+                    className="grid size-9 sm:size-10 place-items-center rounded-full bg-white/10 text-white transition-all hover:-translate-y-0.5 hover:bg-yellow-400 hover:text-orange-900"
                   >
-                    <SocialIcon platform={s.platform} className="size-4.5" />
+                    <SocialIcon platform={s.platform} className="size-4" />
                   </a>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Link columns */}
-          <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
-            {COLUMNS.map((col) => (
-              <div key={col.title}>
-                <h4 className="text-base font-semibold text-white">{col.title}</h4>
-                <ul className="mt-4 flex flex-col gap-2.5 text-sm">
-                  {col.links.map((link) => (
-                    <li key={link.label}>
-                      <Link href={link.href} className="text-white/65 transition-colors hover:text-yellow-300">
-                        {link.label}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
+          {/* Link columns: Accordion on mobile, grid on desktop */}
+          <div className="flex flex-col sm:grid sm:grid-cols-4 gap-3 sm:gap-8 border-t border-white/15 pt-6 sm:border-0 sm:pt-0">
+            {COLUMNS.map((col) => {
+              const isOpen = openSection === col.title;
+              return (
+                <div key={col.title} className="border-b border-white/10 pb-3 sm:border-0 sm:pb-0">
+                  <button
+                    onClick={() => toggleMobileCol(col.title)}
+                    className="flex w-full items-center justify-between py-1 text-left sm:cursor-default sm:py-0 focus:outline-none"
+                  >
+                    <h4 className="text-sm sm:text-base font-semibold text-white">{col.title}</h4>
+                    <ChevronDown className={`size-4 text-white/70 transition-transform sm:hidden ${isOpen ? "rotate-180" : ""}`} />
+                  </button>
+                  <ul className={`mt-2.5 flex-col gap-2 text-xs sm:text-sm ${isOpen ? "flex" : "hidden sm:flex"}`}>
+                    {col.links.map((link) => (
+                      <li key={link.label}>
+                        <Link href={link.href} className="text-white/75 transition-colors hover:text-yellow-300">
+                          {link.label}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
           </div>
         </div>
 

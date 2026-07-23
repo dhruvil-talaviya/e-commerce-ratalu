@@ -54,7 +54,7 @@ export function About() {
     .filter(Boolean);
 
   return (
-    <section id="about" className="relative scroll-mt-24 py-16 sm:py-20 lg:py-24">
+    <section id="about" className="relative scroll-mt-24 py-8 sm:py-16 lg:py-24">
       <div
         className={cn(
           "container-px mx-auto grid max-w-7xl items-center gap-16",

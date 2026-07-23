@@ -164,13 +164,13 @@ export function Hero() {
         <div className="absolute bottom-0 left-1/3 size-72 rounded-full bg-orange-100/50 blur-3xl" />
       </motion.div>
 
-      <div className="container-px relative mx-auto grid max-w-7xl items-center gap-10 py-14 sm:gap-12 sm:py-16 lg:grid-cols-[1.05fr_1fr] lg:gap-8 lg:py-24">
+      <div className="container-px relative mx-auto grid max-w-7xl items-center gap-6 py-6 sm:gap-12 sm:py-16 lg:grid-cols-[1.05fr_1fr] lg:gap-8 lg:py-24">
         {/* Copy */}
-        <motion.div variants={container} initial="hidden" animate="visible" className="relative z-10">
+        <motion.div variants={container} initial="hidden" animate="visible" className="relative z-10 text-center lg:text-left">
           {/* Social proof — only when there is proof. */}
           {showBadge && (
-            <motion.div variants={item}>
-              <span className="inline-flex items-center gap-2 rounded-full border border-orange-100 bg-white/80 px-4 py-1.5 text-xs font-semibold text-orange-700 shadow-[var(--shadow-soft)] backdrop-blur">
+            <motion.div variants={item} className="flex justify-center lg:justify-start">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-orange-100 bg-white/80 px-3 py-1 text-[11px] font-semibold text-orange-700 shadow-[var(--shadow-soft)] backdrop-blur sm:px-4 sm:py-1.5 sm:text-xs">
                 {/* Stars only mean something next to a real rating. */}
                 {siteStats?.avgRating != null && (
                   <span className="flex -space-x-0.5">
@@ -178,7 +178,7 @@ export function Hero() {
                       <Star
                         key={i}
                         className={cn(
-                          "size-3.5",
+                          "size-3 sm:size-3.5",
                           i < Math.round(siteStats.avgRating ?? 0)
                             ? "fill-yellow-400 text-yellow-400"
                             : "text-yellow-200"
@@ -192,35 +192,34 @@ export function Hero() {
             </motion.div>
           )}
 
-          {/* Hero heading — 48px Bold Poppins */}
+          {/* Hero heading — 48px Bold Poppins on desktop, compact 26px on mobile */}
           <motion.h1
             variants={item}
-            className="mt-6 text-[clamp(2.1rem,8vw,3rem)] font-bold leading-[1.05] text-gray-800 lg:text-5xl"
+            className="mt-3 text-2xl font-extrabold leading-[1.1] text-gray-800 sm:mt-6 sm:text-4xl lg:text-5xl"
           >
-            {slide.headingLine1}
-            <br />
-            <span className="text-gradient-warm">{slide.headingLine2}</span>
+            {slide.headingLine1}{" "}
+            <span className="text-gradient-warm block sm:inline">{slide.headingLine2}</span>
           </motion.h1>
 
           <motion.p
             variants={item}
-            className="mt-6 max-w-xl text-lg leading-relaxed text-gray-500"
+            className="mt-2.5 max-w-xl text-xs leading-relaxed text-gray-500 mx-auto lg:mx-0 sm:mt-6 sm:text-base lg:text-lg"
           >
             {slide.description}
           </motion.p>
 
-          <motion.div variants={item} className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <motion.div variants={item} className="mt-4 flex flex-row items-center justify-center gap-2 sm:mt-9 sm:justify-start sm:gap-3">
             {slide.primaryCta?.label && (
-              <Button asChild size="xl">
+              <Button asChild size="md" className="sm:h-12 sm:px-6 sm:text-base flex-1 sm:flex-none">
                 <Link href={slide.primaryCta.href || "/shop"}>
-                  {slide.primaryCta.label} <ArrowRight />
+                  {slide.primaryCta.label} <ArrowRight className="size-3.5 sm:size-4" />
                 </Link>
               </Button>
             )}
             {slide.secondaryCta?.label && (
-              <Button asChild size="xl" variant="outline">
+              <Button asChild size="md" variant="outline" className="sm:h-12 sm:px-6 sm:text-base flex-1 sm:flex-none">
                 <Link href={slide.secondaryCta.href || "#flavours"}>
-                  <Sparkles /> {slide.secondaryCta.label}
+                  <Sparkles className="size-3.5 sm:size-4 text-orange-500" /> {slide.secondaryCta.label}
                 </Link>
               </Button>
             )}
@@ -230,7 +229,7 @@ export function Hero() {
           {cms.showStats !== false && stats.length > 0 && (
             <motion.div
               variants={item}
-              className="mt-10 grid max-w-lg grid-cols-3 gap-3 border-t border-[var(--color-border)] pt-7 sm:mt-12 sm:gap-4 sm:pt-8"
+              className="mt-4 grid max-w-lg grid-cols-3 gap-2 border-t border-[var(--color-border)] pt-3 sm:mt-12 sm:gap-4 sm:pt-8"
             >
               {stats.slice(0, 3).map((s, i) => (
                 <Stat
@@ -252,7 +251,7 @@ export function Hero() {
         {/* Visual */}
         <motion.div
           style={{ y: yVisual }}
-          className="relative z-0 mx-auto aspect-square w-full max-w-lg"
+          className="relative z-0 mx-auto aspect-square w-full max-w-[210px] sm:max-w-md lg:max-w-lg"
         >
           {/* rotating dashed ring */}
           {!isVideo && (
