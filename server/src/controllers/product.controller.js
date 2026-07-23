@@ -43,6 +43,9 @@ const buildRatingsMap = async () => {
       distribution: { 5: r.five, 4: r.four, 3: r.three, 2: r.two, 1: r.one }
     });
   });
+  return map;
+};
+
 const Wishlist = require('../models/Wishlist');
 
 /**
