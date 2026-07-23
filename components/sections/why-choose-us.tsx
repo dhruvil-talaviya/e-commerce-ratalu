@@ -68,18 +68,18 @@ export function WhyChooseUs() {
           </div>
         )}
 
-        <RevealGroup className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <RevealGroup className="mt-6 sm:mt-14 grid grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-5">
           {features.map((f) => {
             return (
               <RevealItem
                 key={f.title}
-                className="group rounded-3xl border border-[var(--color-border)] bg-white/70 p-7 shadow-[var(--shadow-soft)] backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-lift)]"
+                className="group rounded-2xl sm:rounded-3xl border border-[var(--color-border)] bg-white/70 p-3.5 sm:p-7 shadow-[var(--shadow-soft)] backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-lift)]"
               >
-                <span className="grid size-12 place-items-center rounded-2xl bg-gradient-to-br from-purple-500 to-purple-700 text-cream shadow-[var(--shadow-soft)] transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
-                  <CmsIcon name={f.icon} className="size-6" />
+                <span className="grid size-9 sm:size-12 place-items-center rounded-xl sm:rounded-2xl bg-gradient-to-br from-purple-500 to-purple-700 text-cream shadow-[var(--shadow-soft)] transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
+                  <CmsIcon name={f.icon} className="size-4 sm:size-6" />
                 </span>
-                <h3 className="mt-5 font-serif text-xl font-semibold text-charcoal">{f.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-charcoal-muted">{f.body}</p>
+                <h3 className="mt-3 sm:mt-5 font-serif text-xs sm:text-xl font-bold text-charcoal">{f.title}</h3>
+                <p className="mt-1 text-[11px] sm:text-sm leading-snug sm:leading-relaxed text-charcoal-muted">{f.body}</p>
               </RevealItem>
             );
           })}

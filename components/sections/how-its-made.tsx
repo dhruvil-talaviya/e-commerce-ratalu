@@ -50,7 +50,7 @@ export function HowItsMade() {
           description={cms.description}
         />
 
-        <RevealGroup className="relative mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
+        <RevealGroup className="relative mt-6 sm:mt-14 grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-6">
           {/* connecting line on desktop */}
           <div
             className="pointer-events-none absolute left-0 right-0 top-7 hidden h-px bg-gradient-to-r from-transparent via-purple-200 to-transparent lg:block"
@@ -59,15 +59,15 @@ export function HowItsMade() {
           {steps.map((s, i) => (
             <RevealItem key={s.title} className="relative flex flex-col items-center text-center">
               <div className="relative">
-                <span className="grid size-14 place-items-center rounded-2xl bg-gradient-to-br from-purple-500 to-purple-700 text-cream shadow-[var(--shadow-soft)]">
-                  <CmsIcon name={s.icon} className="size-6" />
+                <span className="grid size-10 sm:size-14 place-items-center rounded-xl sm:rounded-2xl bg-gradient-to-br from-purple-500 to-purple-700 text-cream shadow-[var(--shadow-soft)]">
+                  <CmsIcon name={s.icon} className="size-4.5 sm:size-6" />
                 </span>
-                <span className="absolute -right-1.5 -top-1.5 grid size-6 place-items-center rounded-full bg-gold-400 text-[11px] font-bold text-purple-800 shadow-sm">
+                <span className="absolute -right-1.5 -top-1.5 grid size-5 sm:size-6 place-items-center rounded-full bg-gold-400 text-[10px] sm:text-[11px] font-bold text-purple-800 shadow-sm">
                   {i + 1}
                 </span>
               </div>
-              <h3 className="mt-5 font-serif text-lg font-semibold text-charcoal">{s.title}</h3>
-              <p className="mt-1.5 max-w-[15rem] text-sm leading-relaxed text-charcoal-muted">
+              <h3 className="mt-3 sm:mt-5 font-serif text-xs sm:text-lg font-bold text-charcoal">{s.title}</h3>
+              <p className="mt-1 max-w-full text-[11px] sm:text-sm leading-tight sm:leading-relaxed text-charcoal-muted">
                 {s.body}
               </p>
             </RevealItem>

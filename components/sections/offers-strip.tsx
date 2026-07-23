@@ -91,22 +91,22 @@ export function OffersStrip() {
         />
 
         {loading ? (
-          <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-6 sm:mt-12 grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-5">
             {Array.from({ length: 3 }).map((_, i) => (
-              <Skeleton key={i} className="h-24 w-full rounded-3xl" />
+              <Skeleton key={i} className="h-20 sm:h-24 w-full rounded-2xl sm:rounded-3xl" />
             ))}
           </div>
         ) : coupons.length > 0 ? (
           <>
-            <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-6 sm:mt-12 grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-5">
               {coupons.slice(0, 3).map((c, i) => (
                 <CouponCard key={c._id} code={c.code} description={c.description} index={i} />
               ))}
             </div>
-            <div className="mt-8 flex justify-center">
-              <Button asChild variant="outline" size="lg">
+            <div className="mt-6 sm:mt-8 flex justify-center">
+              <Button asChild variant="outline" size="md" className="sm:h-11 sm:px-6">
                 <Link href="/offers">
-                  View all offers <ArrowRight />
+                  View all offers <ArrowRight className="size-4" />
                 </Link>
               </Button>
             </div>
@@ -197,32 +197,34 @@ function CouponCard({
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-40px" }}
       transition={{ duration: 0.55, ease: EASE, delay: index * 0.06 }}
-      className="group relative flex items-center gap-4 overflow-hidden rounded-3xl border border-dashed border-purple-300 bg-white/80 p-5 shadow-[var(--shadow-soft)] backdrop-blur-sm transition-shadow hover:shadow-[var(--shadow-lift)]"
+      className="group relative flex items-center justify-between gap-2.5 overflow-hidden rounded-2xl sm:rounded-3xl border border-dashed border-purple-300 bg-white/80 p-3 sm:p-5 shadow-[var(--shadow-soft)] backdrop-blur-sm transition-shadow hover:shadow-[var(--shadow-lift)] min-w-0"
     >
       {/* ticket notches */}
-      <span className="absolute -left-3 top-1/2 size-6 -translate-y-1/2 rounded-full bg-[var(--color-cream)]" aria-hidden />
-      <span className="absolute -right-3 top-1/2 size-6 -translate-y-1/2 rounded-full bg-[var(--color-cream)]" aria-hidden />
+      <span className="absolute -left-3 top-1/2 size-5 sm:size-6 -translate-y-1/2 rounded-full bg-[var(--color-cream)]" aria-hidden />
+      <span className="absolute -right-3 top-1/2 size-5 sm:size-6 -translate-y-1/2 rounded-full bg-[var(--color-cream)]" aria-hidden />
 
-      <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-purple-500 text-cream transition-transform group-hover:scale-105">
-        <Ticket className="size-6" />
-      </span>
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+        <span className="grid size-9 sm:size-12 shrink-0 place-items-center rounded-xl sm:rounded-2xl bg-purple-500 text-cream transition-transform group-hover:scale-105">
+          <Ticket className="size-4 sm:size-6" />
+        </span>
 
-      <div className="min-w-0 flex-1">
-        <p className="font-serif text-lg font-bold tracking-wide text-purple-700">{code}</p>
-        <p className="truncate text-sm text-charcoal-muted">{description}</p>
+        <div className="min-w-0 flex-1">
+          <p className="font-serif text-xs sm:text-lg font-bold tracking-wide text-purple-700 truncate">{code}</p>
+          <p className="truncate text-[10px] sm:text-sm text-charcoal-muted">{description}</p>
+        </div>
       </div>
 
       <button
         onClick={handleCopy}
         aria-label={`Copy coupon ${code}`}
         className={cn(
-          "grid size-10 shrink-0 place-items-center rounded-xl border transition-all",
+          "grid size-8 sm:size-10 shrink-0 place-items-center rounded-xl border transition-all",
           copied
             ? "border-green-200 bg-green-50 text-green-600"
             : "border-[var(--color-border)] bg-white text-charcoal-muted hover:border-purple-300 hover:text-purple-700"
         )}
       >
-        {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
+        {copied ? <Check className="size-3.5 sm:size-4" /> : <Copy className="size-3.5 sm:size-4" />}
       </button>
     </motion.div>
   );
