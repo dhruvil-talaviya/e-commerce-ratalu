@@ -121,18 +121,18 @@ export function ShopGrid() {
   return (
     <div>
       {/* Toolbar */}
-      <div className="mb-8 flex flex-col gap-4 rounded-3xl border border-[var(--color-border)] bg-white/60 p-4 backdrop-blur-sm">
+      <div className="mb-6 flex flex-col gap-3.5 rounded-2xl sm:rounded-3xl border border-gray-200/80 bg-white/80 p-3.5 sm:p-5 shadow-xs backdrop-blur-sm">
         {/* Row 1: search + view toggle */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <div className="relative flex-1">
-            <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-charcoal-soft" />
+        <div className="flex items-center gap-2.5">
+          <div className="relative flex-1 min-w-0">
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-charcoal-soft" />
             <input
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search flavours, ingredients…"
               aria-label="Search flavours"
-              className="h-11 w-full rounded-full border border-[var(--color-border)] bg-white pl-11 pr-10 text-sm text-charcoal shadow-sm transition-all placeholder:text-charcoal-soft focus-visible:border-purple-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-200"
+              className="h-10 w-full rounded-xl sm:rounded-full border border-gray-200 bg-white pl-10 pr-9 text-xs sm:text-sm text-charcoal shadow-xs transition-all placeholder:text-gray-400 focus-visible:border-purple-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-100"
             />
             {query && (
               <button
@@ -145,7 +145,7 @@ export function ShopGrid() {
             )}
           </div>
 
-          <div className="flex shrink-0 items-center gap-1 rounded-full border border-[var(--color-border)] bg-white p-1" role="group" aria-label="View mode">
+          <div className="flex shrink-0 items-center gap-0.5 rounded-xl sm:rounded-full border border-gray-200 bg-gray-50 p-1" role="group" aria-label="View mode">
             {([
               { key: "grid", icon: LayoutGrid, label: "Grid view" },
               { key: "list", icon: Rows3, label: "List view" },
@@ -158,11 +158,11 @@ export function ShopGrid() {
                   aria-label={v.label}
                   aria-pressed={view === v.key}
                   className={cn(
-                    "grid size-9 place-items-center rounded-full transition-all",
-                    view === v.key ? "bg-purple-500 text-cream shadow-sm" : "text-charcoal-muted hover:text-purple-700"
+                    "grid size-8 sm:size-9 place-items-center rounded-lg sm:rounded-full transition-all",
+                    view === v.key ? "bg-purple-600 text-white shadow-xs" : "text-gray-500 hover:text-purple-700"
                   )}
                 >
-                  <Icon className="size-4" />
+                  <Icon className="size-3.5 sm:size-4" />
                 </button>
               );
             })}
@@ -171,34 +171,32 @@ export function ShopGrid() {
 
         {/* Row 2: Category Visual Slider */}
         {categories.length > 0 && (
-          <div className="border-t border-[var(--color-border)] pt-5 pb-2">
-            <h3 className="mb-4 text-xs font-bold uppercase tracking-wider text-charcoal-soft">Explore Categories</h3>
+          <div className="border-t border-gray-100 pt-3">
+            <h3 className="mb-2 text-[10px] sm:text-xs font-bold uppercase tracking-wider text-gray-400">Explore Categories</h3>
             
             <div className="relative">
               {/* Slider Container */}
               <div 
-                className="flex gap-4 overflow-x-auto pb-4 pt-1 scroll-smooth snap-x no-scrollbar"
+                className="flex gap-3 sm:gap-4 overflow-x-auto pb-2 pt-1 scroll-smooth snap-x no-scrollbar"
               >
                 {/* "All" Card */}
                 <button
                   onClick={() => setCategory("all")}
-                  className="flex flex-col items-center gap-2 shrink-0 snap-start select-none group/card focus:outline-none w-24 sm:w-28 cursor-pointer"
+                  className="flex flex-col items-center gap-1.5 shrink-0 snap-start select-none group/card focus:outline-none w-20 sm:w-24 cursor-pointer"
                 >
                   <div
                     className={cn(
-                      "size-16 sm:size-20 rounded-full flex items-center justify-center border-2 transition-all duration-300 shadow-sm",
+                      "size-14 sm:size-18 rounded-full flex items-center justify-center border-2 transition-all duration-300 shadow-xs",
                       category === "all"
-                        ? "border-purple-600 bg-purple-50 shadow-purple-200 ring-4 ring-purple-100 scale-105"
+                        ? "border-purple-600 bg-purple-50 shadow-purple-200 ring-3 ring-purple-100 scale-105"
                         : "border-gray-200 bg-white group-hover/card:border-purple-300 group-hover/card:scale-105"
                     )}
                   >
-                    <div className="flex flex-col items-center justify-center">
-                      <span className="font-extrabold text-[11px] text-purple-700 tracking-wide">ALL</span>
-                    </div>
+                    <span className="font-extrabold text-[10px] sm:text-[11px] text-purple-700 tracking-wide">ALL</span>
                   </div>
                   <span
                     className={cn(
-                      "text-xs font-bold text-center transition-colors truncate max-w-full",
+                      "text-[11px] sm:text-xs font-bold text-center transition-colors truncate max-w-full",
                       category === "all" ? "text-purple-700 font-extrabold" : "text-gray-600 group-hover/card:text-purple-600"
                     )}
                   >
@@ -213,13 +211,13 @@ export function ShopGrid() {
                     <button
                       key={c.slug}
                       onClick={() => setCategory(c.slug)}
-                      className="flex flex-col items-center gap-2 shrink-0 snap-start select-none group/card focus:outline-none w-24 sm:w-28 cursor-pointer"
+                      className="flex flex-col items-center gap-1.5 shrink-0 snap-start select-none group/card focus:outline-none w-20 sm:w-24 cursor-pointer"
                     >
                       <div
                         className={cn(
-                          "size-16 sm:size-20 rounded-full overflow-hidden border-2 transition-all duration-300 shadow-sm flex items-center justify-center bg-white",
+                          "size-14 sm:size-18 rounded-full overflow-hidden border-2 transition-all duration-300 shadow-xs flex items-center justify-center bg-white",
                           isSelected
-                            ? "border-purple-600 bg-purple-50 shadow-purple-200 ring-4 ring-purple-100 scale-105"
+                            ? "border-purple-600 bg-purple-50 shadow-purple-200 ring-3 ring-purple-100 scale-105"
                             : "border-gray-200 bg-white group-hover/card:border-purple-300 group-hover/card:scale-105"
                         )}
                       >
@@ -231,7 +229,7 @@ export function ShopGrid() {
                           />
                         ) : (
                           <div className="flex flex-col items-center justify-center p-2 bg-gradient-to-tr from-purple-50 to-orange-50 size-full">
-                            <span className="text-xl font-bold text-purple-600 uppercase">
+                            <span className="text-lg font-bold text-purple-600 uppercase">
                               {c.name.charAt(0)}
                             </span>
                           </div>
@@ -240,13 +238,13 @@ export function ShopGrid() {
                       <div className="flex flex-col items-center justify-center max-w-full min-w-0">
                         <span
                           className={cn(
-                            "text-xs font-bold text-center transition-colors truncate max-w-full block",
+                            "text-[11px] sm:text-xs font-bold text-center transition-colors truncate max-w-full block",
                             isSelected ? "text-purple-700 font-extrabold" : "text-gray-600 group-hover/card:text-purple-600"
                           )}
                         >
                           {c.name}
                         </span>
-                        <span className="text-[10px] font-semibold text-gray-400">
+                        <span className="text-[9px] sm:text-[10px] font-semibold text-gray-400">
                           {c.productCount} {c.productCount === 1 ? "item" : "items"}
                         </span>
                       </div>
@@ -258,24 +256,22 @@ export function ShopGrid() {
           </div>
         )}
 
-        {/* Row 3: sort */}
-        <div className="flex border-t border-[var(--color-border)] pt-3 justify-end">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-charcoal-muted">Sort</span>
-            <div className="flex max-w-full gap-1 overflow-x-auto rounded-full bg-cream-100 p-1 no-scrollbar">
-              {SORTS.map((s) => (
-                <button
-                  key={s.key}
-                  onClick={() => setSort(s.key)}
-                  className={cn(
-                    "whitespace-nowrap rounded-full px-3.5 py-2 text-xs font-medium transition-all sm:px-4 sm:py-1.5 sm:text-sm",
-                    sort === s.key ? "bg-purple-500 text-cream shadow-sm" : "text-charcoal-muted hover:text-purple-700"
-                  )}
-                >
-                  {s.label}
-                </button>
-              ))}
-            </div>
+        {/* Row 3: sort pills */}
+        <div className="flex items-center justify-between border-t border-gray-100 pt-2.5">
+          <span className="text-xs font-bold text-gray-500">Sort by</span>
+          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
+            {SORTS.map((s) => (
+              <button
+                key={s.key}
+                onClick={() => setSort(s.key)}
+                className={cn(
+                  "whitespace-nowrap rounded-lg sm:rounded-full px-3 py-1 text-xs font-bold transition-all",
+                  sort === s.key ? "bg-purple-600 text-white shadow-xs" : "bg-gray-100 text-gray-600 hover:bg-purple-50 hover:text-purple-700"
+                )}
+              >
+                {s.label}
+              </button>
+            ))}
           </div>
         </div>
       </div>
