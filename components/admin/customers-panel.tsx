@@ -270,7 +270,7 @@ export function CustomersPanel() {
       {/* Table */}
       <div className="mt-4 overflow-x-auto rounded-xl border border-gray-200">
         <table className="w-full min-w-[860px] text-left">
-          <thead className="bg-gray-50 text-[11px] uppercase tracking-wider text-gray-500">
+          <thead className="bg-gray-50 text-[11px] text-gray-500">
             <tr>
               <th className="px-4 py-3 font-bold">Customer</th>
               <th className="px-4 py-3 font-bold">Contact</th>
@@ -398,7 +398,7 @@ function StatCard({ label, value, tone }: { label: string; value?: number; tone:
   };
   return (
     <div className="rounded-xl border border-gray-200 p-4">
-      <p className="text-[11px] font-bold uppercase tracking-wider text-gray-400">{label}</p>
+      <p className="text-[11px] font-bold text-gray-400">{label}</p>
       <p className={cn("mt-1.5 inline-block rounded-lg px-2 py-0.5 text-2xl font-extrabold tabular-nums", tones[tone])}>
         {value === undefined ? "—" : value}
       </p>
@@ -515,8 +515,8 @@ function CustomerDrawer({ id, onClose }: { id: string; onClose: () => void }) {
                   return (
                     <div key={a._id} className={cn("rounded-xl border p-3", isDefault ? "border-purple-200 bg-purple-50/40" : "border-gray-200")}>
                       <div className="flex items-center gap-2">
-                        <span className="rounded-md bg-gray-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-gray-600">{a.tag || "Home"}</span>
-                        {isDefault && <span className="rounded-md bg-purple-600 px-1.5 py-0.5 text-[10px] font-bold uppercase text-white">Default</span>}
+                        <span className="rounded-md bg-gray-100 px-1.5 py-0.5 text-[10px] font-bold text-gray-600">{a.tag || "Home"}</span>
+                        {isDefault && <span className="rounded-md bg-purple-600 px-1.5 py-0.5 text-[10px] font-bold text-white">Default</span>}
                       </div>
                       <p className="mt-1.5 text-xs leading-relaxed text-gray-600">
                         {a.addressLine}{a.addressLine2 ? `, ${a.addressLine2}` : ""}
@@ -556,9 +556,9 @@ function CustomerDrawer({ id, onClose }: { id: string; onClose: () => void }) {
                       </div>
                       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 pt-2 text-[10px]">
                         <div className="flex items-center gap-1.5">
-                          <span className="text-gray-400 font-bold uppercase">Order:</span>
+                          <span className="text-gray-400 font-bold ">Order:</span>
                           <span className={cn(
-                            "font-semibold rounded px-1.5 py-0.5 text-[9px] uppercase",
+                            "font-semibold rounded px-1.5 py-0.5 text-[9px] ",
                             o.status === "Delivered" ? "bg-green-50 text-green-700 border border-green-200" :
                             o.status === "Cancelled" ? "bg-red-50 text-red-700 border border-red-200" :
                             "bg-gray-100 text-gray-600 border border-gray-200"
@@ -567,9 +567,9 @@ function CustomerDrawer({ id, onClose }: { id: string; onClose: () => void }) {
                           </span>
                         </div>
                         <div className="flex items-center gap-1.5">
-                          <span className="text-gray-400 font-bold uppercase">Payment:</span>
+                          <span className="text-gray-400 font-bold ">Payment:</span>
                           <span className={cn(
-                            "font-semibold rounded px-1.5 py-0.5 text-[9px] uppercase",
+                            "font-semibold rounded px-1.5 py-0.5 text-[9px] ",
                             payStatus === "Paid" ? "bg-green-50 text-green-700 border border-green-200" :
                             payStatus === "Failed" || payStatus === "Cancelled" ? "bg-red-50 text-red-700 border border-red-200" :
                             payStatus === "Refunded" ? "bg-blue-50 text-blue-700 border border-blue-200" :
@@ -659,7 +659,7 @@ function EditCustomerModal({
           <Input label="Mobile Number" value={phone} onChange={(v) => setPhone(v.replace(/\D/g, "").slice(0, 10))} />
           <Input label="Email" value={email} onChange={setEmail} type="email" />
           <div className="flex flex-col gap-1.5">
-            <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Admin Notes</label>
+            <label className="text-[11px] font-bold text-gray-400">Admin Notes</label>
             <textarea
               rows={3}
               value={notes}
@@ -684,7 +684,7 @@ function EditCustomerModal({
 function Input({ label, value, onChange, type = "text" }: { label: string; value: string; onChange: (v: string) => void; type?: string }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">{label}</label>
+      <label className="text-[11px] font-bold text-gray-400">{label}</label>
       <input
         type={type}
         value={value}
@@ -698,7 +698,7 @@ function Input({ label, value, onChange, type = "text" }: { label: string; value
 function MiniStat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-gray-200 p-3 text-center">
-      <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">{label}</p>
+      <p className="text-[10px] font-bold text-gray-400">{label}</p>
       <p className="mt-1 text-sm font-extrabold text-gray-900">{value}</p>
     </div>
   );
@@ -707,7 +707,7 @@ function MiniStat({ label, value }: { label: string; value: string }) {
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">{label}</p>
+      <p className="text-[10px] font-bold text-gray-400">{label}</p>
       <p className="mt-0.5 text-xs font-semibold text-gray-700">{value}</p>
     </div>
   );
@@ -716,7 +716,7 @@ function Field({ label, value }: { label: string; value: string }) {
 function Section({ icon: Icon, title, children }: { icon: React.ElementType; title: string; children: React.ReactNode }) {
   return (
     <div>
-      <p className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-500">
+      <p className="mb-2 flex items-center gap-1.5 text-xs font-bold text-gray-500">
         <Icon className="size-3.5" /> {title}
       </p>
       {children}

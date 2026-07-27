@@ -1,37 +1,80 @@
 /**
- * Enterprise API client wrapper supporting JWT authorization headers
- * injection, token refreshes, and automatic retries.
+ * Enterprise API client wrapper supporting in-memory Access Tokens,
+ * HttpOnly cookie silent token refresh, 401 retry queue, multi-tab sync,
+ * and request deduplication.
  */
 
-const TOKENS_KEY = "ratalu.tokens.v1";
+let memoryAccessToken: string | null = null;
+let isRefreshing = false;
+let refreshSubscribers: ((token: string | null) => void)[] = [];
 
-export interface ApiTokens {
-  accessToken: string;
-  refreshToken: string;
+/** Multi-tab auth synchronization channel */
+const authChannel = typeof window !== "undefined" && "BroadcastChannel" in window
+  ? new BroadcastChannel("yamora_auth_sync")
+  : null;
+
+if (authChannel) {
+  authChannel.onmessage = (event) => {
+    if (event.data?.type === "LOGOUT") {
+      memoryAccessToken = null;
+      if (typeof window !== "undefined" && window.location.pathname.startsWith("/account")) {
+        window.location.href = "/account";
+      }
+    } else if (event.data?.type === "LOGIN" && event.data?.accessToken) {
+      memoryAccessToken = event.data.accessToken;
+    }
+  };
 }
 
-export function saveTokens(tokens: ApiTokens) {
-  if (typeof window !== "undefined") {
-    localStorage.setItem(TOKENS_KEY, JSON.stringify(tokens));
+export function setMemoryToken(token: string | null) {
+  memoryAccessToken = token;
+  if (authChannel) {
+    if (token) {
+      authChannel.postMessage({ type: "LOGIN", accessToken: token });
+    } else {
+      authChannel.postMessage({ type: "LOGOUT" });
+    }
+  }
+}
+
+export function getMemoryToken(): string | null {
+  return memoryAccessToken;
+}
+
+export function clearMemoryToken() {
+  setMemoryToken(null);
+}
+
+/** Sanitize legacy/insecure localStorage keys on app startup */
+export function sanitizeLegacyStorage() {
+  if (typeof window === "undefined") return;
+  const legacyKeys = [
+    "ratalu.tokens.v1",
+    "ratalu.account.v2",
+    "ratalu.accounts",
+    "ratalu.orders.v2"
+  ];
+  legacyKeys.forEach(key => localStorage.removeItem(key));
+}
+
+// Auto-run sanitization on load
+if (typeof window !== "undefined") {
+  sanitizeLegacyStorage();
+}
+
+/** Backward compatibility token helpers — redirecting strictly to in-memory state */
+export function saveTokens(tokens: { accessToken: string }) {
+  if (tokens?.accessToken) {
+    setMemoryToken(tokens.accessToken);
   }
 }
 
 export function clearTokens() {
-  if (typeof window !== "undefined") {
-    localStorage.removeItem(TOKENS_KEY);
-  }
+  clearMemoryToken();
 }
 
-export function getTokens(): ApiTokens | null {
-  if (typeof window !== "undefined") {
-    try {
-      const raw = localStorage.getItem(TOKENS_KEY);
-      return raw ? JSON.parse(raw) : null;
-    } catch {
-      return null;
-    }
-  }
-  return null;
+export function getTokens(): { accessToken: string } | null {
+  return memoryAccessToken ? { accessToken: memoryAccessToken } : null;
 }
 
 interface RequestOptions extends RequestInit {
@@ -63,7 +106,6 @@ export interface MaintenanceInfo {
   endsAt: string | null;
 }
 
-/** The request reached the server and it answered with an error status. */
 export class ApiError extends Error {
   status: number;
   constructor(message: string, status: number) {
@@ -73,7 +115,6 @@ export class ApiError extends Error {
   }
 }
 
-/** The request never reached the server — offline, DNS, or the API is down. */
 export class NetworkError extends Error {
   constructor(message = "Could not reach the server.") {
     super(message);
@@ -81,7 +122,6 @@ export class NetworkError extends Error {
   }
 }
 
-/** The store is intentionally closed (503 from the maintenance gate). */
 export class MaintenanceError extends Error {
   info: MaintenanceInfo;
   constructor(info: MaintenanceInfo) {
@@ -91,10 +131,6 @@ export class MaintenanceError extends Error {
   }
 }
 
-/**
- * Broadcast connectivity problems so a single global gate can render the
- * maintenance / offline screen, instead of every caller handling it.
- */
 const emit = (name: string, detail?: unknown) => {
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent(name, { detail }));
@@ -107,20 +143,69 @@ export const API_EVENTS = {
   online: "api:online",
 } as const;
 
-async function apiRequest<T = any>(endpoint: string, options: RequestOptions = {}): Promise<ApiEnvelope<T>> {
+function onTokenRefreshed(token: string | null) {
+  refreshSubscribers.forEach((cb) => cb(token));
+  refreshSubscribers = [];
+}
+
+function addRefreshSubscriber(cb: (token: string | null) => void) {
+  refreshSubscribers.push(cb);
+}
+
+/** Execute silent refresh via HttpOnly cookie */
+export async function silentRefresh(): Promise<string | null> {
+  if (isRefreshing) {
+    return new Promise((resolve) => {
+      addRefreshSubscriber((token) => resolve(token));
+    });
+  }
+
+  isRefreshing = true;
+  try {
+    const res = await fetch("/api/v1/auth/refresh", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include"
+    });
+
+    if (!res.ok) {
+      clearMemoryToken();
+      onTokenRefreshed(null);
+      return null;
+    }
+
+    const json = await res.json();
+    if (json.success && json.data?.accessToken) {
+      const newToken = json.data.accessToken;
+      setMemoryToken(newToken);
+      onTokenRefreshed(newToken);
+      return newToken;
+    } else {
+      clearMemoryToken();
+      onTokenRefreshed(null);
+      return null;
+    }
+  } catch (err) {
+    clearMemoryToken();
+    onTokenRefreshed(null);
+    return null;
+  } finally {
+    isRefreshing = false;
+  }
+}
+
+async function apiRequest<T = any>(endpoint: string, options: RequestOptions = {}, isRetry = false): Promise<ApiEnvelope<T>> {
   const url = endpoint.startsWith("http") ? endpoint : `/api/v1${endpoint.startsWith("/") ? "" : "/"}${endpoint}`;
 
   const headers = new Headers(options.headers || {});
   
-  // Content type setup
   if (options.body && !(options.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
   }
 
-  // Token injection
-  const tokens = getTokens();
-  if (tokens?.accessToken) {
-    headers.set("Authorization", `Bearer ${tokens.accessToken}`);
+  const token = getMemoryToken();
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
   }
 
   const config: RequestInit = {
@@ -135,57 +220,22 @@ async function apiRequest<T = any>(endpoint: string, options: RequestOptions = {
   try {
     response = await fetch(url, config);
   } catch {
-    // fetch() only rejects when the request never made it (offline, API down).
     emit(API_EVENTS.offline);
     throw new NetworkError();
   }
   emit(API_EVENTS.online);
 
-  // Token refresh flow on 401 (works via HTTP-only cookie or stored token)
-  if (response.status === 401) {
-    try {
-      // Prevent infinite loops by checking if we already tried refreshing
-      const refreshUrl = "/api/v1/auth/refresh";
-      const isRefreshRequest = url.includes("/auth/refresh");
-
-      if (!isRefreshRequest) {
-        const refreshResponse = await fetch(refreshUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({ refreshToken: tokens?.refreshToken })
-        });
-
-        if (refreshResponse.ok) {
-          const result = await refreshResponse.json();
-          if (result.success && result.data?.accessToken) {
-            const newTokens = {
-              accessToken: result.data.accessToken,
-              refreshToken: result.data.refreshToken || tokens?.refreshToken || ""
-            };
-            saveTokens(newTokens);
-            
-            // Retry request with new token
-            headers.set("Authorization", `Bearer ${newTokens.accessToken}`);
-            response = await fetch(url, config);
-          }
-        } else {
-          // Refresh token expired or invalidated: force clear session
-          clearTokens();
-          if (typeof window !== "undefined") {
-            localStorage.removeItem("ratalu.account.v2"); // clear AccountProvider profile
-            window.location.href = "/";
-          }
-        }
-      }
-    } catch (err) {
-      console.error("Token refresh error:", err);
+  // 401 Silent Refresh and Retry Queue
+  if (response.status === 401 && !isRetry && !url.includes("/auth/refresh")) {
+    const newToken = await silentRefresh();
+    if (newToken) {
+      headers.set("Authorization", `Bearer ${newToken}`);
+      return apiRequest<T>(endpoint, { ...options, headers }, true);
     }
   }
 
   const json = await response.json().catch(() => ({}));
 
-  // The store is intentionally closed — distinct from a failure.
   if (response.status === 503 && json.maintenance?.active) {
     emit(API_EVENTS.maintenance, json.maintenance);
     if (typeof window !== "undefined") {
@@ -199,24 +249,6 @@ async function apiRequest<T = any>(endpoint: string, options: RequestOptions = {
   }
 
   if (!response.ok) {
-    if (typeof window !== "undefined" && (response.status === 401 || response.status === 403)) {
-      try {
-        const cached = localStorage.getItem("ratalu.account.v2");
-        const isCustomer = cached ? JSON.parse(cached).role === "Customer" : false;
-        const isCustomerMsg = json.message?.includes("Customer");
-        if (isCustomer || isCustomerMsg) {
-          localStorage.removeItem("ratalu.account.v2");
-          window.location.href = "/account";
-        } else {
-          clearTokens();
-          localStorage.removeItem("ratalu.account.v2");
-          window.location.href = "/admin";
-        }
-      } catch (e) {
-        console.error("Session sync error in API handler:", e);
-      }
-    }
-
     throw new ApiError(
       json.message || `Request failed with status ${response.status}`,
       response.status
@@ -230,7 +262,32 @@ export async function apiFetchEnvelope<T = any>(endpoint: string, options: Reque
   return apiRequest<T>(endpoint, options);
 }
 
+const inFlightRequests = new Map<string, Promise<any>>();
+
 export async function apiFetch<T = any>(endpoint: string, options: RequestOptions = {}): Promise<T> {
-  const json = await apiRequest<T>(endpoint, options);
-  return (json.data ?? []) as T;
+  const method = (options.method || "GET").toUpperCase();
+  const isGet = method === "GET";
+  const token = getMemoryToken();
+  const cacheKey = isGet ? `${method}:${endpoint}:${token || ""}` : null;
+
+  if (isGet && cacheKey && inFlightRequests.has(cacheKey)) {
+    return inFlightRequests.get(cacheKey)!;
+  }
+
+  const promise = (async () => {
+    try {
+      const json = await apiRequest<T>(endpoint, options);
+      return (json.data ?? []) as T;
+    } finally {
+      if (isGet && cacheKey) {
+        inFlightRequests.delete(cacheKey);
+      }
+    }
+  })();
+
+  if (isGet && cacheKey) {
+    inFlightRequests.set(cacheKey, promise);
+  }
+
+  return promise;
 }

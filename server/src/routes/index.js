@@ -33,4 +33,7 @@ router.use('/', require('./refund.routes'));
 router.use('/', require('./catalog.routes'));
 router.use('/', require('./logistics.routes'));
 
+const { calculateShippingCharges } = require('../controllers/settings.controller');
+router.post('/shipping/calculate', calculateShippingCharges);
+
 module.exports = router;

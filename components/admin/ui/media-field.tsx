@@ -24,6 +24,7 @@ export function MediaField({
   onChange,
   accept = "image/*,video/*",
   aspect = "aspect-video",
+  folder,
 }: {
   label: string;
   hint?: string;
@@ -31,19 +32,24 @@ export function MediaField({
   onChange: (url: string) => void;
   accept?: string;
   aspect?: string;
+  folder?: string;
 }) {
   const [uploading, setUploading] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
 
-  const isVideo = /\.(mp4|webm|ogg)(\?|$)/i.test(value ?? "");
+  const isVideo = /\.(mp4|webm|ogg|mov|m4v)(\?|$)/i.test(value ?? "");
 
   const upload = async (file: File) => {
     setUploading(true);
     try {
+      const isVideoFile = file.type.startsWith("video/") || /\.(mp4|webm|mov|quicktime|m4v|mkv)$/i.test(file.name);
+      const targetFolder = folder || (isVideoFile ? "homepage" : "logos");
+
       const body = new FormData();
       body.append("file", file);
+      body.append("folder", targetFolder);
 
-      const res = await fetch("/api/v1/media/upload", {
+      const res = await fetch("/api/v1/upload/single", {
         method: "POST",
         headers: { Authorization: `Bearer ${getTokens()?.accessToken ?? ""}` },
         body,
@@ -54,11 +60,11 @@ export function MediaField({
         throw new Error(json.message || `Upload failed (${res.status})`);
       }
 
-      const url = json.data?.url ?? json.data?.media?.url ?? "";
+      const url = json.data?.secure_url ?? json.data?.url ?? json.data?.media?.url ?? "";
       if (!url) throw new Error("The server didn't return a URL for the file.");
 
       onChange(url);
-      toast.success("Uploaded");
+      toast.success("Uploaded successfully to Cloudinary");
     } catch (err) {
       toast.error("Could not upload", {
         description: err instanceof Error ? err.message : undefined,
@@ -73,7 +79,7 @@ export function MediaField({
 
   return (
     <div className="flex flex-col gap-2">
-      <span className="text-xs font-bold uppercase tracking-wider text-gray-500">{label}</span>
+      <span className="text-xs font-bold text-gray-500">{label}</span>
 
       {value ? (
         <div
@@ -90,7 +96,7 @@ export function MediaField({
           )}
 
           {/* Type badge, so it's obvious what's in the slot at a glance. */}
-          <span className="absolute left-2 top-2 rounded-md bg-black/55 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+          <span className="absolute left-2 top-2 rounded-md bg-black/55 px-2 py-0.5 text-[10px] font-bold text-white">
             {isVideo ? "Video" : "Image"}
           </span>
 

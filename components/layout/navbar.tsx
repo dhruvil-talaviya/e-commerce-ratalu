@@ -3,9 +3,10 @@
 import * as React from "react";
 import Link from "next/link";
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from "motion/react";
-import { Menu, ShoppingBag, User, X, ShieldCheck, Bell } from "lucide-react";
+import { Menu, ShoppingBag, User, X, ShieldCheck, Bell, LogOut } from "lucide-react";
 import { Logo } from "./logo";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/toast";
 import { NAV_LINKS } from "@/lib/constants";
 import { useCart } from "@/components/cart/cart-provider";
 import { useAccount, isAdminSession } from "@/components/account/account-provider";
@@ -13,6 +14,7 @@ import { useUnreadNotifications } from "@/lib/hooks/use-unread-notifications";
 import { useLanguage } from "@/components/common/language-provider";
 import { cn } from "@/lib/utils";
 
+import { NotificationsDrawer } from "@/components/notifications/notifications-drawer";
 import { usePathname } from "next/navigation";
 
 // Map href to translation key
@@ -29,9 +31,10 @@ export function Navbar() {
   const pathname = usePathname();
   const [scrolled, setScrolled] = React.useState(false);
   const [menuOpen, setMenuOpen] = React.useState(false);
+  const [notificationsOpen, setNotificationsOpen] = React.useState(false);
   const { scrollY } = useScroll();
   const { totals, openCart } = useCart();
-  const { user, isLoggedIn } = useAccount();
+  const { user, isLoggedIn, logout } = useAccount();
   const { t } = useLanguage();
 
   /**
@@ -109,10 +112,10 @@ export function Navbar() {
               </Link>
             )}
 
-            {/* Notifications live in the header, not buried in the profile page. */}
+            {/* Notifications live in the header, opening as a side drawer panel. */}
             {isLoggedIn && (
-              <Link
-                href="/notifications"
+              <button
+                onClick={() => setNotificationsOpen(true)}
                 className="relative grid size-11 place-items-center rounded-full text-gray-700 transition-colors hover:bg-orange-50 hover:text-orange-600"
                 aria-label={
                   unreadNotifications > 0
@@ -126,7 +129,7 @@ export function Navbar() {
                     {unreadNotifications > 9 ? "9+" : unreadNotifications}
                   </span>
                 )}
-              </Link>
+              </button>
             )}
 
             <Link
@@ -157,7 +160,7 @@ export function Navbar() {
                     animate={{ scale: 1 }}
                     exit={{ scale: 0 }}
                     transition={{ type: "spring", stiffness: 500, damping: 25 }}
-                    className="absolute right-1 top-1 grid min-w-4.5 place-items-center rounded-full bg-orange-500 px-1 text-[10px] font-bold text-white"
+                    className="absolute -right-1 -top-1 grid min-w-5 place-items-center rounded-full bg-orange-500 px-1.5 text-[10px] font-bold text-white shadow-sm"
                   >
                     {totals.itemCount}
                   </motion.span>
@@ -241,15 +244,18 @@ export function Navbar() {
                     <Link href={isLoggedIn ? "/account" : `${pathname}?login=true`}>{isLoggedIn && user ? `Hi, ${(user.name || "Snacker").split(" ")[0]}` : t("nav_account")}</Link>
                   </Button>
                   {isLoggedIn && (
-                    <Button asChild variant="outline" size="lg" className="w-full" onClick={() => setMenuOpen(false)}>
-                      <Link href="/notifications">
-                        Notifications
-                        {unreadNotifications > 0 && (
-                          <span className="ml-1.5 grid min-w-4.5 place-items-center rounded-full bg-orange-500 px-1 text-[10px] font-bold text-white">
-                            {unreadNotifications}
-                          </span>
-                        )}
-                      </Link>
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 font-bold flex items-center justify-center gap-2"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        logout();
+                        toast.success("Logged out successfully");
+                      }}
+                    >
+                      <LogOut className="size-4" />
+                      Logout
                     </Button>
                   )}
                   {isAdmin && (
@@ -269,6 +275,12 @@ export function Navbar() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Side Notifications Drawer */}
+      <NotificationsDrawer
+        open={notificationsOpen}
+        onClose={() => setNotificationsOpen(false)}
+      />
     </header>
   );
 }

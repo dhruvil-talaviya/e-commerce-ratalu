@@ -30,11 +30,10 @@ export function ProductCard({
   index?: number;
   view?: "grid" | "list";
 }) {
-  const { addItem } = useCart();
+  const { addItem, items, updateQuantity, removeItem } = useCart();
   const { has, toggle } = useWishlist();
   const [packId, setPackId] = React.useState(DEFAULT_PACK_ID);
   const [qty, setQty] = React.useState(1);
-  const [added, setAdded] = React.useState(false);
   const [quickOpen, setQuickOpen] = React.useState(false);
 
   const pack = getPackFor(flavor, packId);
@@ -43,12 +42,31 @@ export function ProductCard({
   const isList = view === "list";
   const isOutOfStock = flavor.inStock === false;
 
+  // Check if item is already in cart
+  const itemKey = `${flavor.id}-${pack.id}`;
+  const cartItem = items.find((i) => i.key === itemKey || (i.flavorId === flavor.id && i.packId === pack.id));
+  const cartQty = cartItem ? cartItem.quantity : 0;
+
   const handleAdd = () => {
     if (isOutOfStock) return;
-    addItem(flavor, pack, qty);
-    setAdded(true);
-    setQty(1);
-    setTimeout(() => setAdded(false), 1600);
+    addItem(flavor, pack, 1);
+  };
+
+  const handleDec = () => {
+    if (!cartItem) return;
+    if (cartItem.quantity <= 1) {
+      removeItem(cartItem.key);
+    } else {
+      updateQuantity(cartItem.key, cartItem.quantity - 1);
+    }
+  };
+
+  const handleInc = () => {
+    if (!cartItem) {
+      addItem(flavor, pack, 1);
+    } else {
+      updateQuantity(cartItem.key, cartItem.quantity + 1);
+    }
   };
 
   return (
@@ -209,21 +227,41 @@ export function ProductCard({
               )}
             </div>
 
-            <Button
-              disabled={isOutOfStock}
-              onClick={handleAdd}
-              variant={isOutOfStock ? "outline" : (added ? "accent" : "primary")}
-              size="sm"
-              className="mt-2 w-full h-8.5 sm:h-11 text-xs sm:text-sm font-bold rounded-xl active:scale-95"
-            >
-              {isOutOfStock ? (
-                <span className="truncate">Out of Stock</span>
-              ) : added ? (
-                <><Check className="size-3.5 sm:size-4" /> <span className="truncate">Added</span></>
-              ) : (
-                <><Plus className="size-3.5 sm:size-4" /> <span className="truncate">Add</span></>
-              )}
-            </Button>
+            {cartQty > 0 ? (
+              <div className="mt-2 flex h-8.5 sm:h-11 w-full items-center justify-between rounded-xl border border-purple-300 bg-purple-50/80 px-2 font-bold text-purple-900 shadow-xs">
+                <button
+                  type="button"
+                  onClick={handleDec}
+                  className="grid size-6 sm:size-7 place-items-center rounded-lg bg-white text-purple-700 shadow-xs hover:bg-purple-100 transition-all active:scale-90"
+                  aria-label="Decrease quantity"
+                >
+                  <Minus className="size-3 sm:size-3.5" />
+                </button>
+                <span className="text-xs sm:text-sm font-extrabold text-purple-950 font-mono">{cartQty}</span>
+                <button
+                  type="button"
+                  onClick={handleInc}
+                  className="grid size-6 sm:size-7 place-items-center rounded-lg bg-purple-700 text-white shadow-xs hover:bg-purple-800 transition-all active:scale-90"
+                  aria-label="Increase quantity"
+                >
+                  <Plus className="size-3 sm:size-3.5" />
+                </button>
+              </div>
+            ) : (
+              <Button
+                disabled={isOutOfStock}
+                onClick={handleAdd}
+                variant={isOutOfStock ? "outline" : "primary"}
+                size="sm"
+                className="mt-2 w-full h-8.5 sm:h-11 text-xs sm:text-sm font-bold rounded-xl active:scale-95 shadow-xs"
+              >
+                {isOutOfStock ? (
+                  <span className="truncate">Out of Stock</span>
+                ) : (
+                  <><Plus className="size-3.5 sm:size-4 mr-1" /> <span className="truncate">Add</span></>
+                )}
+              </Button>
+            )}
           </div>
         </div>
       </motion.article>

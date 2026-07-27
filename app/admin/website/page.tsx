@@ -549,7 +549,7 @@ function Field({
 }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="text-xs font-bold uppercase tracking-wider text-gray-500">
+      <span className="text-xs font-bold text-gray-500">
         {label}
       </span>
       {children}
@@ -731,7 +731,6 @@ function HeroEditor({
               value={slide.image}
               onChange={(url) => updateSlide(i, { image: url })}
               accept="image/*,video/*"
-              hint="Your brand photo, animated GIF, or video (MP4/WebM). Fits the circle without cropping. Blank = the generated wafer."
             />
             <Field label="Price tag ₹" hint="Shown on the floating tag">
               <input
@@ -759,7 +758,7 @@ function HeroEditor({
       {/* Stats */}
       <div>
         <div className="mb-2 flex items-center justify-between">
-          <p className="text-xs font-bold uppercase tracking-wider text-gray-500">
+          <p className="text-xs font-bold text-gray-500">
             Trust stats
           </p>
           <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500">
@@ -859,7 +858,7 @@ function AnnouncementEditor({
       </div>
 
       <div>
-        <p className="mb-2 text-xs font-bold uppercase tracking-wider text-gray-500">
+        <p className="mb-2 text-xs font-bold text-gray-500">
           Messages
         </p>
         <div className="flex flex-col gap-2">
@@ -1036,7 +1035,7 @@ function FeatureGridEditor({
       {/* ── Our Story visual (About only) ──────────────────────────── */}
       {isAbout && (
         <div className="rounded-xl border border-gray-200 bg-gray-50/60 p-3.5">
-          <p className="mb-2 text-xs font-bold uppercase tracking-wider text-gray-500">
+          <p className="mb-2 text-xs font-bold text-gray-500">
             Story visual
           </p>
 
@@ -1062,7 +1061,6 @@ function FeatureGridEditor({
               onChange={(url) => set("media", url)}
               accept="image/*,video/*"
               aspect="aspect-square"
-              hint="Show how the yam is grown or the chips are made. Replaces the four wafer tiles. Blank = the tile collage."
             />
           )}
         </div>
@@ -1071,7 +1069,7 @@ function FeatureGridEditor({
       {/* ── Side panel (Farm Fresh only) ───────────────────────────── */}
       {isFarmFresh && (
         <div className="rounded-xl border border-gray-200 bg-gray-50/60 p-3.5">
-          <p className="mb-2 text-xs font-bold uppercase tracking-wider text-gray-500">
+          <p className="mb-2 text-xs font-bold text-gray-500">
             Side panel
           </p>
 
@@ -1119,7 +1117,7 @@ function FeatureGridEditor({
       {/* ── Brand Video Showcase (Why Choose Us & How It's Made only) ── */}
       {(sectionKey === "why-choose-us" || sectionKey === "how-its-made") && (
         <div className="rounded-xl border border-gray-200 bg-gray-50/60 p-3.5 flex flex-col gap-3">
-          <p className="text-xs font-bold uppercase tracking-wider text-gray-500">
+          <p className="text-xs font-bold text-gray-500">
             Section Video Showcase
           </p>
           <MediaField
@@ -1165,7 +1163,7 @@ function FeatureGridEditor({
 
       {/* Features */}
       <div>
-        <p className="mb-2 text-xs font-bold uppercase tracking-wider text-gray-500">
+        <p className="mb-2 text-xs font-bold text-gray-500">
           Cards
         </p>
         <div className="flex flex-col gap-2">
@@ -1226,7 +1224,7 @@ function FeatureGridEditor({
       {/* Stats */}
       {stats.length > 0 && (
         <div>
-          <p className="mb-2 text-xs font-bold uppercase tracking-wider text-gray-500">
+          <p className="mb-2 text-xs font-bold text-gray-500">
             Stat band
           </p>
           <div className="flex flex-col gap-2">
@@ -1340,7 +1338,7 @@ function GalleryEditor({
       />
 
       <label className="flex max-w-48 flex-col gap-1">
-        <span className="text-xs font-bold uppercase tracking-wider text-gray-500">
+        <span className="text-xs font-bold text-gray-500">
           Posts to show
         </span>
         <input
@@ -1357,7 +1355,7 @@ function GalleryEditor({
       </label>
 
       <div>
-        <p className="mb-2 text-xs font-bold uppercase tracking-wider text-gray-500">
+        <p className="mb-2 text-xs font-bold text-gray-500">
           Posts
         </p>
 
@@ -1490,7 +1488,7 @@ function FaqEditor({
 
       {/* Questions */}
       <div>
-        <p className="mb-2 text-xs font-bold uppercase tracking-wider text-gray-500">
+        <p className="mb-2 text-xs font-bold text-gray-500">
           Questions
         </p>
         <div className="flex flex-col gap-3">
@@ -1655,7 +1653,7 @@ function GenericEditor({
 
       {isTestimonials && (
         <div className="rounded-xl border border-gray-200 bg-gray-50/60 p-3.5 flex flex-col gap-3">
-          <p className="text-xs font-bold uppercase tracking-wider text-gray-500">
+          <p className="text-xs font-bold text-gray-500">
             Customer Testimonials Video Showcase
           </p>
           <MediaField

@@ -4,7 +4,7 @@ import * as React from "react";
 import { usePathname } from "next/navigation";
 import { useAccount } from "@/components/account/account-provider";
 
-const VISITOR_KEY = "ratalu.visitorId";
+const VISITOR_KEY = "yamora.visitorId";
 
 /** A stable, random per-browser id — not linked to any account. */
 function getVisitorId(): string {

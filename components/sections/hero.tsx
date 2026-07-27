@@ -251,7 +251,7 @@ export function Hero() {
         {/* Visual */}
         <motion.div
           style={{ y: yVisual }}
-          className="relative z-0 mx-auto aspect-square w-full max-w-[210px] sm:max-w-md lg:max-w-lg"
+          className={cn("relative z-0 mx-auto w-full transition-all", isVideo ? "aspect-video max-w-full sm:max-w-xl lg:max-w-2xl mt-4 lg:mt-0" : "aspect-square max-w-[280px] sm:max-w-md lg:max-w-lg")}
         >
           {/* rotating dashed ring */}
           {!isVideo && (
@@ -267,8 +267,7 @@ export function Hero() {
             className="relative z-10 h-full w-full drop-shadow-2xl"
           >
             {activeMedia && !videoError ? (
-              // object-contain so any aspect ratio fits the circle without cropping.
-              <div className="grid h-full w-full place-items-center animate-float-slow">
+              <div className="grid h-full w-full place-items-center">
                 {isVideo ? (
                   <video
                     src={activeMedia}
@@ -277,7 +276,7 @@ export function Hero() {
                     muted={settings?.muteVideo ?? true}
                     playsInline
                     onError={() => setVideoError(true)}
-                    className="max-h-full max-w-full object-contain rounded-2xl pointer-events-none"
+                    className="w-full h-full object-cover rounded-2xl sm:rounded-3xl shadow-xl border border-white/40 pointer-events-none"
                   />
                 ) : (
                   // eslint-disable-next-line @next/next/no-img-element

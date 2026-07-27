@@ -48,6 +48,7 @@ export interface Flavor {
     distribution: Record<string, number>;
   };
   id: string;
+  _id?: string;
   slug: string;
   name: string;
   tagline: string;
@@ -196,4 +197,12 @@ export interface ShopCombo {
     keywords?: string;
   };
   items: ShopComboItem[];
+}
+
+export interface CheckoutInstruction {
+  _id?: string;
+  id?: string;
+  title: string;
+  text: string;
+  icon?: string;
 }

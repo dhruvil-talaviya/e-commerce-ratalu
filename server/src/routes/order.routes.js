@@ -13,7 +13,9 @@ const {
   bulkDeleteOrders,
   getOrderFilterOptions,
   getOrderInvoice,
-  getOrderLabels
+  getOrderLabels,
+  confirmOrderNow,
+  extendOrderTimer
 } = require('../controllers/order.controller');
 
 const { protect, softAuth, authorize } = require('../middlewares/auth');
@@ -43,5 +45,7 @@ router.get('/admin/orders', ...adminOnly, getAdminOrders);
 router.get('/admin/orders/:id/invoice', ...adminOnly, getOrderInvoice);
 router.put('/admin/orders/:id/status', ...adminOnly, updateOrderStatus);
 router.put('/admin/orders/:id/courier', ...adminOnly, assignCourier);
+router.post('/admin/orders/:id/confirm-now', ...adminOnly, confirmOrderNow);
+router.post('/admin/orders/:id/extend-timer', ...adminOnly, extendOrderTimer);
 
 module.exports = router;

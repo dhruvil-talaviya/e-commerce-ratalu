@@ -2,14 +2,14 @@
  * Input hardening: NoSQL injection and XSS.
  */
 
-// NoSQL Injection Protection: Sanitizes key names starting with $
+// NoSQL Injection Protection: Sanitizes key names starting with $ or containing .
 const nosqlInjectionProtection = (req, res, next) => {
   const sanitize = (obj) => {
     if (obj instanceof Object) {
       for (const key in obj) {
-        if (key.startsWith('$')) {
+        if (key.startsWith('$') || key.includes('.')) {
           delete obj[key];
-        } else if (typeof obj[key] === 'object') {
+        } else if (typeof obj[key] === 'object' && obj[key] !== null) {
           sanitize(obj[key]);
         }
       }

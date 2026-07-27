@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { CloudinaryImageUpload } from "@/components/admin/CloudinaryImageUpload";
 import {
   ShoppingBag,
   Users,
@@ -211,18 +212,6 @@ function AdminDashboardView() {
     }
   }, [isLoggedIn, isAdmin, fetchAdminNotifications]);
 
-  useLiveRefresh(() => {
-    if (isLoggedIn && isAdmin) {
-      fetchAdminNotifications({ page: 1, limit: 10 });
-    }
-  }, { minIntervalMs: 5000 });
-
-  /**
-   * Security route guard — keyed on the session's role, not a hardcoded phone
-   * number. Anyone who isn't the admin is sent to /account, where the login
-   * gate opens; signing in with the admin number returns them here.
-   */
-
   React.useEffect(() => {
     // Don't bounce before the stored session has loaded.
     if (!hydrated) return;
@@ -237,7 +226,7 @@ function AdminDashboardView() {
     setSearchTerm("");
   }, [activeTab]);
 
-  // Live customer count for the dashboard KPI (was localStorage/mock).
+  // Live customer count for the dashboard KPI
   const [customerCount, setCustomerCount] = React.useState(0);
   const refreshCustomerCount = React.useCallback(() => {
     apiFetch<{ total: number }>("/admin/customers/stats")
@@ -246,17 +235,11 @@ function AdminDashboardView() {
   }, []);
 
   React.useEffect(() => {
-    refreshCustomerCount();
-  }, [refreshCustomerCount]);
-
-  React.useEffect(() => {
     if (activeTab === "dashboard") {
       refreshOrders();
       refreshCustomerCount();
     }
   }, [activeTab, refreshOrders, refreshCustomerCount]);
-
-  useLiveRefresh(refreshCustomerCount, { minIntervalMs: 5000 });
 
   if (!hydrated || !isLoggedIn || !isAdmin) {
     return (
@@ -353,7 +336,7 @@ function AdminDashboardView() {
                 loading={notificationsLoading}
               />
             )}
-            {activeTab === "logistics" && <LogisticsTab />}
+            {activeTab === "logistics" && <RedirectLogisticsTab />}
             {activeTab === "gst" && <GstTab orders={orders} />}
       </div>
     </AdminShell>
@@ -629,7 +612,7 @@ function DashboardTab({
         )}
       </div>
       <div className="mt-3">
-        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{label}</p>
+        <p className="text-[10px] font-bold text-gray-400 ">{label}</p>
         <p className="text-xl font-extrabold text-gray-900 mt-0.5 tracking-tight">
           {loading ? <span className="inline-block h-6 w-16 animate-pulse rounded bg-gray-100" /> : value}
         </p>
@@ -638,7 +621,7 @@ function DashboardTab({
   );
 
   const SectionTitle = ({ title }: { title: string }) => (
-    <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3 mt-6 flex items-center gap-2">
+    <h3 className="text-xs font-bold text-gray-500 tracking-widest mb-3 mt-6 flex items-center gap-2">
       <span className="inline-block w-1 h-4 rounded-full bg-purple-500" />
       {title}
     </h3>
@@ -796,31 +779,31 @@ function DashboardTab({
       <div className="grid gap-5 md:grid-cols-2">
         {/* Revenue Trend */}
         <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-          <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-3">Revenue Trend</h4>
+          <h4 className="text-xs font-bold text-gray-700 mb-3">Revenue Trend</h4>
           <MiniLineChart data={charts?.revenueTrend || []} dataKey="revenue" color="#7c3aed" isCurrency={true} />
         </div>
 
         {/* Order Trend */}
         <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-          <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-3">Order Trend</h4>
+          <h4 className="text-xs font-bold text-gray-700 mb-3">Order Trend</h4>
           <MiniLineChart data={charts?.orderTrend || []} dataKey="orders" color="#f59e0b" isCurrency={false} />
         </div>
 
         {/* Refund Trend */}
         <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-          <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-3">Refund Trend</h4>
+          <h4 className="text-xs font-bold text-gray-700 mb-3">Refund Trend</h4>
           <MiniLineChart data={charts?.refundTrend || []} dataKey="amount" color="#ef4444" isCurrency={true} />
         </div>
 
         {/* Customer Growth */}
         <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-          <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-3">Customer Growth</h4>
+          <h4 className="text-xs font-bold text-gray-700 mb-3">Customer Growth</h4>
           <MiniLineChart data={charts?.customerGrowth || []} dataKey="newCustomers" color="#10b981" isCurrency={false} />
         </div>
 
         {/* Order Status Distribution */}
         <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-          <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-3">Order Status Distribution</h4>
+          <h4 className="text-xs font-bold text-gray-700 mb-3">Order Status Distribution</h4>
           <div className="flex items-center gap-6">
             <MiniDonut data={charts?.orderStatusDist || []} />
             <div className="flex flex-col gap-1.5 min-w-0 flex-1">
@@ -837,7 +820,7 @@ function DashboardTab({
 
         {/* Payment Status Distribution */}
         <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-          <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-3">Payment Status Distribution</h4>
+          <h4 className="text-xs font-bold text-gray-700 mb-3">Payment Status Distribution</h4>
           <div className="flex items-center gap-6">
             <MiniDonut data={charts?.paymentStatusDist || []} />
             <div className="flex flex-col gap-1.5 min-w-0 flex-1">
@@ -857,7 +840,7 @@ function DashboardTab({
       <div className="grid gap-5 md:grid-cols-2">
         <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm flex flex-col justify-between">
           <div>
-            <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-4">Top Selling Products</h4>
+            <h4 className="text-xs font-bold text-gray-700 mb-4">Top Selling Products</h4>
             {loading ? (
               <div className="flex flex-col gap-3">{[1, 2, 3].map((i) => <div key={i} className="h-8 animate-pulse rounded bg-gray-50" />)}</div>
             ) : (
@@ -910,7 +893,7 @@ function DashboardTab({
         {/* Hourly Orders */}
         <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm flex flex-col justify-between">
           <div>
-            <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-3">Today&apos;s Hourly Orders</h4>
+            <h4 className="text-xs font-bold text-gray-700 mb-3">Today&apos;s Hourly Orders</h4>
             <HourlyOrdersBarChart data={charts?.hourlyOrders || []} />
           </div>
         </div>
@@ -1114,7 +1097,7 @@ function ProductsTab({
         <div className="grid gap-6 lg:grid-cols-12 items-start">
           {/* Left Column: Form */}
           <form onSubmit={handleSave} className="lg:col-span-7 border border-gray-200 rounded-xl p-5 bg-gray-50 flex flex-col gap-4">
-            <h3 className="text-sm font-bold text-purple-700 uppercase tracking-wider">
+            <h3 className="text-sm font-bold text-purple-700 ">
               {editingId ? "Modify Product Details" : "Create New Flavour"}
             </h3>
             
@@ -1208,7 +1191,7 @@ function ProductsTab({
 
             {/* Custom Image Upload & URL input */}
             <div className="flex flex-col gap-1.5 border border-gray-200/60 rounded-xl p-4 bg-white/50">
-              <label className="text-xs font-bold text-gray-600 uppercase tracking-wide">Product Photography (Optional)</label>
+              <label className="text-xs font-bold text-gray-600 ">Product Photography (Optional)</label>
               <div className="grid gap-4 sm:grid-cols-2 mt-1">
                 {/* Upload Zone */}
                 <div 
@@ -1262,7 +1245,7 @@ function ProductsTab({
                 {/* URL input */}
                 <div className="flex flex-col justify-center gap-2.5 border border-gray-150 rounded-xl p-4 bg-white">
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold uppercase text-gray-400">Or Paste Image URL</label>
+                    <label className="text-[10px] font-bold text-gray-400">Or Paste Image URL</label>
                     <Input
                       type="url"
                       value={form.image}
@@ -1315,10 +1298,10 @@ function ProductsTab({
           <div className="lg:col-span-5 lg:sticky lg:top-6 flex flex-col gap-4">
             <div className="bg-gradient-to-r from-purple-800 to-indigo-900 text-white rounded-2xl p-4.5 shadow-sm flex items-center justify-between">
               <div>
-                <h4 className="text-[10px] uppercase font-extrabold tracking-wider text-purple-200">Interactive Preview</h4>
+                <h4 className="text-[10px] font-extrabold text-purple-200">Interactive Preview</h4>
                 <p className="text-[11px] text-purple-100/90 mt-0.5">Real-time mock of the storefront card</p>
               </div>
-              <span className="text-[9px] bg-green-500/20 text-green-300 font-bold border border-green-500/30 px-2 py-0.5 rounded-full uppercase tracking-wider animate-pulse">
+              <span className="text-[9px] bg-green-500/20 text-green-300 font-bold border border-green-500/30 px-2 py-0.5 rounded-full animate-pulse">
                 Live
               </span>
             </div>
@@ -1389,12 +1372,12 @@ function ProductsTab({
 
                 <div className="flex items-center justify-between text-xs text-gray-500">
                   <div className="flex flex-col">
-                    <span className="text-[9px] text-gray-400 font-bold uppercase">Enforced limits</span>
+                    <span className="text-[9px] text-gray-400 font-bold ">Enforced limits</span>
                     <span className="font-semibold text-purple-700 mt-0.5">
                       {form.maxQtyPerCheckout ? `Max ${form.maxQtyPerCheckout} packs` : `Global: max ${globalLimit} packs`}
                     </span>
                   </div>
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider bg-gray-50 border border-gray-100 px-2 py-0.5 rounded-md">
+                  <span className="text-[10px] font-bold text-gray-400 bg-gray-50 border border-gray-100 px-2 py-0.5 rounded-md">
                     Storefront Card
                   </span>
                 </div>
@@ -1417,7 +1400,7 @@ function ProductsTab({
             </div>
             <div className="flex items-end gap-3 shrink-0">
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold uppercase text-gray-400">Global Cart Max Items</label>
+                <label className="text-[10px] font-bold text-gray-400">Global Cart Max Items</label>
                 <Input
                   type="number"
                   min={1}
@@ -1449,7 +1432,7 @@ function ProductsTab({
           <div className="overflow-x-auto border border-gray-100 rounded-xl shadow-sm">
             <table className="w-full min-w-[650px] text-left border-collapse text-sm">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-200 text-gray-400 font-bold text-xs uppercase tracking-wider">
+                <tr className="bg-gray-50 border-b border-gray-200 text-gray-400 font-bold text-xs ">
                   <th className="p-4">Variant</th>
                   <th className="p-4">Spice Level</th>
                   <th className="p-4">Highlight Badge</th>
@@ -1611,7 +1594,7 @@ function CategoriesTab() {
       <div className="overflow-x-auto border border-gray-100 rounded-xl shadow-sm">
         <table className="w-full min-w-[600px] text-left border-collapse text-sm">
           <thead>
-            <tr className="bg-gray-50 border-b border-gray-200 text-gray-400 font-bold text-xs uppercase tracking-wider">
+            <tr className="bg-gray-50 border-b border-gray-200 text-gray-400 font-bold text-xs ">
               <th className="p-4">Category Name</th>
               <th className="p-4">Linked Products</th>
               <th className="p-4">Status</th>
@@ -2073,7 +2056,7 @@ function OrdersTab({
             </button>
             {colDropdownOpen && (
               <div className="absolute right-0 mt-2 w-48 rounded-xl border border-gray-200 bg-white p-3 shadow-lg z-50 flex flex-col gap-2">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Toggle Columns</span>
+                <span className="text-[10px] font-bold text-gray-400 ">Toggle Columns</span>
                 {[
                   { key: "id", label: "Order Details" },
                   { key: "customer", label: "Customer" },
@@ -2105,7 +2088,7 @@ function OrdersTab({
 
       <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
         <div className="mb-3 flex items-center justify-between gap-3">
-          <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-gray-500">
+          <div className="inline-flex items-center gap-2 text-xs font-bold text-gray-500">
             <SlidersHorizontal className="size-4" /> Filters
           </div>
           {hasFilters && (
@@ -2233,7 +2216,7 @@ function OrdersTab({
           <div className="overflow-x-auto border border-gray-100 rounded-xl shadow-sm bg-white">
             <table className="w-full min-w-[700px] text-left border-collapse text-sm">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-200 text-gray-400 font-bold text-xs uppercase tracking-wider">
+                <tr className="bg-gray-50 border-b border-gray-200 text-gray-400 font-bold text-xs ">
                   <th className="p-4 w-10">
                     <input
                       type="checkbox"
@@ -2275,7 +2258,7 @@ function OrdersTab({
                     {visibleColumns.includes("payment") && (
                       <td className="p-4">
                         <div className="flex flex-col gap-0.5">
-                          <span className="text-xs font-semibold text-gray-600 uppercase">{o.payment?.method || o.method}</span>
+                          <span className="text-xs font-semibold text-gray-600 ">{o.payment?.method || o.method}</span>
                           <span className={cn(
                             "text-[9px] font-bold px-1 rounded w-fit",
                             o.payment?.status === "Paid" ? "bg-green-50 text-green-700" :
@@ -2348,20 +2331,20 @@ function OrdersTab({
               {/* Customer Notes */}
               {selectedOrder.customerNotes && (
                 <div className="bg-orange-50 border border-orange-200 rounded-xl p-3">
-                  <p className="text-[10px] font-bold text-orange-800 uppercase">Customer Placement Note</p>
+                  <p className="text-[10px] font-bold text-orange-800 ">Customer Placement Note</p>
                   <p className="text-xs text-orange-950 mt-1 italic">&ldquo;{selectedOrder.customerNotes}&rdquo;</p>
                 </div>
               )}
 
               <div>
-                <p className="text-[10px] font-bold text-gray-400 uppercase">Customer Details</p>
+                <p className="text-[10px] font-bold text-gray-400 ">Customer Details</p>
                 <p className="text-sm font-bold text-gray-800 mt-1">{selectedOrder.userName} ({selectedOrder.userPhone})</p>
                 <p className="text-xs text-gray-500 mt-0.5">{selectedOrder.address.addressLine}, {selectedOrder.address.city} - {selectedOrder.address.pincode}</p>
               </div>
 
               {/* Status Update Form */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold text-gray-400 uppercase">Update Status Workflow</label>
+                <label className="text-[10px] font-bold text-gray-400 ">Update Status Workflow</label>
                 <select
                   value={selectedOrder.status}
                   onChange={(e) => handleStatusChange(selectedOrder.id, e.target.value as OrderStatus)}
@@ -2384,7 +2367,7 @@ function OrdersTab({
 
               {/* Refund / Payment Status Select */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold text-gray-400 uppercase">Update Payment & Refund Status</label>
+                <label className="text-[10px] font-bold text-gray-400 ">Update Payment & Refund Status</label>
                 <select
                   value={selectedOrder.payment?.status || "Pending"}
                   onChange={(e) => handlePaymentStatusChange(e.target.value)}
@@ -2399,7 +2382,7 @@ function OrdersTab({
 
               {/* Internal Notes */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold text-gray-400 uppercase">Internal Notes (Staff Only)</label>
+                <label className="text-[10px] font-bold text-gray-400 ">Internal Notes (Staff Only)</label>
                 <textarea
                   rows={2}
                   value={internalNotes}
@@ -2414,10 +2397,10 @@ function OrdersTab({
 
               {/* Logistics Assignment Form */}
               <form onSubmit={handleAssignLogistics} className="border-t border-gray-200 pt-3.5 flex flex-col gap-3">
-                <p className="text-[10px] font-bold text-gray-400 uppercase">Assign Logistics Partner</p>
+                <p className="text-[10px] font-bold text-gray-400 ">Assign Logistics Partner</p>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="flex flex-col gap-1">
-                    <label className="text-[9px] font-bold text-gray-500 uppercase">Courier Partner</label>
+                    <label className="text-[9px] font-bold text-gray-500 ">Courier Partner</label>
                     <Input
                       placeholder="e.g. Delhivery"
                       value={courier}
@@ -2426,7 +2409,7 @@ function OrdersTab({
                     />
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className="text-[9px] font-bold text-gray-500 uppercase">Tracking ID</label>
+                    <label className="text-[9px] font-bold text-gray-500 ">Tracking ID</label>
                     <Input
                       placeholder="e.g. DL18392"
                       value={trackingId}
@@ -2441,7 +2424,7 @@ function OrdersTab({
               {/* Timeline display */}
               {selectedOrder.timeline && selectedOrder.timeline.length > 0 && (
                 <div className="flex flex-col gap-2 border-t border-gray-200 pt-3.5">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase">Order Timeline</p>
+                  <p className="text-[10px] font-bold text-gray-400 ">Order Timeline</p>
                   <div className="flex flex-col gap-2.5 mt-1 max-h-32 overflow-y-auto pr-1">
                     {selectedOrder.timeline.map((t, idx) => (
                       <div key={idx} className="flex items-start gap-2 text-left">
@@ -2571,7 +2554,7 @@ function CustomersTab({
           <div className="overflow-x-auto border border-gray-100 rounded-xl shadow-sm">
             <table className="w-full text-left border-collapse text-sm">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-200 text-gray-400 font-bold text-xs uppercase tracking-wider">
+                <tr className="bg-gray-50 border-b border-gray-200 text-gray-400 font-bold text-xs ">
                   <th className="p-4">Customer</th>
                   <th className="p-4">Total Orders</th>
                   <th className="p-4">Lifetime Spent</th>
@@ -2680,27 +2663,27 @@ function CustomersTab({
                   {/* Operational Metrics */}
                   <div className="grid grid-cols-2 gap-3">
                     <div className="bg-white border border-gray-100 rounded-xl p-3 shadow-xs">
-                      <p className="text-[9px] font-bold text-gray-405 uppercase">Lifetime Spent</p>
+                      <p className="text-[9px] font-bold text-gray-405 ">Lifetime Spent</p>
                       <p className="text-sm font-extrabold text-purple-700 mt-0.5">{formatINR(spent)}</p>
                     </div>
                     <div className="bg-white border border-gray-100 rounded-xl p-3 shadow-xs">
-                      <p className="text-[9px] font-bold text-gray-405 uppercase">Total Orders</p>
+                      <p className="text-[9px] font-bold text-gray-405 ">Total Orders</p>
                       <p className="text-sm font-extrabold text-gray-800 mt-0.5">{count} orders</p>
                     </div>
                     <div className="bg-white border border-gray-100 rounded-xl p-3 shadow-xs col-span-2">
-                      <p className="text-[9px] font-bold text-gray-405 uppercase">Last Order Date</p>
+                      <p className="text-[9px] font-bold text-gray-405 ">Last Order Date</p>
                       <p className="text-xs font-bold text-gray-700 mt-0.5">{lastOrderDate}</p>
                     </div>
                   </div>
 
                   {/* Saved Delivery Addresses */}
                   <div>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase mb-2">Saved Delivery Addresses</p>
+                    <p className="text-[10px] font-bold text-gray-400 mb-2">Saved Delivery Addresses</p>
                     <div className="flex flex-col gap-2 max-h-[120px] overflow-y-auto pr-1">
                       {selectedCust.addresses.length ? (
                         selectedCust.addresses.map((a) => (
                           <div key={a.id} className="text-xs border border-gray-150 rounded-lg p-2.5 bg-white shadow-xs">
-                            <span className="font-bold text-purple-600 text-[9px] uppercase">{a.tag}</span>
+                            <span className="font-bold text-purple-600 text-[9px] ">{a.tag}</span>
                             <p className="text-gray-650 mt-0.5 leading-normal">{a.addressLine}, {a.city} - {a.pincode}</p>
                           </div>
                         ))
@@ -2712,7 +2695,7 @@ function CustomersTab({
 
                   {/* Complete Order History logs */}
                   <div>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase mb-2">Complete Order History</p>
+                    <p className="text-[10px] font-bold text-gray-400 mb-2">Complete Order History</p>
                     {allOrders.length ? (
                       <div className="flex flex-col gap-2 max-h-[160px] overflow-y-auto pr-1">
                         {allOrders.map((o) => (
@@ -2884,7 +2867,7 @@ function CouponsTab() {
         <div className="overflow-x-auto border border-gray-100 rounded-xl shadow-sm bg-white">
           <table className="w-full min-w-[600px] text-left border-collapse text-sm">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-200 text-gray-400 font-bold text-xs uppercase tracking-wider">
+              <tr className="bg-gray-50 border-b border-gray-200 text-gray-400 font-bold text-xs ">
                 <th className="p-4">Promo Code</th>
                 <th className="p-4">Discount Value</th>
                 <th className="p-4">Usage Claims</th>
@@ -2967,7 +2950,7 @@ function CouponsTab() {
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-bold text-gray-500 uppercase">Coupon Code (Uppercase)</label>
+              <label className="text-[10px] font-bold text-gray-500 ">Coupon Code (Uppercase)</label>
               <Input
                 value={code}
                 onChange={(e) => setCode(e.target.value.toUpperCase().replace(/\s/g, ""))}
@@ -2980,7 +2963,7 @@ function CouponsTab() {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold text-gray-500 uppercase">Discount Type</label>
+                <label className="text-[10px] font-bold text-gray-500 ">Discount Type</label>
                 <select
                   value={type}
                   onChange={(e) => setType(e.target.value)}
@@ -2991,7 +2974,7 @@ function CouponsTab() {
                 </select>
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-gray-500 uppercase">Discount Value</label>
+                <label className="text-[10px] font-bold text-gray-500 ">Discount Value</label>
                 <Input
                   type="number"
                   value={value}
@@ -3004,7 +2987,7 @@ function CouponsTab() {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-gray-500 uppercase">Min Order Subtotal (₹)</label>
+                <label className="text-[10px] font-bold text-gray-500 ">Min Order Subtotal (₹)</label>
                 <Input
                   type="number"
                   value={minSubtotal}
@@ -3013,7 +2996,7 @@ function CouponsTab() {
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-gray-500 uppercase">Usage Claim Limit</label>
+                <label className="text-[10px] font-bold text-gray-500 ">Usage Claim Limit</label>
                 <Input
                   type="number"
                   value={usageLimit}
@@ -3025,7 +3008,7 @@ function CouponsTab() {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-gray-500 uppercase">Expiry Date (Optional)</label>
+                <label className="text-[10px] font-bold text-gray-500 ">Expiry Date (Optional)</label>
                 <Input
                   type="date"
                   value={expiryDate}
@@ -3034,7 +3017,7 @@ function CouponsTab() {
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold text-gray-500 uppercase">Visibility Status</label>
+                <label className="text-[10px] font-bold text-gray-500 ">Visibility Status</label>
                 <select
                   value={status}
                   onChange={(e) => setStatus(e.target.value)}
@@ -3047,7 +3030,7 @@ function CouponsTab() {
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-bold text-gray-500 uppercase">Description / Promo Message</label>
+              <label className="text-[10px] font-bold text-gray-500 ">Description / Promo Message</label>
               <textarea
                 rows={2}
                 value={description}
@@ -3117,7 +3100,7 @@ function OffersTab() {
       <div className="overflow-x-auto border border-gray-100 rounded-xl shadow-sm">
         <table className="w-full min-w-[600px] text-left border-collapse text-sm">
           <thead>
-            <tr className="bg-gray-50 border-b border-gray-200 text-gray-400 font-bold text-xs uppercase tracking-wider">
+            <tr className="bg-gray-50 border-b border-gray-200 text-gray-400 font-bold text-xs ">
               <th className="p-4">Campaign Name</th>
               <th className="p-4">Promotion Details</th>
               <th className="p-4">Banner Section</th>
@@ -3293,7 +3276,7 @@ function InventoryTab({ flavors }: { flavors: Flavor[] }) {
           <div className="overflow-x-auto border border-gray-100 rounded-xl shadow-sm bg-white">
             <table className="w-full text-left border-collapse text-sm">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-200 text-gray-400 font-bold text-xs uppercase tracking-wider">
+                <tr className="bg-gray-50 border-b border-gray-200 text-gray-400 font-bold text-xs ">
                   <th className="p-4">Wafer Flavour</th>
                   <th className="p-4">Total Stock</th>
                   <th className="p-4">Reserved</th>
@@ -3343,7 +3326,7 @@ function InventoryTab({ flavors }: { flavors: Flavor[] }) {
 
           {/* Stock History Sub-panel */}
           <div className="border border-gray-100 rounded-xl p-4 bg-white shadow-sm">
-            <h3 className="text-xs font-bold text-gray-450 uppercase tracking-wider mb-3">Warehouse Stock History</h3>
+            <h3 className="text-xs font-bold text-gray-450 mb-3">Warehouse Stock History</h3>
             <div className="divide-y divide-gray-100 max-h-48 overflow-y-auto pr-1">
               {history.map((log, idx) => (
                 <div key={idx} className="py-2.5 flex items-center justify-between text-xs gap-3">
@@ -3370,7 +3353,7 @@ function InventoryTab({ flavors }: { flavors: Flavor[] }) {
           {selectedItem ? (
             <form onSubmit={handleSaveAdjustment} className="flex flex-col gap-3.5">
               <div className="flex items-center justify-between border-b border-gray-200 pb-2.5">
-                <h3 className="text-xs font-bold text-purple-700 uppercase">Audit {selectedItem.flavorName}</h3>
+                <h3 className="text-xs font-bold text-purple-700 ">Audit {selectedItem.flavorName}</h3>
                 <button
                   type="button"
                   onClick={() => setSelectedItem(null)}
@@ -3382,7 +3365,7 @@ function InventoryTab({ flavors }: { flavors: Flavor[] }) {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-gray-500 uppercase">Current On-Hand Stock</label>
+                  <label className="text-[10px] font-bold text-gray-500 ">Current On-Hand Stock</label>
                   <Input
                     type="number"
                     value={currentStock}
@@ -3392,7 +3375,7 @@ function InventoryTab({ flavors }: { flavors: Flavor[] }) {
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-gray-500 uppercase">Reserved Stock</label>
+                  <label className="text-[10px] font-bold text-gray-500 ">Reserved Stock</label>
                   <Input
                     type="number"
                     value={reservedStock}
@@ -3405,7 +3388,7 @@ function InventoryTab({ flavors }: { flavors: Flavor[] }) {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-gray-500 uppercase">Low Stock Alert Limit</label>
+                  <label className="text-[10px] font-bold text-gray-500 ">Low Stock Alert Limit</label>
                   <Input
                     type="number"
                     value={lowStockLimit}
@@ -3415,7 +3398,7 @@ function InventoryTab({ flavors }: { flavors: Flavor[] }) {
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-gray-500 uppercase">Cost Price (₹)</label>
+                  <label className="text-[10px] font-bold text-gray-500 ">Cost Price (₹)</label>
                   <Input
                     type="number"
                     value={costPrice}
@@ -3427,7 +3410,7 @@ function InventoryTab({ flavors }: { flavors: Flavor[] }) {
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-gray-500 uppercase">Warehouse Shelf Location</label>
+                <label className="text-[10px] font-bold text-gray-500 ">Warehouse Shelf Location</label>
                 <Input
                   value={warehouseLocation}
                   onChange={(e) => setWarehouseLocation(e.target.value)}
@@ -3437,7 +3420,7 @@ function InventoryTab({ flavors }: { flavors: Flavor[] }) {
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-gray-500 uppercase">Adjustment Reason Type</label>
+                <label className="text-[10px] font-bold text-gray-500 ">Adjustment Reason Type</label>
                 <select
                   value={adjustType}
                   onChange={(e) => setAdjustType(e.target.value)}
@@ -3450,7 +3433,7 @@ function InventoryTab({ flavors }: { flavors: Flavor[] }) {
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-gray-500 uppercase">Audit / Movement Log Note</label>
+                <label className="text-[10px] font-bold text-gray-500 ">Audit / Movement Log Note</label>
                 <textarea
                   rows={2}
                   value={adjustNote}
@@ -3566,7 +3549,7 @@ function ReportsTab({ orders }: { orders: Order[] }) {
       <div className="grid gap-6 lg:grid-cols-[1fr_2fr]">
         {/* Report configuration panel */}
         <div className="border border-gray-200 bg-gray-50 rounded-xl p-5 shadow-inner flex flex-col gap-4 h-fit">
-          <h3 className="text-xs font-bold text-purple-700 uppercase tracking-wider">Report Builder</h3>
+          <h3 className="text-xs font-bold text-purple-700 ">Report Builder</h3>
           
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold text-gray-500">Report Focus Dataset</label>
@@ -3605,17 +3588,17 @@ function ReportsTab({ orders }: { orders: Order[] }) {
         <div className="flex flex-col gap-6">
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="border border-gray-200 rounded-xl p-5 bg-white shadow-sm flex flex-col justify-between">
-              <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Monthly Sales</h4>
+              <h4 className="text-[10px] font-bold text-gray-400 ">Monthly Sales</h4>
               <p className="text-2xl font-extrabold text-purple-600 mt-1">₹{monthlySales.toLocaleString("en-IN")}</p>
               <p className="text-[9px] text-gray-500 mt-1">Sales in {new Date().toLocaleString("default", { month: "long" })}</p>
             </div>
             <div className="border border-gray-200 rounded-xl p-5 bg-white shadow-sm flex flex-col justify-between">
-              <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Yearly Sales</h4>
+              <h4 className="text-[10px] font-bold text-gray-400 ">Yearly Sales</h4>
               <p className="text-2xl font-extrabold text-purple-650 mt-1">₹{yearlySales.toLocaleString("en-IN")}</p>
               <p className="text-[9px] text-gray-500 mt-1">Calendar year {currentYear}</p>
             </div>
             <div className="border border-gray-200 rounded-xl p-5 bg-white shadow-sm flex flex-col justify-between">
-              <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Avg Order Value (AOV)</h4>
+              <h4 className="text-[10px] font-bold text-gray-400 ">Avg Order Value (AOV)</h4>
               <p className="text-2xl font-extrabold text-gray-800 mt-1">₹{Math.round(aov).toLocaleString("en-IN")}</p>
               <p className="text-[9px] text-gray-500 mt-1">From {activeOrders.length} active checkouts</p>
             </div>
@@ -3623,25 +3606,25 @@ function ReportsTab({ orders }: { orders: Order[] }) {
 
           {/* Logistics Cost Breakdown Card */}
           <div className="border border-gray-200 bg-white rounded-xl p-5 shadow-sm">
-            <h4 className="text-xs font-bold text-gray-800 uppercase tracking-wider flex items-center gap-2 border-b border-gray-100 pb-3">
+            <h4 className="text-xs font-bold text-gray-800 flex items-center gap-2 border-b border-gray-100 pb-3">
               <Truck className="size-4 text-purple-650" /> Logistics Cost & Dispatch Summary
             </h4>
             
             <div className="grid gap-5 sm:grid-cols-4 mt-4">
               <div className="flex flex-col">
-                <span className="text-[10px] text-gray-400 uppercase font-semibold">Total Dispatches</span>
+                <span className="text-[10px] text-gray-400 font-semibold">Total Dispatches</span>
                 <span className="text-xl font-bold text-gray-700 mt-1">{totalDispatchedCount} packages</span>
               </div>
               <div className="flex flex-col">
-                <span className="text-[10px] text-gray-400 uppercase font-semibold">RTO Returned</span>
+                <span className="text-[10px] text-gray-400 font-semibold">RTO Returned</span>
                 <span className="text-xl font-bold text-red-650 mt-1">{totalReturnedCount} returns</span>
               </div>
               <div className="flex flex-col">
-                <span className="text-[10px] text-gray-400 uppercase font-semibold">Logistics Expenses</span>
+                <span className="text-[10px] text-gray-400 font-semibold">Logistics Expenses</span>
                 <span className="text-xl font-bold text-gray-800 mt-1">₹{totalLogisticsCosts.toLocaleString("en-IN")}</span>
               </div>
               <div className="flex flex-col">
-                <span className="text-[10px] text-gray-400 uppercase font-semibold">Avg cost/order</span>
+                <span className="text-[10px] text-gray-400 font-semibold">Avg cost/order</span>
                 <span className="text-xl font-bold text-gray-800 mt-1">
                   ₹{totalDispatchedCount > 0 ? Math.round(totalLogisticsCosts / totalDispatchedCount) : 0}
                 </span>
@@ -3651,7 +3634,7 @@ function ReportsTab({ orders }: { orders: Order[] }) {
             <div className="mt-5 overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="border-b border-gray-150 text-gray-400 uppercase font-semibold">
+                  <tr className="border-b border-gray-150 text-gray-400 font-semibold">
                     <th className="pb-2">Expense Component</th>
                     <th className="pb-2">Unit Rate</th>
                     <th className="pb-2">Volume</th>
@@ -3695,103 +3678,24 @@ function FileUploaderField({
   label,
   value,
   onChange,
-  placeholder,
-  accept = "image/*,video/*",
+  folder = "products"
 }: {
   label: string;
   value: string;
   onChange: (val: string) => void;
+  folder?: string;
   placeholder?: string;
   accept?: string;
 }) {
-  const [uploading, setUploading] = React.useState(false);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploading(true);
-    const formData = new FormData();
-    formData.append("file", file);
-
-    try {
-      const res = await apiFetchEnvelope<{ url: string }>("/media/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (res.success && res.data?.url) {
-        onChange(res.data.url);
-        toast.success(`${label} uploaded successfully!`);
-      } else {
-        toast.error(`Failed to upload ${label}.`);
-      }
-    } catch (error) {
-      console.error("Upload error:", error);
-      toast.error("Failed to upload. Please try again.");
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const isVideo = /\.(mp4|webm|ogg)(\?|$)/i.test(value);
-
   return (
-    <div className="flex flex-col gap-2 rounded-xl border border-gray-100 bg-gray-50/50 p-3">
-      <div className="flex items-center justify-between">
-        <label className="text-xs font-bold uppercase tracking-wider text-gray-500">{label}</label>
-        {value && (
-          <a
-            href={value}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs font-semibold text-purple-650 hover:underline"
-          >
-            Open Original
-          </a>
-        )}
-      </div>
-      <div className="flex items-center gap-3">
-        {value && (
-          <div className="relative size-16 shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-white flex items-center justify-center shadow-sm">
-            {isVideo ? (
-              <video src={value} className="size-full object-cover" autoPlay loop muted playsInline />
-            ) : (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={value} alt="" className="size-full object-cover" />
-            )}
-          </div>
-        )}
-        <div className="flex-1 flex flex-col gap-2">
-          <div className="flex gap-2">
-            <Input
-              value={value}
-              onChange={(e: any) => onChange(e.target.value)}
-              placeholder={placeholder || "File URL"}
-              className="text-sm h-10 flex-1 px-4 bg-white"
-            />
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              accept={accept}
-              className="hidden"
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={uploading}
-              onClick={() => fileInputRef.current?.click()}
-              className="shrink-0 text-sm px-4 h-10 border-gray-200"
-            >
-              {uploading ? "Uploading..." : "Upload File"}
-            </Button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <CloudinaryImageUpload
+      label={label}
+      value={value}
+      onChange={onChange}
+      folder={folder}
+      multiple={false}
+      hint="JPG, PNG, WEBP, SVG — up to 50MB"
+    />
   );
 }
 
@@ -4471,7 +4375,7 @@ function HomepageTab({
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <h3 className="text-sm font-bold text-gray-800">Maintenance Mode</h3>
-                  <span className={cn("rounded-full px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider", maintenanceOn ? "bg-red-600 text-white" : "bg-green-100 text-green-700")}>
+                  <span className={cn("rounded-full px-2 py-0.5 text-[9px] font-extrabold ", maintenanceOn ? "bg-red-600 text-white" : "bg-green-100 text-green-700")}>
                     {maintenanceOn ? "Store Offline" : "Store Live"}
                   </span>
                 </div>
@@ -4487,11 +4391,11 @@ function HomepageTab({
             </div>
             <div className="mt-4 grid gap-3 sm:grid-cols-2 border-t border-gray-100 pt-3">
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold uppercase text-gray-500">Headline shown to customers</label>
+                <label className="text-[10px] font-bold text-gray-500">Headline shown to customers</label>
                 <Input value={maintenanceTitle} onChange={(e: any) => setMaintenanceTitle(e.target.value)} placeholder="We'll be right back" className="bg-white border-gray-200 text-xs rounded-xl" />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold uppercase text-gray-500">Message</label>
+                <label className="text-[10px] font-bold text-gray-500">Message</label>
                 <Input value={maintenanceMessage} onChange={(e: any) => setMaintenanceMessage(e.target.value)} placeholder="We're doing a little kitchen upkeep…" className="bg-white border-gray-200 text-xs rounded-xl" />
               </div>
             </div>
@@ -4505,7 +4409,7 @@ function HomepageTab({
                   <Globe className="size-5" />
                 </div>
                 <div>
-                  <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider">Global Website Configurations</h3>
+                  <h3 className="text-xs font-bold text-gray-900 ">Global Website Configurations</h3>
                   <p className="text-[10px] text-gray-500">Brand profile, live announcement marquee, and SEO metadata</p>
                 </div>
               </div>
@@ -4524,8 +4428,8 @@ function HomepageTab({
               {/* Card 1: Company & Brand Profile */}
               <div className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
                 <div className="flex items-center justify-between border-b border-gray-100 pb-2">
-                  <h3 className="text-xs font-bold text-purple-700 uppercase tracking-wider">Company &amp; Brand Profile</h3>
-                  <span className="text-[10px] font-extrabold uppercase text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200">Public Branding</span>
+                  <h3 className="text-xs font-bold text-purple-700 ">Company &amp; Brand Profile</h3>
+                  <span className="text-[10px] font-extrabold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200">Public Branding</span>
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -4615,10 +4519,10 @@ function HomepageTab({
               {/* Card 2: Homepage Announcement Bar */}
               <div className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
                 <div className="flex items-center justify-between border-b border-gray-100 pb-2">
-                  <h3 className="text-xs font-bold text-purple-700 uppercase tracking-wider flex items-center gap-1.5">
+                  <h3 className="text-xs font-bold text-purple-700 flex items-center gap-1.5">
                     <span>📢</span> Homepage Announcement Bar
                   </h3>
-                  <span className="text-[10px] font-extrabold uppercase text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">Header Banner</span>
+                  <span className="text-[10px] font-extrabold text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">Header Banner</span>
                 </div>
                 
                 <div className="flex items-center justify-between gap-4 rounded-xl border border-purple-100 bg-purple-50/40 p-3.5">
@@ -4636,7 +4540,7 @@ function HomepageTab({
 
                 {/* Live Banner Preview Box */}
                 <div className="flex flex-col gap-1.5 rounded-xl border border-gray-200 bg-gray-50 p-3">
-                  <span className="text-[10px] font-extrabold uppercase text-gray-400">Live Banner Preview</span>
+                  <span className="text-[10px] font-extrabold text-gray-400">Live Banner Preview</span>
                   <div
                     style={{ backgroundColor: announcementBgColor || "#7c3aed", color: announcementTextColor || "#ffffff" }}
                     className="flex items-center justify-center rounded-lg px-4 py-2 text-xs font-bold text-center shadow-2xs transition-all"
@@ -4692,7 +4596,7 @@ function HomepageTab({
 
                 {/* Preset Color Swatches */}
                 <div className="flex flex-col gap-1.5">
-                  <span className="text-[10px] font-extrabold uppercase text-gray-400">Quick Palette Presets</span>
+                  <span className="text-[10px] font-extrabold text-gray-400">Quick Palette Presets</span>
                   <div className="flex flex-wrap gap-2">
                     {[
                       { bg: "#7c3aed", text: "#ffffff", label: "Brand Purple" },
@@ -4721,8 +4625,8 @@ function HomepageTab({
               {/* Card 3: SEO & Analytics */}
               <div className="col-span-full flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
                 <div className="flex items-center justify-between border-b border-gray-100 pb-2">
-                  <h3 className="text-xs font-bold text-orange-600 uppercase tracking-wider">SEO, Crawlers &amp; Analytical Integrations</h3>
-                  <span className="text-[10px] font-extrabold uppercase text-orange-700 bg-orange-50 px-2 py-0.5 rounded border border-orange-200">Search Engine Indexing</span>
+                  <h3 className="text-xs font-bold text-orange-600 ">SEO, Crawlers &amp; Analytical Integrations</h3>
+                  <span className="text-[10px] font-extrabold text-orange-700 bg-orange-50 px-2 py-0.5 rounded border border-orange-200">Search Engine Indexing</span>
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -4794,7 +4698,7 @@ function HomepageTab({
         <form onSubmit={handleSaveWhatsapp} className="flex flex-col gap-6">
           <div className="grid gap-5 md:grid-cols-2">
             <div className="flex flex-col gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-              <h3 className="text-xs font-bold text-purple-700 uppercase tracking-wider mb-2">Floating Widget Behavior</h3>
+              <h3 className="text-xs font-bold text-purple-700 mb-2">Floating Widget Behavior</h3>
               <div className="flex items-center gap-3 bg-purple-50 p-3 rounded-lg border border-purple-100">
                 <input type="checkbox" id="waEnabled" checked={whatsappEnabled} onChange={(e) => setWhatsappEnabled(e.target.checked)} className="size-4" />
                 <label htmlFor="waEnabled" className="text-xs font-bold text-purple-950">Enable Floating WhatsApp Button Widget</label>
@@ -4838,7 +4742,7 @@ function HomepageTab({
             </div>
 
             <div className="flex flex-col gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-              <h3 className="text-xs font-bold text-orange-600 uppercase tracking-wider mb-2">Message Configurations</h3>
+              <h3 className="text-xs font-bold text-orange-600 mb-2">Message Configurations</h3>
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-semibold text-gray-500">Floating Button Default Greeting Message</label>
                 <textarea rows={2} value={defaultGreetingMessage} onChange={(e) => setDefaultGreetingMessage(e.target.value)} className="w-full rounded-xl border border-gray-200 p-2.5 text-xs outline-none focus:ring-2 focus:ring-purple-200" />
@@ -4847,7 +4751,7 @@ function HomepageTab({
           </div>
 
           <div className="rounded-xl border border-gray-200 bg-gray-50 p-5 shadow-sm">
-            <h3 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-3">WhatsApp API Sandbox Delivery History</h3>
+            <h3 className="text-xs font-bold text-gray-700 mb-3">WhatsApp API Sandbox Delivery History</h3>
             <div className="overflow-x-auto">
               <table className="w-full border-collapse text-left text-xs text-gray-600">
                 <thead>
@@ -4893,12 +4797,12 @@ function HomepageTab({
         <div className="flex flex-col gap-4">
           <div className="rounded-xl border border-[#E5E7EB] bg-white p-5 shadow-[var(--shadow-soft)]">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xs font-bold text-purple-700 uppercase tracking-wider">Storefront Social Channels Configuration</h3>
+              <h3 className="text-xs font-bold text-purple-700 ">Storefront Social Channels Configuration</h3>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="border-b border-gray-200 bg-[#F9FAFB] text-gray-500 font-bold uppercase text-[10px]">
+                  <tr className="border-b border-gray-200 bg-[#F9FAFB] text-gray-500 font-bold text-[10px]">
                     <th className="px-4 py-3.5">Platform</th>
                     <th className="px-4 py-3.5">Profile URL Address</th>
                     <th className="px-4 py-3.5">Username Handle</th>
@@ -4996,7 +4900,7 @@ function HomepageTab({
                               className="size-4 rounded border-gray-300 text-purple-600 accent-purple-600 cursor-pointer"
                             />
                           ) : (
-                            <span className={cn("text-[10px] font-bold uppercase", s.openInNewTab ? "text-green-600" : "text-gray-400")}>
+                            <span className={cn("text-[10px] font-bold ", s.openInNewTab ? "text-green-600" : "text-gray-400")}>
                               {s.openInNewTab ? "Yes" : "No"}
                             </span>
                           )}
@@ -5010,7 +4914,7 @@ function HomepageTab({
                               className="size-4 rounded border-gray-300 text-purple-600 accent-purple-600 cursor-pointer"
                             />
                           ) : (
-                            <span className={cn("rounded-full px-2 py-0.5 text-[9px] font-extrabold uppercase border shadow-sm", s.enabled ? "bg-green-50 text-green-700 border-green-200" : "bg-gray-100 text-gray-500 border-gray-200")}>
+                            <span className={cn("rounded-full px-2 py-0.5 text-[9px] font-extrabold border shadow-sm", s.enabled ? "bg-green-50 text-green-700 border-green-200" : "bg-gray-100 text-gray-500 border-gray-200")}>
                               {s.enabled ? "Live" : "Disabled"}
                             </span>
                           )}
@@ -5204,7 +5108,7 @@ function HomepageTab({
               <div className="flex flex-col gap-3 rounded-2xl border border-purple-100 bg-purple-50/30 p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="text-xs font-bold text-[#5B2C83] uppercase tracking-wider">Paragraphs & Policy Sections</h4>
+                    <h4 className="text-xs font-bold text-[#5B2C83] ">Paragraphs & Policy Sections</h4>
                     <p className="text-[11px] text-gray-500">Add, edit, or reorder paragraphs. Changes update the page body automatically.</p>
                   </div>
                   <Button
@@ -5227,7 +5131,7 @@ function HomepageTab({
                   {sectionsList.map((sec, idx) => (
                     <div key={idx} className="flex flex-col gap-2 rounded-xl border border-gray-200 bg-white p-3.5 shadow-2xs">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-[10px] font-extrabold uppercase text-purple-700 bg-purple-100 px-2 py-0.5 rounded">
+                        <span className="text-[10px] font-extrabold text-purple-700 bg-purple-100 px-2 py-0.5 rounded">
                           Paragraph #{idx + 1}
                         </span>
                         {sectionsList.length > 1 && (
@@ -5329,7 +5233,7 @@ function HomepageTab({
           <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex flex-col gap-1 w-32">
-                <label className="text-[10px] font-bold text-gray-400 uppercase">Folder Filter</label>
+                <label className="text-[10px] font-bold text-gray-400 ">Folder Filter</label>
                 <select value={mediaFolderFilter} onChange={(e) => setMediaFolderFilter(e.target.value)} className="h-8 rounded border border-gray-200 px-2 text-xs shadow-sm bg-white outline-none">
                   <option value="All">All Folders</option>
                   <option value="General">General</option>
@@ -5340,7 +5244,7 @@ function HomepageTab({
               </div>
 
               <div className="flex flex-col gap-1 w-48">
-                <label className="text-[10px] font-bold text-gray-400 uppercase">Search Files</label>
+                <label className="text-[10px] font-bold text-gray-400 ">Search Files</label>
                 <Input value={mediaSearchQuery} onChange={(e: any) => setMediaSearchQuery(e.target.value)} placeholder="Search file name or alt..." className="h-8 text-xs" />
               </div>
             </div>
@@ -5365,7 +5269,7 @@ function HomepageTab({
                   ) : (
                     <FileText className="size-10 text-gray-300" />
                   )}
-                  <span className="absolute left-2 top-2 rounded bg-purple-600/90 px-1.5 py-0.5 text-[8px] font-extrabold uppercase text-white tracking-wide">{m.folder || "General"}</span>
+                  <span className="absolute left-2 top-2 rounded bg-purple-600/90 px-1.5 py-0.5 text-[8px] font-extrabold text-white ">{m.folder || "General"}</span>
                 </div>
 
                 <div className="p-3 flex flex-col gap-2">
@@ -5373,7 +5277,7 @@ function HomepageTab({
                   <p className="text-[9px] text-gray-400 font-mono">{(m.size / 1024 / 1024).toFixed(2)} MB · {m.mimeType}</p>
                   
                   <div className="flex flex-col gap-1 pt-1 border-t border-gray-100">
-                    <label className="text-[9px] font-bold text-gray-400 uppercase">Image Alt Text (SEO)</label>
+                    <label className="text-[9px] font-bold text-gray-400 ">Image Alt Text (SEO)</label>
                     <input
                       type="text"
                       value={mediaAltTexts[m._id] || ""}
@@ -5385,7 +5289,7 @@ function HomepageTab({
                   </div>
 
                   <div className="flex flex-col gap-1">
-                    <label className="text-[9px] font-bold text-gray-400 uppercase">File Folder</label>
+                    <label className="text-[9px] font-bold text-gray-400 ">File Folder</label>
                     <select
                       value={mediaFolders[m._id] || "General"}
                       onChange={(e) => {
@@ -5444,7 +5348,7 @@ function HomepageTab({
             <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
               <div className="flex flex-wrap items-center gap-3">
                 <div className="flex flex-col gap-1 w-44">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase">Filter Inquiry Type</label>
+                  <label className="text-[10px] font-bold text-gray-400 ">Filter Inquiry Type</label>
                   <select
                     value={inquiryFilter}
                     onChange={(e) => {
@@ -5474,7 +5378,7 @@ function HomepageTab({
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="border-b border-gray-200 bg-gray-50 text-gray-500 font-bold uppercase text-[10px]">
+                    <tr className="border-b border-gray-200 bg-gray-50 text-gray-500 font-bold text-[10px]">
                       <th className="px-4 py-3">Inquiry Date</th>
                       <th className="px-4 py-3">Customer Info</th>
                       <th className="px-4 py-3">Message Subject & Body</th>
@@ -5504,7 +5408,7 @@ function HomepageTab({
                             <p className="text-gray-700 whitespace-pre-wrap">{i.message}</p>
                           </td>
                           <td className="px-4 py-3 w-32">
-                            <span className="rounded bg-orange-50 px-2 py-0.5 text-[9px] font-extrabold text-orange-700 border border-orange-200 uppercase tracking-wide">{i.inquiryType || "General"}</span>
+                            <span className="rounded bg-orange-50 px-2 py-0.5 text-[9px] font-extrabold text-orange-700 border border-orange-200 ">{i.inquiryType || "General"}</span>
                           </td>
                           <td className="px-4 py-3 w-36">
                             <select
@@ -5675,7 +5579,7 @@ function HomepageTab({
                     <div className="flex items-start gap-2.5">
                       <AlertTriangle className="size-4.5 shrink-0 text-yellow-600 mt-0.5" />
                       <div className="flex-1 min-w-0">
-                        <h4 className="text-[11px] font-bold text-yellow-800 uppercase tracking-wider">Save Password Now</h4>
+                        <h4 className="text-[11px] font-bold text-yellow-800 ">Save Password Now</h4>
                         <p className="text-[10px] text-yellow-700 mt-0.5 leading-relaxed">
                           Shown once for security. Save it safely in a password manager.
                         </p>
@@ -5717,7 +5621,7 @@ function HomepageTab({
 
                 <form onSubmit={handleSaveCustomPassword} className="flex flex-col gap-4">
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">New Password</label>
+                    <label className="text-[10px] font-bold text-gray-400 ">New Password</label>
                     <div className="relative">
                       <Input
                         type={showCustomPassword ? "text" : "password"}
@@ -5738,7 +5642,7 @@ function HomepageTab({
                   </div>
 
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Confirm Password</label>
+                    <label className="text-[10px] font-bold text-gray-400 ">Confirm Password</label>
                     <Input
                       type={showCustomPassword ? "text" : "password"}
                       value={confirmCustomPassword}
@@ -5842,10 +5746,10 @@ function NotificationTemplatesTab({
       <div className="rounded-2xl border border-amber-200 bg-amber-50/80 p-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h4 className="text-xs font-bold text-amber-900 uppercase tracking-wider">Dynamic Notification Variables</h4>
+            <h4 className="text-xs font-bold text-amber-900 ">Dynamic Notification Variables</h4>
             <p className="text-xs text-amber-800 mt-0.5">Click any variable chip below to copy it and paste into email or WhatsApp templates:</p>
           </div>
-          <span className="text-[10px] font-extrabold uppercase bg-amber-200/80 text-amber-950 px-2.5 py-1 rounded-full border border-amber-300">
+          <span className="text-[10px] font-extrabold bg-amber-200/80 text-amber-950 px-2.5 py-1 rounded-full border border-amber-300">
             6 System Variables
           </span>
         </div>
@@ -5943,7 +5847,7 @@ function NotificationTemplatesTab({
                     <div className="flex items-center gap-2">
                       <span
                         className={cn(
-                          "rounded-xl px-2.5 py-1 text-[10px] font-extrabold uppercase border shadow-2xs",
+                          "rounded-xl px-2.5 py-1 text-[10px] font-extrabold border shadow-2xs",
                           t.channel === "whatsapp"
                             ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                             : t.channel === "sms"
@@ -6075,7 +5979,7 @@ function NotificationTemplatesTab({
           <div className="flex flex-col gap-4 rounded-2xl bg-white p-6 shadow-xl max-w-lg w-full">
             <div className="flex items-center justify-between border-b border-gray-100 pb-3">
               <div>
-                <span className="text-[10px] font-extrabold uppercase text-purple-700 bg-purple-100 px-2 py-0.5 rounded">
+                <span className="text-[10px] font-extrabold text-purple-700 bg-purple-100 px-2 py-0.5 rounded">
                   {previewTemplate.channel} Preview
                 </span>
                 <h3 className="text-base font-bold text-gray-900 mt-1">{previewTemplate.label}</h3>
@@ -6090,7 +5994,7 @@ function NotificationTemplatesTab({
 
             {previewTemplate.subject && (
               <div className="flex flex-col gap-1 rounded-xl bg-purple-50/50 p-3 border border-purple-100">
-                <span className="text-[10px] font-extrabold uppercase text-purple-800">Rendered Subject Line</span>
+                <span className="text-[10px] font-extrabold text-purple-800">Rendered Subject Line</span>
                 <p className="text-xs font-bold text-gray-900">
                   {renderPreviewText(editedFields[previewTemplate._id]?.subject ?? previewTemplate.subject)}
                 </p>
@@ -6098,7 +6002,7 @@ function NotificationTemplatesTab({
             )}
 
             <div className="flex flex-col gap-1 rounded-xl bg-gray-50 p-4 border border-gray-200">
-              <span className="text-[10px] font-extrabold uppercase text-gray-400 mb-1">Rendered Message Body</span>
+              <span className="text-[10px] font-extrabold text-gray-400 mb-1">Rendered Message Body</span>
               <p className="text-xs text-gray-800 font-medium whitespace-pre-wrap leading-relaxed">
                 {renderPreviewText(editedFields[previewTemplate._id]?.body ?? previewTemplate.body)}
               </p>
@@ -6149,7 +6053,7 @@ function AuditLogsTab() {
         <div className="overflow-x-auto">
           <table className="w-full min-w-[500px] text-left border-collapse text-sm">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-200 text-gray-400 font-bold text-xs uppercase tracking-wider">
+              <tr className="bg-gray-50 border-b border-gray-200 text-gray-400 font-bold text-xs ">
                 <th className="p-4">Timestamp</th>
                 <th className="p-4">User / Role</th>
                 <th className="p-4">Operational Action</th>
@@ -6170,7 +6074,7 @@ function AuditLogsTab() {
                     </td>
                     <td className="p-4 text-xs">
                       <span className="font-bold text-purple-700 block">{l.user || 'System'}</span>
-                      <span className="text-[10px] text-gray-400 font-semibold uppercase">{l.role || 'System'}</span>
+                      <span className="text-[10px] text-gray-400 font-semibold ">{l.role || 'System'}</span>
                     </td>
                     <td className="p-4 text-xs text-gray-700 font-semibold">{l.action}</td>
                   </tr>
@@ -6289,7 +6193,7 @@ function NotificationsTab({
     <div className="flex flex-col gap-5">
       <div className="border-b border-gray-100 pb-4 flex items-center justify-between gap-4">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">System Alerts</span>
+          <span className="text-xs font-bold text-gray-500 ">System Alerts</span>
         </div>
         <Button
           variant="outline"
@@ -6393,7 +6297,7 @@ function NotificationsTab({
                     <span className={cn("text-xs font-bold", n.read ? "text-gray-700" : "text-gray-900")}>
                       {n.title}
                     </span>
-                    <Badge variant={badgeVariant} size="sm" className="text-[9px] font-bold uppercase tracking-wider">
+                    <Badge variant={badgeVariant} size="sm" className="text-[9px] font-bold ">
                       {n.type || "ALERT"}
                     </Badge>
                     {!n.read && (
@@ -6486,6 +6390,14 @@ function NotificationsTab({
 /* ================================================================== */
 /* MODULE 13: LOGISTICS PARTNER HUB                                  */
 /* ================================================================== */
+
+function RedirectLogisticsTab() {
+  const router = useRouter();
+  React.useEffect(() => {
+    router.replace("/admin/logistics");
+  }, [router]);
+  return null;
+}
 
 function LogisticsTab() {
   const [partners, setPartners] = React.useState<DeliveryPartnerItem[]>([]);
@@ -6629,7 +6541,7 @@ function LogisticsTab() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Company Name *</label>
+              <label className="text-[11px] font-bold text-gray-400">Company Name *</label>
               <Input
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
@@ -6638,7 +6550,7 @@ function LogisticsTab() {
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Contact Number *</label>
+              <label className="text-[11px] font-bold text-gray-400">Contact Number *</label>
               <Input
                 value={contact}
                 onChange={(e) => setContact(e.target.value)}
@@ -6647,7 +6559,7 @@ function LogisticsTab() {
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Email Address *</label>
+              <label className="text-[11px] font-bold text-gray-400">Email Address *</label>
               <Input
                 type="email"
                 value={email}
@@ -6657,7 +6569,7 @@ function LogisticsTab() {
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">GST Registration</label>
+              <label className="text-[11px] font-bold text-gray-400">GST Registration</label>
               <Input
                 value={gst}
                 onChange={(e) => setGst(e.target.value)}
@@ -6666,7 +6578,7 @@ function LogisticsTab() {
               />
             </div>
             <div className="flex flex-col gap-1.5 md:col-span-2">
-              <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Office Address</label>
+              <label className="text-[11px] font-bold text-gray-400">Office Address</label>
               <Input
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
@@ -6675,7 +6587,7 @@ function LogisticsTab() {
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Status</label>
+              <label className="text-[11px] font-bold text-gray-400">Status</label>
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value as any)}
@@ -6686,7 +6598,7 @@ function LogisticsTab() {
               </select>
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Supported Regions (comma-separated)</label>
+              <label className="text-[11px] font-bold text-gray-400">Supported Regions (comma-separated)</label>
               <Input
                 value={supportedRegions}
                 onChange={(e) => setSupportedRegions(e.target.value)}
@@ -6695,7 +6607,7 @@ function LogisticsTab() {
               />
             </div>
             <div className="flex flex-col gap-1.5 md:col-span-2">
-              <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">API Keys / Credential String</label>
+              <label className="text-[11px] font-bold text-gray-400">API Keys / Credential String</label>
               <textarea
                 rows={2}
                 value={apiKeys}
@@ -6705,7 +6617,7 @@ function LogisticsTab() {
               />
             </div>
             <div className="flex flex-col gap-1.5 md:col-span-2">
-              <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Tracking Redirect URL</label>
+              <label className="text-[11px] font-bold text-gray-400">Tracking Redirect URL</label>
               <Input
                 value={trackingUrl}
                 onChange={(e) => setTrackingUrl(e.target.value)}
@@ -6728,7 +6640,7 @@ function LogisticsTab() {
           ) : (
             <table className="w-full min-w-[700px] text-left border-collapse text-sm">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-200 text-gray-400 font-bold text-xs uppercase tracking-wider">
+                <tr className="bg-gray-50 border-b border-gray-200 text-gray-400 font-bold text-xs ">
                   <th className="p-4">Partner Name</th>
                   <th className="p-4">Contact Info</th>
                   <th className="p-4">GST No.</th>
@@ -6756,7 +6668,7 @@ function LogisticsTab() {
                       </div>
                     </td>
                     <td className="p-4">
-                      <Badge variant={p.status === "Active" ? "green" : "red"} className="text-[9px] uppercase font-bold">
+                      <Badge variant={p.status === "Active" ? "green" : "red"} className="text-[9px] font-bold">
                         {p.status}
                       </Badge>
                     </td>
@@ -7152,22 +7064,22 @@ function GstTab({ orders }: { orders: Order[] }) {
       {/* Metric Cards Banner */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="bg-white border border-[#E5E7EB] rounded-xl p-4 shadow-sm flex flex-col gap-1">
-          <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Turnover (Taxable)</span>
+          <span className="text-[10px] text-gray-400 font-bold ">Turnover (Taxable)</span>
           <p className="text-xl font-black text-gray-800">₹{totalTaxableRevenue.toLocaleString("en-IN")}</p>
           <span className="text-[9px] font-semibold text-gray-400">Aggregated active taxable base</span>
         </div>
         <div className="bg-white border border-[#E5E7EB] rounded-xl p-4 shadow-sm flex flex-col gap-1">
-          <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Total GST Collected</span>
+          <span className="text-[10px] text-gray-400 font-bold ">Total GST Collected</span>
           <p className="text-xl font-black text-purple-700">₹{totalTaxCollected.toLocaleString("en-IN")}</p>
           <span className="text-[9px] font-semibold text-purple-500">CGST + SGST + IGST collected</span>
         </div>
         <div className="bg-white border border-[#E5E7EB] rounded-xl p-4 shadow-sm flex flex-col gap-1">
-          <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">CGST (Intrastate)</span>
+          <span className="text-[10px] text-gray-400 font-bold ">CGST (Intrastate)</span>
           <p className="text-xl font-black text-gray-800">₹{(totalTaxCollected / 2).toLocaleString("en-IN")}</p>
           <span className="text-[9px] font-semibold text-gray-400">Central share on Maharashtra sales</span>
         </div>
         <div className="bg-white border border-[#E5E7EB] rounded-xl p-4 shadow-sm flex flex-col gap-1">
-          <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">SGST (Intrastate)</span>
+          <span className="text-[10px] text-gray-400 font-bold ">SGST (Intrastate)</span>
           <p className="text-xl font-black text-gray-800">₹{(totalTaxCollected / 2).toLocaleString("en-IN")}</p>
           <span className="text-[9px] font-semibold text-gray-400">State share on Maharashtra sales</span>
         </div>
@@ -7213,7 +7125,7 @@ function GstTab({ orders }: { orders: Order[] }) {
       {/* Sub-Tab Panels */}
       {activeSubTab === "config" && (
         <form onSubmit={handleSaveGstSettings} className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm flex flex-col gap-4">
-          <h3 className="text-xs font-bold text-purple-700 uppercase tracking-wider flex items-center gap-2 border-b border-gray-150 pb-3">
+          <h3 className="text-xs font-bold text-purple-700 flex items-center gap-2 border-b border-gray-150 pb-3">
             <SlidersHorizontal className="size-4" /> Global GST & Invoice Parameters
           </h3>
 
@@ -7255,7 +7167,7 @@ function GstTab({ orders }: { orders: Order[] }) {
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Business Name</label>
+              <label className="text-[10px] font-bold text-gray-400">Business Name</label>
               <input
                 value={businessName}
                 disabled={isReadOnly}
@@ -7266,7 +7178,7 @@ function GstTab({ orders }: { orders: Order[] }) {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">GSTIN / Tax ID</label>
+              <label className="text-[10px] font-bold text-gray-400">GSTIN / Tax ID</label>
               <input
                 value={gstNumber}
                 disabled={isReadOnly}
@@ -7277,7 +7189,7 @@ function GstTab({ orders }: { orders: Order[] }) {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">PAN Number</label>
+              <label className="text-[10px] font-bold text-gray-400">PAN Number</label>
               <input
                 value={panNumber}
                 disabled={isReadOnly}
@@ -7288,7 +7200,7 @@ function GstTab({ orders }: { orders: Order[] }) {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Business State</label>
+              <label className="text-[10px] font-bold text-gray-400">Business State</label>
               <select
                 value={businessState}
                 disabled={isReadOnly}
@@ -7304,7 +7216,7 @@ function GstTab({ orders }: { orders: Order[] }) {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Default Store GST Rate (%)</label>
+              <label className="text-[10px] font-bold text-gray-400">Default Store GST Rate (%)</label>
               <select
                 value={taxRate}
                 disabled={isReadOnly}
@@ -7321,7 +7233,7 @@ function GstTab({ orders }: { orders: Order[] }) {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Default HSN / SAC Code</label>
+              <label className="text-[10px] font-bold text-gray-400">Default HSN / SAC Code</label>
               <input
                 value={defaultHsnCode}
                 disabled={isReadOnly}
@@ -7333,7 +7245,7 @@ function GstTab({ orders }: { orders: Order[] }) {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Business Address</label>
+            <label className="text-[10px] font-bold text-gray-400">Business Address</label>
             <textarea
               value={businessAddress}
               disabled={isReadOnly}
@@ -7345,7 +7257,7 @@ function GstTab({ orders }: { orders: Order[] }) {
           </div>
 
           <div className="border border-gray-150 rounded-xl p-4 bg-gray-50/40 mt-1 flex flex-col gap-3">
-            <h4 className="text-[11px] font-bold text-gray-600 uppercase tracking-wider border-b border-gray-100 pb-1.5">
+            <h4 className="text-[11px] font-bold text-gray-600 border-b border-gray-100 pb-1.5">
               Supported GST Slabs Configuration
             </h4>
             <div className="flex flex-wrap gap-2.5">
@@ -7379,7 +7291,7 @@ function GstTab({ orders }: { orders: Order[] }) {
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 border-t border-gray-150 pt-4 mt-1">
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Invoice Number Prefix</label>
+              <label className="text-[10px] font-bold text-gray-400">Invoice Number Prefix</label>
               <input
                 value={invoicePrefix}
                 disabled={isReadOnly}
@@ -7389,7 +7301,7 @@ function GstTab({ orders }: { orders: Order[] }) {
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Invoice Start Number</label>
+              <label className="text-[10px] font-bold text-gray-400">Invoice Start Number</label>
               <input
                 type="number"
                 value={invoiceStartNumber}
@@ -7399,7 +7311,7 @@ function GstTab({ orders }: { orders: Order[] }) {
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Financial Year</label>
+              <label className="text-[10px] font-bold text-gray-400">Financial Year</label>
               <input
                 value={financialYear}
                 disabled={isReadOnly}
@@ -7409,7 +7321,7 @@ function GstTab({ orders }: { orders: Order[] }) {
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Reverse Charge Options</label>
+              <label className="text-[10px] font-bold text-gray-400">Reverse Charge Options</label>
               <div className="flex items-center gap-4 h-9">
                 <Toggle
                   label="Reverse Charge"
@@ -7471,13 +7383,13 @@ function GstTab({ orders }: { orders: Order[] }) {
 
       {activeSubTab === "calculator" && (
         <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm flex flex-col gap-4">
-          <h3 className="text-xs font-bold text-purple-700 uppercase tracking-wider flex items-center gap-2 border-b border-gray-150 pb-3">
+          <h3 className="text-xs font-bold text-purple-700 flex items-center gap-2 border-b border-gray-150 pb-3">
             <Percent className="size-4" /> Interactive GST Calculator
           </h3>
 
           <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Unit Price / Billing Amount (₹)</label>
+              <label className="text-[10px] font-bold text-gray-400">Unit Price / Billing Amount (₹)</label>
               <input
                 type="number"
                 value={calcAmount}
@@ -7487,7 +7399,7 @@ function GstTab({ orders }: { orders: Order[] }) {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Quantity</label>
+              <label className="text-[10px] font-bold text-gray-400">Quantity</label>
               <input
                 type="number"
                 value={calcQty}
@@ -7497,7 +7409,7 @@ function GstTab({ orders }: { orders: Order[] }) {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">GST Slab Rate (%)</label>
+              <label className="text-[10px] font-bold text-gray-400">GST Slab Rate (%)</label>
               <select
                 value={calcRate}
                 onChange={(e) => setCalcRate(Number(e.target.value))}
@@ -7512,7 +7424,7 @@ function GstTab({ orders }: { orders: Order[] }) {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Discount Before Tax (₹)</label>
+              <label className="text-[10px] font-bold text-gray-400">Discount Before Tax (₹)</label>
               <input
                 type="number"
                 value={calcDiscBefore}
@@ -7522,7 +7434,7 @@ function GstTab({ orders }: { orders: Order[] }) {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Discount After Tax (₹)</label>
+              <label className="text-[10px] font-bold text-gray-400">Discount After Tax (₹)</label>
               <input
                 type="number"
                 value={calcDiscAfter}
@@ -7532,7 +7444,7 @@ function GstTab({ orders }: { orders: Order[] }) {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Transaction State Type</label>
+              <label className="text-[10px] font-bold text-gray-400">Transaction State Type</label>
               <select
                 value={calcSplitType}
                 onChange={(e) => setCalcSplitType(e.target.value as any)}
@@ -7634,7 +7546,7 @@ function GstTab({ orders }: { orders: Order[] }) {
         <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm flex flex-col gap-4">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-3">
             <div>
-              <h3 className="text-xs font-bold text-gray-800 uppercase tracking-wider">Taxes Collected Ledger</h3>
+              <h3 className="text-xs font-bold text-gray-800 ">Taxes Collected Ledger</h3>
               <p className="text-[10px] text-gray-450 mt-0.5">Detailed records of taxes collected on active transactions</p>
             </div>
             
@@ -7652,7 +7564,7 @@ function GstTab({ orders }: { orders: Order[] }) {
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex flex-col gap-1">
-                <span className="text-[9px] uppercase tracking-wider font-bold text-gray-400">Date Range</span>
+                <span className="text-[9px] font-bold text-gray-400">Date Range</span>
                 <select
                   value={dateFilter}
                   onChange={(e) => setDateFilter(e.target.value as any)}
@@ -7669,7 +7581,7 @@ function GstTab({ orders }: { orders: Order[] }) {
               {dateFilter === "custom" && (
                 <>
                   <div className="flex flex-col gap-1">
-                    <span className="text-[9px] uppercase tracking-wider font-bold text-gray-400">From Date</span>
+                    <span className="text-[9px] font-bold text-gray-400">From Date</span>
                     <input
                       type="date"
                       value={fromDate}
@@ -7678,7 +7590,7 @@ function GstTab({ orders }: { orders: Order[] }) {
                     />
                   </div>
                   <div className="flex flex-col gap-1">
-                    <span className="text-[9px] uppercase tracking-wider font-bold text-gray-400">To Date</span>
+                    <span className="text-[9px] font-bold text-gray-400">To Date</span>
                     <input
                       type="date"
                       value={toDate}
@@ -7727,7 +7639,7 @@ function GstTab({ orders }: { orders: Order[] }) {
           <div className="overflow-x-auto border border-gray-200 rounded-lg max-h-[420px] overflow-y-auto mt-2">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-150 text-gray-400 font-bold text-[10px] uppercase tracking-wider sticky top-0 z-10">
+                <tr className="bg-gray-50 border-b border-gray-150 text-gray-400 font-bold text-[10px] sticky top-0 z-10">
                   <th className="p-3">Invoice Number</th>
                   <th className="p-3">Order Number</th>
                   <th className="p-3">Customer Name</th>

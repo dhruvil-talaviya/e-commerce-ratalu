@@ -96,36 +96,28 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = React.useState<UserProfile | null>(null);
   const [hydrated, setHydrated] = React.useState(false);
 
-  // Load user session on mount
+  // Load user session on mount via Silent Refresh (HttpOnly cookie)
   React.useEffect(() => {
     const loadProfile = async () => {
-      const tokens = getTokens();
-      if (tokens) {
-        try {
+      try {
+        // Attempt silent refresh using HttpOnly refresh token cookie
+        const { silentRefresh } = await import("@/lib/api");
+        const token = await silentRefresh();
+        if (token) {
           const profile = await apiFetch<UserProfile>("/auth/profile");
           setUser(profile);
-        } catch (err) {
-          console.error("Failed to load user profile on mount:", err);
-          // session might be invalid/expired
-          clearTokens();
+        } else {
           setUser(null);
         }
+      } catch (err) {
+        setUser(null);
+      } finally {
+        setHydrated(true);
       }
-      setHydrated(true);
     };
 
     loadProfile();
   }, []);
-
-  // Sync session changes to local storage (for fallback/speedy loads)
-  React.useEffect(() => {
-    if (!hydrated) return;
-    if (user) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-    } else {
-      localStorage.removeItem(STORAGE_KEY);
-    }
-  }, [user, hydrated]);
 
   /**
    * The store owner's number is not a customer identity — it must be verified
@@ -181,8 +173,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
     }
 
     saveTokens({
-      accessToken: data.data.accessToken,
-      refreshToken: data.data.refreshToken
+      accessToken: data.data.accessToken
     });
     setUser(data.data.user);
     return { success: true as const };
@@ -201,8 +192,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
       }
 
       saveTokens({
-        accessToken: data.data.accessToken,
-        refreshToken: data.data.refreshToken
+        accessToken: data.data.accessToken
       });
       setUser(data.data.user);
       return { success: true };
@@ -245,8 +235,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
       }
 
       saveTokens({
-        accessToken: data.data.accessToken,
-        refreshToken: data.data.refreshToken
+        accessToken: data.data.accessToken
       });
       setUser(data.data.user);
 
@@ -274,13 +263,9 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
 
   const logout = React.useCallback(async () => {
     try {
-      const tokens = getTokens();
-      if (tokens?.refreshToken) {
-        await apiFetch("/auth/logout", {
-          method: "POST",
-          body: { refreshToken: tokens.refreshToken }
-        });
-      }
+      await apiFetch("/auth/logout", {
+        method: "POST"
+      });
     } catch (err) {
       console.warn("Failed to invalidate session on server during logout:", err);
     } finally {

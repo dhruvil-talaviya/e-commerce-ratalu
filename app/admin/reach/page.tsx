@@ -98,7 +98,7 @@ export default function ReachPage() {
         <div className="flex flex-col gap-6">
           {/* ── Today Traffic & Sales ─────────────────────────────── */}
           <div>
-            <p className="mb-2.5 text-xs font-extrabold uppercase tracking-wider text-gray-400">Traffic & Conversions Today</p>
+            <p className="mb-2.5 text-xs font-extrabold text-gray-400">Traffic & Conversions Today</p>
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               <Kpi icon={Users} tone="primary" label="Unique Visitors" value={data.today.visitors} />
               <Kpi icon={Eye} tone="info" label="Page Views" value={data.today.views} />
@@ -131,7 +131,7 @@ export default function ReachPage() {
 
           {/* ── Product Likes & Customer Engagement KPI Cards ────── */}
           <div>
-            <p className="mb-2.5 text-xs font-extrabold uppercase tracking-wider text-gray-400">Product Likes & Customer Intent KPIs</p>
+            <p className="mb-2.5 text-xs font-extrabold text-gray-400">Product Likes & Customer Intent KPIs</p>
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               <Kpi
                 icon={Heart}
@@ -144,8 +144,8 @@ export default function ReachPage() {
                 icon={Crown}
                 tone="warning"
                 label="Top Liked Flavor"
-                value={data.mostLikedProduct ? `${data.mostLikedProduct.name}` : "None"}
-                hint={data.mostLikedProduct ? `${data.mostLikedProduct.likesCount} customer likes` : "No likes yet"}
+                value={data.mostLikedProduct && data.mostLikedProduct.likesCount > 0 ? data.mostLikedProduct.name : "—"}
+                hint={data.mostLikedProduct && data.mostLikedProduct.likesCount > 0 ? `${data.mostLikedProduct.likesCount} customer likes` : "0 customer likes"}
               />
               <Kpi
                 icon={BarChart3}
@@ -289,7 +289,7 @@ function Kpi({
           <Icon className="size-4.5" />
         </span>
         <div className="min-w-0">
-          <p className="truncate text-[11px] font-semibold uppercase tracking-wide text-[#6B7280]">
+          <p className="truncate text-[11px] font-semibold text-[#6B7280]">
             {label}
           </p>
           <p className="text-xl font-extrabold text-[#111827]">{value}</p>

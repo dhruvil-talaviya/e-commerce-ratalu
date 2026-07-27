@@ -154,8 +154,7 @@ app.use('/api/v1/auth/otp/verify', authVerifyLimiter);
 app.use('/api/v1/admin/login/otp', authVerifyLimiter);
 app.use('/api/v1/admin/login', authVerifyLimiter);
 
-// Serve static uploads
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+// Cloudinary CDN handles all image media delivery directly.
 
 // Main API Router Mount
 app.use('/api/v1', require('./routes'));

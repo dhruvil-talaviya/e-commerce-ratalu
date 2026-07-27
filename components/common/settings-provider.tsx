@@ -51,15 +51,57 @@ export interface StoreSettings {
   currency: string;
   language: string;
 
-  // Shipping
+  // Shipping & Delivery
   shippingFreeThreshold: number;
   shippingFlatRate: number;
+  sameDayFlatRate: number;
+  expressFlatRate: number;
+  storePickupEnabled: boolean;
+  homeDeliveryEnabled: boolean;
+  sameDayDeliveryEnabled: boolean;
+  expressDeliveryEnabled: boolean;
+  internationalShippingEnabled: boolean;
+  freeShippingEnabled: boolean;
+  freeShippingMinAmount: number;
+  freeShippingScope: string;
+  freeShippingStates: string[];
+  freeShippingCities: string[];
+  freeShippingPincodes: string[];
+  freeShippingCategories: string[];
+  shippingRules: any[];
 
   // Payment
   codEnabled: boolean;
   razorpayEnabled: boolean;
   upiEnabled: boolean;
   razorpayKeyId: string;
+  razorpayMerchantName: string;
+  razorpayBrandLogo: string;
+  razorpayThemeColor: string;
+  razorpayTestMode: boolean;
+  razorpayAutoCapture: boolean;
+  razorpayEnableRefunds: boolean;
+  razorpayEnablePartialRefunds: boolean;
+  razorpayEnableWebhooks: boolean;
+  razorpayEnableUPI: boolean;
+  razorpayEnableCards: boolean;
+  razorpayEnableWallets: boolean;
+  razorpayEnableNetBanking: boolean;
+  razorpayEnableEMI: boolean;
+
+  // Checkout & Restrictions
+  guestCheckoutEnabled: boolean;
+  loginRequired: boolean;
+  minOrderAmount: number;
+  maxOrderAmount: number;
+  maxCodAmount: number;
+  maxCartItems: number;
+  maxQuantityPerItem: number;
+  otpVerificationRequired: boolean;
+  addressValidationRequired: boolean;
+  deliverySlotSelectionEnabled: boolean;
+  estimatedDeliveryDays: string;
+  orderPipeline?: { key: string; label: string; enabled: boolean; description?: string }[];
 
   // Announcement Bar
   announcementText: string;
@@ -143,6 +185,9 @@ export interface StoreSettings {
   muteVideo: boolean;
   loopVideo: boolean;
 
+  // Checkout Policy & Delivery Instructions
+  checkoutInstructions?: { title: string; text: string; icon: string }[];
+
   // Notifications
   notifyOrderPlaced: boolean;
   notifyOrderShipped: boolean;
@@ -200,10 +245,49 @@ const DEFAULT_SETTINGS: StoreSettings = {
   language: "en",
   shippingFreeThreshold: 599,
   shippingFlatRate: 49,
+  sameDayFlatRate: 149,
+  expressFlatRate: 99,
+  storePickupEnabled: false,
+  homeDeliveryEnabled: true,
+  sameDayDeliveryEnabled: false,
+  expressDeliveryEnabled: false,
+  internationalShippingEnabled: false,
+  freeShippingEnabled: true,
+  freeShippingMinAmount: 599,
+  freeShippingScope: "all_india",
+  freeShippingStates: [],
+  freeShippingCities: [],
+  freeShippingPincodes: [],
+  freeShippingCategories: [],
+  shippingRules: [],
   codEnabled: true,
   razorpayEnabled: true,
   upiEnabled: true,
   razorpayKeyId: "",
+  razorpayMerchantName: "Yamora Chips",
+  razorpayBrandLogo: "",
+  razorpayThemeColor: "#5B2C6F",
+  razorpayTestMode: true,
+  razorpayAutoCapture: true,
+  razorpayEnableRefunds: true,
+  razorpayEnablePartialRefunds: true,
+  razorpayEnableWebhooks: true,
+  razorpayEnableUPI: true,
+  razorpayEnableCards: true,
+  razorpayEnableWallets: true,
+  razorpayEnableNetBanking: true,
+  razorpayEnableEMI: false,
+  guestCheckoutEnabled: true,
+  loginRequired: false,
+  minOrderAmount: 0,
+  maxOrderAmount: 50000,
+  maxCodAmount: 3000,
+  maxCartItems: 50,
+  maxQuantityPerItem: 10,
+  otpVerificationRequired: true,
+  addressValidationRequired: true,
+  deliverySlotSelectionEnabled: false,
+  estimatedDeliveryDays: "3–5 Business Days",
   announcementText: "Free shipping on orders above ₹599!",
   announcementEnabled: true,
   announcementBgColor: "#7c3aed",
@@ -326,7 +410,7 @@ export function StoreSettingsProvider({ children }: { children: React.ReactNode 
     fetchSettings();
   }, [fetchSettings]);
 
-  useLiveRefresh(fetchSettings, { minIntervalMs: 2000 });
+  useLiveRefresh(fetchSettings, { minIntervalMs: 60000 });
 
   const updateSettings = React.useCallback(async (updated: Partial<StoreSettings>) => {
     try {

@@ -53,20 +53,24 @@ export const TONE_CLASSES: Record<Tone, string> = {
  * the status dropdown. Mirrors server/src/services/fulfilment.service.js.
  */
 export const ORDER_STATUS: Record<string, { tone: Tone; progress: number }> = {
-  Pending: { tone: "neutral", progress: 8 },
-  Confirmed: { tone: "primary", progress: 18 },
+  "Pending Confirmation": { tone: "warning", progress: 5 },
+  Pending: { tone: "warning", progress: 8 },
+  Confirmed: { tone: "success", progress: 18 },
   Preparing: { tone: "primary", progress: 30 },
   Packed: { tone: "info", progress: 42 },
   "Ready to Ship": { tone: "info", progress: 54 },
   "Assigned to Logistics": { tone: "info", progress: 66 },
-  Shipped: { tone: "warning", progress: 76 },
-  "Out for Delivery": { tone: "warning", progress: 88 },
+  Shipped: { tone: "primary", progress: 76 },
+  "Out for Delivery": { tone: "primary", progress: 88 },
   Delivered: { tone: "success", progress: 100 },
+  Completed: { tone: "success", progress: 100 },
   Cancelled: { tone: "danger", progress: 100 },
   Returned: { tone: "danger", progress: 100 },
   "Refund Requested": { tone: "warning", progress: 100 },
   "Refund Approved": { tone: "warning", progress: 100 },
-  "Refund Completed": { tone: "danger", progress: 100 },
+  "Refund Processing": { tone: "warning", progress: 100 },
+  "Refund Completed": { tone: "neutral", progress: 100 },
+  Refunded: { tone: "neutral", progress: 100 },
   "Payment Failed": { tone: "danger", progress: 100 },
   Expired: { tone: "neutral", progress: 100 },
 };
@@ -77,12 +81,13 @@ export const PAYMENT_STATUS: Record<string, Tone> = {
   Failed: "danger",
   Refunded: "neutral",
   "Partially Refunded": "neutral",
+  "Refund Processing": "warning",
   Cancelled: "danger",
 };
 
 /** The happy path, in order — drawn as the progress track on an order. */
 export const FULFILMENT_FLOW = [
-  "Pending",
+  "Pending Confirmation",
   "Confirmed",
   "Preparing",
   "Packed",

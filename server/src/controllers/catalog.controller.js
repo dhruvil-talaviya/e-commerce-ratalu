@@ -179,6 +179,11 @@ exports.deleteCategory = async (req, res, next) => {
 
     await Combo.updateMany({ categoryId: category._id }, { $set: { categoryId: null } });
 
+    const { deleteCloudinaryAssetByUrlOrId } = require('../services/cloudinary.service');
+    if (category.image) {
+      await deleteCloudinaryAssetByUrlOrId(category.image);
+    }
+
     await category.deleteOne();
     await audit(req, `Deleted category "${category.name}" (${affected.modifiedCount} product(s) uncategorised)`);
 
@@ -343,12 +348,12 @@ exports.getFeaturedCombos = async (req, res, next) => {
 // @access  Public
 exports.getComboBySlug = async (req, res, next) => {
   try {
-    const combo = await Combo.findOne({ slug: req.params.slug });
+    const combo = await Combo.findOne({ slug: req.params.slug }).lean();
     if (!combo) {
       return next(new ErrorResponse('Combo deal not found', 404));
     }
 
-    const json = combo.toJSON();
+    const json = { ...combo, id: String(combo._id) };
     try {
       const { originalPrice } = await priceItems(combo.items);
       json.originalPrice = originalPrice;
@@ -362,11 +367,17 @@ exports.getComboBySlug = async (req, res, next) => {
 
     // Attach resolved flavor details for details page rendering
     json.items = await Promise.all(
-      combo.items.map(async (item) => {
-        const flavor = await Flavor.findOne({ slug: item.flavorId }).lean();
+      (combo.items || []).map(async (item) => {
+        const flavor = await Flavor.findOne({
+          $or: [{ slug: item.flavorId }, { id: item.flavorId }]
+        }).lean();
         return {
-          ...item,
-          flavor
+          flavorId: item.flavorId,
+          flavorName: item.flavorName,
+          packId: item.packId,
+          packLabel: item.packLabel,
+          quantity: item.quantity,
+          flavor: flavor || null
         };
       })
     );
@@ -515,9 +526,18 @@ exports.updateCombo = async (req, res, next) => {
 // @access  Private (Admin)
 exports.deleteCombo = async (req, res, next) => {
   try {
-    const combo = await Combo.findByIdAndDelete(req.params.id);
+    const combo = await Combo.findById(req.params.id);
     if (!combo) return next(new ErrorResponse('Combo not found', 404));
 
+    const { deleteCloudinaryAssetByUrlOrId } = require('../services/cloudinary.service');
+    if (combo.image) await deleteCloudinaryAssetByUrlOrId(combo.image);
+    if (Array.isArray(combo.images)) {
+      for (const imgUrl of combo.images) {
+        await deleteCloudinaryAssetByUrlOrId(imgUrl);
+      }
+    }
+
+    await combo.deleteOne();
     await audit(req, `Deleted combo "${combo.name}"`);
 
     sendResponse(res, 200, { success: true, message: 'Combo deleted', data: null });

@@ -238,7 +238,7 @@ function StatCard({
 
   return (
     <Card className="p-3">
-      <p className="text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">{label}</p>
+      <p className="text-[10px] font-bold text-[#6B7280]">{label}</p>
       <p className={cn("mt-1 text-xl font-extrabold", color)}>
         {value ?? <span className="text-gray-300">—</span>}
       </p>

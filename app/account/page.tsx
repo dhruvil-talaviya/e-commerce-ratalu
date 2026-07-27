@@ -38,6 +38,8 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { toast } from "@/components/ui/toast";
 import { PageHeader } from "@/components/common/page-header";
 import { HeatMeter } from "@/components/common/heat-meter";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
+import { OrderTimeline } from "@/components/common/order-timeline";
 import { WaferVisual } from "@/components/common/wafer-visual";
 import { useWishlist } from "@/components/cart/wishlist-provider";
 import { useCart } from "@/components/cart/cart-provider";
@@ -993,12 +995,14 @@ function OrderCard({
     return () => clearInterval(timer);
   }, [order.createdAt]);
 
+  const [showCancelModal, setShowCancelModal] = React.useState(false);
+
   const handleCancel = async () => {
-    if (!window.confirm("Are you sure you want to cancel this order?")) return;
     try {
       setLoading(true);
       await apiFetch(`/orders/${order.id}/cancel`, { method: "POST" });
       toast.success("Order cancelled successfully!");
+      setShowCancelModal(false);
       const res = await apiFetch<{ success: boolean; data: any }>(`/orders/${order.id}`);
       if (res?.data) {
         setDetailedOrder(res.data);
@@ -1097,16 +1101,23 @@ function OrderCard({
         </div>
       )}
 
-      {/* Tracking Stepper */}
-      <div className="mt-4 rounded-xl border border-gray-100 bg-gray-50/50 p-4 sm:mt-6">
-        <div className="mb-4 flex items-center justify-between gap-2 text-[10px] font-bold uppercase tracking-wider text-gray-400 sm:text-[11px]">
-          <span>Delivery Details</span>
-          <span className="shrink-0">{currentStatus}</span>
-        </div>
-        
-        <OrderStatusStepper status={currentStatus} />
- 
-        <p className="mt-4 text-[10px] leading-relaxed text-gray-500 sm:text-[11px]">
+      {/* Tracking Stepper & Progress Pipeline */}
+      <div className="mt-4 sm:mt-6">
+        <OrderTimeline
+          orderStatus={currentStatus}
+          paymentStatus={detailedOrder?.payment?.status || order.payment?.status || "Paid"}
+          fulfilmentStatus={(detailedOrder as any)?.fulfilmentStatus || (order as any)?.fulfilmentStatus}
+          cancellationDeadline={(detailedOrder as any)?.cancellationDeadline || (order as any)?.cancellationDeadline || (order as any)?.cancellableUntil}
+          confirmedAt={(detailedOrder as any)?.confirmedAt}
+          packedAt={(detailedOrder as any)?.packedAt}
+          shippedAt={(detailedOrder as any)?.shippedAt}
+          deliveredAt={(detailedOrder as any)?.deliveredAt}
+          cancelledAt={(detailedOrder as any)?.cancelledAt}
+          trackingNumber={order.trackingNumber}
+          courierName={order.courierName}
+        />
+
+        <p className="mt-3 text-[10px] leading-relaxed text-gray-500 sm:text-[11px]">
           Delivering to <span className="font-bold text-gray-800">{order.address.tag}</span> —{" "}
           {order.address.addressLine}, {order.address.city}
         </p>
@@ -1156,8 +1167,8 @@ function OrderCard({
               variant="outline"
               size="sm"
               disabled={loading}
-              onClick={handleCancel}
-              className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 h-8 text-xs font-semibold px-3"
+              onClick={() => setShowCancelModal(true)}
+              className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 h-8 text-xs font-semibold px-3 cursor-pointer"
             >
               Cancel Order
             </Button>
@@ -1167,6 +1178,18 @@ function OrderCard({
           </span>
         </div>
       </div>
+
+      <ConfirmModal
+        open={showCancelModal}
+        onClose={() => setShowCancelModal(false)}
+        onConfirm={handleCancel}
+        title="Cancel Order?"
+        description={`Are you sure you want to cancel Order #${order.displayId || order.id}? Items will be restored to inventory and any paid amount will be refunded.`}
+        confirmLabel="Yes, Cancel Order"
+        cancelLabel="Keep Order"
+        tone="danger"
+        loading={loading}
+      />
     </div>
   );
 }

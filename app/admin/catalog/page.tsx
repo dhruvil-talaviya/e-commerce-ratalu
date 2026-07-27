@@ -15,6 +15,7 @@ import {
   ConfirmDialog,
 } from "@/components/admin/ui/primitives";
 import { formatMoney } from "@/components/admin/ui/tokens";
+import { CloudinaryImageUpload } from "@/components/admin/CloudinaryImageUpload";
 
 /* ------------------------------------------------------------------ */
 /* TYPES                                                              */
@@ -280,87 +281,22 @@ function FileUploaderField({
   label,
   value,
   onChange,
-  placeholder,
+  folder = "categories"
 }: {
   label: string;
   value: string;
   onChange: (val: string) => void;
+  folder?: string;
   placeholder?: string;
 }) {
-  const [uploading, setUploading] = React.useState(false);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploading(true);
-    const formData = new FormData();
-    formData.append("file", file);
-
-    try {
-      const res = await apiFetchEnvelope<{ url: string }>("/media/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (res.success && res.data?.url) {
-        onChange(res.data.url);
-        toast.success(`${label} uploaded successfully!`);
-      } else {
-        toast.error(`Failed to upload ${label}.`);
-      }
-    } catch (error) {
-      console.error("Upload error:", error);
-      toast.error("Failed to upload. Please try again.");
-    } finally {
-      setUploading(false);
-    }
-  };
-
   return (
-    <div className="flex flex-col gap-1">
-      <div className="flex items-center justify-between">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">
-          {label}
-        </span>
-        {value && (
-          <a
-            href={value}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[9px] font-bold text-[#5B2C83] hover:underline"
-          >
-            View Current
-          </a>
-        )}
-      </div>
-      <div className="flex gap-2">
-        <input
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder || "Image URL"}
-          className="flex-1 rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-xs text-[#111827] placeholder-gray-400 outline-none focus:border-[#5B2C83] focus:ring-1 focus:ring-[#5B2C83]"
-        />
-        <input
-          type="file"
-          ref={fileInputRef}
-          onChange={handleFileChange}
-          accept="image/*"
-          className="hidden"
-        />
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          disabled={uploading}
-          onClick={() => fileInputRef.current?.click()}
-          className="shrink-0 text-[11px] px-3 h-8"
-        >
-          {uploading ? "Uploading..." : "Upload File"}
-        </Button>
-      </div>
-    </div>
+    <CloudinaryImageUpload
+      label={label}
+      value={value}
+      onChange={onChange}
+      folder={folder}
+      multiple={false}
+    />
   );
 }
 
@@ -418,7 +354,7 @@ function CategoryEditor({
     >
       <div className="flex flex-col gap-3">
         <label className="flex flex-col gap-1">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">
+          <span className="text-[10px] font-bold text-[#6B7280]">
             Name
           </span>
           <input
@@ -429,7 +365,7 @@ function CategoryEditor({
         </label>
 
         <label className="flex flex-col gap-1">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">
+          <span className="text-[10px] font-bold text-[#6B7280]">
             Slug
           </span>
           <input
@@ -442,7 +378,7 @@ function CategoryEditor({
         </label>
 
         <label className="flex flex-col gap-1">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">
+          <span className="text-[10px] font-bold text-[#6B7280]">
             Description
           </span>
           <textarea
@@ -829,7 +765,7 @@ function ComboEditor({
         <div className="flex min-w-0 flex-col gap-3.5">
           <div className="grid gap-3.5 sm:grid-cols-2">
             <label className="flex flex-col gap-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">
+              <span className="text-[10px] font-bold text-[#6B7280]">
                 Name
               </span>
               <input
@@ -840,7 +776,7 @@ function ComboEditor({
               />
             </label>
             <label className="flex flex-col gap-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">
+              <span className="text-[10px] font-bold text-[#6B7280]">
                 Subtitle
               </span>
               <input
@@ -854,7 +790,7 @@ function ComboEditor({
 
           <div className="grid gap-3.5 sm:grid-cols-3">
             <label className="flex flex-col gap-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">
+              <span className="text-[10px] font-bold text-[#6B7280]">
                 Badge
               </span>
               <input
@@ -865,7 +801,7 @@ function ComboEditor({
               />
             </label>
             <label className="flex flex-col gap-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">
+              <span className="text-[10px] font-bold text-[#6B7280]">
                 Rating (1-5)
               </span>
               <input
@@ -880,7 +816,7 @@ function ComboEditor({
               />
             </label>
             <label className="flex flex-col gap-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">
+              <span className="text-[10px] font-bold text-[#6B7280]">
                 Review Count
               </span>
               <input
@@ -894,7 +830,7 @@ function ComboEditor({
           </div>
 
           <label className="flex flex-col gap-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">
+            <span className="text-[10px] font-bold text-[#6B7280]">
               Description
             </span>
             <textarea
@@ -956,7 +892,7 @@ function ComboEditor({
 
           {/* ── Items ─────────────────────────────────────────────── */}
           <div>
-            <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">
+            <p className="mb-2 text-[10px] font-bold text-[#6B7280]">
               What&apos;s in the bundle
             </p>
 
@@ -1042,7 +978,7 @@ function ComboEditor({
           <Card className="bg-[#F8FAFC] p-3.5">
             <div className="grid gap-3.5 sm:grid-cols-[160px_1fr]">
               <label className="flex flex-col gap-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">
+                <span className="text-[10px] font-bold text-[#6B7280]">
                   Combo price ₹
                 </span>
                 <input
@@ -1080,7 +1016,7 @@ function ComboEditor({
 
         {/* ── Customer preview ─────────────────────────────────────── */}
         <div className="lg:sticky lg:top-0 lg:self-start">
-          <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">
+          <p className="mb-2 text-[10px] font-bold text-[#6B7280]">
             How customers see it
           </p>
 

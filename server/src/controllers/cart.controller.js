@@ -491,3 +491,62 @@ exports.getAdminCoupons = async (req, res, next) => {
     next(error);
   }
 };
+
+// @desc    Get Detailed Customer Redemptions for a Coupon
+// @route   GET /api/v1/admin/coupons/:id/redemptions
+// @access  Private (Admin only)
+exports.getCouponRedemptions = async (req, res, next) => {
+  try {
+    const coupon = await Coupon.findById(req.params.id);
+    if (!coupon) return next(new ErrorResponse('Coupon not found', 404));
+
+    const Customer = require('../models/Customer');
+    const Order = require('../models/Order');
+
+    const orders = await Order.find({
+      couponCode: coupon.code,
+      status: { $nin: ['Cancelled', 'Payment Failed', 'Expired'] }
+    })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const customerIds = [...new Set(orders.map((o) => String(o.customerId)).filter(Boolean))];
+    const customers = await Customer.find({ _id: { $in: customerIds } }).lean();
+    const customerMap = new Map(customers.map((c) => [String(c._id), c]));
+
+    const redemptions = orders.map((o) => {
+      const cust = customerMap.get(String(o.customerId));
+      return {
+        _id: o._id,
+        orderId: o.id,
+        displayId: o.displayId || o.id,
+        orderNumber: o.orderNumber,
+        customerName: o.userName || cust?.name || 'Customer',
+        customerPhone: o.userPhone || cust?.phone || 'N/A',
+        customerEmail: cust?.email || 'N/A',
+        orderTotal: o.totals?.total || 0,
+        discount: o.totals?.discount || 0,
+        status: o.status,
+        date: o.createdAt
+      };
+    });
+
+    sendResponse(res, 200, {
+      success: true,
+      data: {
+        coupon: {
+          _id: coupon._id,
+          code: coupon.code,
+          usageCount: coupon.usageCount,
+          usageLimit: coupon.usageLimit,
+          perAccountLimit: coupon.perAccountLimit,
+          firstOrderOnly: coupon.firstOrderOnly,
+          status: coupon.status
+        },
+        redemptions
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};

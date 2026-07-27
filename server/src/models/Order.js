@@ -86,6 +86,7 @@ const OrderSchema = new mongoose.Schema({
   status: {
     type: String,
     enum: [
+      'Pending Confirmation',
       'Pending',
       'Confirmed',
       'Preparing',
@@ -95,22 +96,61 @@ const OrderSchema = new mongoose.Schema({
       'Shipped',
       'Out for Delivery',
       'Delivered',
+      'Completed',
       'Cancelled',
       'Returned',
       'Refund Requested',
       'Refund Approved',
+      'Refund Processing',
       'Refund Completed',
+      'Refunded',
       'Payment Failed',
       'Expired'
     ],
-    default: 'Pending'
+    default: 'Pending Confirmation'
   },
+  orderStatus: {
+    type: String,
+    enum: [
+      'Pending Confirmation',
+      'Confirmed',
+      'Packed',
+      'Ready to Ship',
+      'Shipped',
+      'Out for Delivery',
+      'Delivered',
+      'Completed',
+      'Cancelled',
+      'Refund Processing',
+      'Refunded'
+    ],
+    default: 'Pending Confirmation',
+    index: true
+  },
+  fulfilmentStatus: {
+    type: String,
+    enum: [
+      'On Hold',
+      'Ready to Pack',
+      'Packing',
+      'Ready to Ship',
+      'Shipped',
+      'Completed',
+      'Cancelled'
+    ],
+    default: 'On Hold',
+    index: true
+  },
+  cancellationDeadline: { type: Date, default: null, index: true },
+  confirmedAt: { type: Date, default: null },
+  shipmentCreatedAt: { type: Date, default: null },
+  awbGeneratedAt: { type: Date, default: null },
+  packedAt: { type: Date, default: null },
+  shippedAt: { type: Date, default: null },
+  deliveredAt: { type: Date, default: null },
+  refundedAt: { type: Date, default: null },
   /**
    * Which coupon paid for the discount on this order.
-   *
-   * Was not recorded at all, which meant per-account redemption limits had
-   * nothing exact to count — the only trace was a flag on the customer, so
-   * "usable twice" or "first order only" could not be enforced or audited.
    */
   couponCode: { type: String, default: '', index: true },
 
@@ -122,7 +162,6 @@ const OrderSchema = new mongoose.Schema({
   internalNotes: { type: String },
 
   // ─── Structured Cancellation Fields ─────────────────────────────────────────
-  /** Who cancelled: 'customer' | 'admin'. Null when not cancelled. */
   cancelledBy: {
     type: String,
     enum: ['customer', 'admin'],
@@ -158,8 +197,13 @@ OrderSchema.virtual('displayId').get(function () {
 
 /** Instant the cancellation window closes (null once the order has moved on). */
 OrderSchema.virtual('cancellableUntil').get(function () {
-  if (this.status !== 'Pending' && this.status !== 'Confirmed') return null;
-  const created = this.createdAt || this._id.getTimestamp();
+  if (['Cancelled', 'Delivered', 'Completed', 'Shipped', 'Refunded'].includes(this.status) || ['Cancelled', 'Delivered', 'Completed', 'Shipped', 'Refunded'].includes(this.orderStatus)) {
+    return null;
+  }
+  if (this.cancellationDeadline) {
+    return this.cancellationDeadline;
+  }
+  const created = this.createdAt || (this._id ? this._id.getTimestamp() : new Date());
   const windowMs = (OrderSchema.statics.CANCEL_WINDOW_MINUTES || 5) * 60 * 1000;
   return new Date(created.getTime() + windowMs);
 });

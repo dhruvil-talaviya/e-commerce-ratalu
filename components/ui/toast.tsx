@@ -120,7 +120,7 @@ export function Toaster() {
 
   return (
     <div
-      className="pointer-events-none fixed inset-x-0 top-3 z-[100] flex flex-col items-center gap-2 px-3 sm:inset-x-auto sm:right-4 sm:top-4 sm:items-end"
+      className="pointer-events-none fixed right-3 top-3 z-[100] flex flex-col items-end gap-2 px-0 max-w-[calc(100vw-24px)] sm:right-4 sm:top-4"
       role="region"
       aria-live="polite"
       aria-atomic="false"

@@ -25,9 +25,8 @@ export function SystemStatusProvider({ children }: { children: React.ReactNode }
   React.useEffect(() => {
     const syncSession = () => {
       if (typeof window !== "undefined") {
-        const tokens = localStorage.getItem("ratalu.tokens.v1");
-        const account = localStorage.getItem("ratalu.account.v2");
-        setHasSession(!!(tokens || account));
+        const { getMemoryToken } = require("@/lib/api");
+        setHasSession(!!getMemoryToken());
       }
     };
     syncSession();

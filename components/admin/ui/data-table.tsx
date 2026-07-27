@@ -154,7 +154,7 @@ export function DataTable<T>({
                     scope="col"
                     aria-sort={active ? (sortOrder === "asc" ? "ascending" : "descending") : undefined}
                     className={cn(
-                      "whitespace-nowrap px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-[#6B7280]",
+                      "whitespace-nowrap px-4 py-3 text-xs font-semibold text-gray-500",
                       col.hideBelow && HIDE_CLASS[col.hideBelow],
                       col.className
                     )}

@@ -86,7 +86,29 @@ router.post('/contact/inquiry', submitInquiry);
 router.post('/login/otp', adminLoginOtp);
 router.post('/login', adminLogin);
 
+const {
+  getShippingSettings,
+  updateShippingSettings,
+  getPaymentSettings,
+  updatePaymentSettings,
+  testShiprocketConnection,
+  testRazorpayConnection,
+  syncShiprocketPickups,
+  generateRazorpayWebhook
+} = require('../controllers/settings.controller');
+
 // ─── Settings ────────────────────────────────────────────────────────────────
+router.get('/settings/shipping', ...adminOnly, getShippingSettings);
+router.put('/settings/shipping', ...adminOnly, updateShippingSettings);
+
+router.get('/settings/payment', ...adminOnly, getPaymentSettings);
+router.put('/settings/payment', ...adminOnly, updatePaymentSettings);
+
+router.post('/settings/test-shiprocket', ...adminOnly, testShiprocketConnection);
+router.post('/settings/test-razorpay', ...adminOnly, testRazorpayConnection);
+router.post('/settings/sync-pickups', ...adminOnly, syncShiprocketPickups);
+router.post('/settings/generate-webhook', ...adminOnly, generateRazorpayWebhook);
+
 router.put('/settings', ...adminOnly, updateSettings);
 router.put('/security', ...adminOnly, updateAdminSecurity);
 

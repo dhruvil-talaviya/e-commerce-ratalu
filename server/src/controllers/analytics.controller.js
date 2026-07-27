@@ -107,7 +107,7 @@ exports.getReach = async (req, res, next) => {
 
     const accountsWithLikes = await Wishlist.countDocuments({ 'ids.0': { $exists: true } });
     const engagementRate = totalCustomers > 0 ? Math.round((accountsWithLikes / totalCustomers) * 1000) / 10 : 0;
-    const mostLikedProduct = topLikedProducts[0] || null;
+    const mostLikedProduct = (topLikedProducts[0] && topLikedProducts[0].likesCount > 0) ? topLikedProducts[0] : null;
 
     // ── 7-day trend, oldest first ──────────────────────────────────────────
     const series = [];

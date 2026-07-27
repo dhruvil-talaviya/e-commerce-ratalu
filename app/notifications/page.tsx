@@ -5,12 +5,20 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Bell,
-  Package,
-  Ticket,
   BellRing,
+  Tag,
+  ShoppingBag,
+  Truck,
+  CheckCircle2,
+  XCircle,
+  CreditCard,
+  RotateCcw,
+  Megaphone,
+  Gift,
   Trash2,
   CheckCheck,
   ArrowRight,
+  Clock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -29,19 +37,35 @@ interface ApiNotification {
   createdAt: string;
 }
 
-const ICONS: Record<ApiNotification["type"], React.ElementType> = {
-  OrderStatus: Package,
-  Coupon: Ticket,
-  Offer: Ticket,
-  General: BellRing,
-};
+function getNotificationIcon(n: ApiNotification): React.ElementType {
+  const text = (n.title + " " + n.message).toLowerCase();
+  if (n.type === "OrderStatus") {
+    if (text.includes("delivered") || text.includes("delivery")) return CheckCircle2;
+    if (text.includes("shipped") || text.includes("on its way") || text.includes("out for delivery")) return Truck;
+    if (text.includes("cancel")) return XCircle;
+    if (text.includes("refund")) return RotateCcw;
+    if (text.includes("payment") || text.includes("paid")) return CreditCard;
+    return ShoppingBag;
+  }
+  if (n.type === "Coupon") return Tag;
+  if (n.type === "Offer") return Gift;
+  if ((n.title + " " + n.message).toLowerCase().includes("offer")) return Megaphone;
+  return BellRing;
+}
 
-const TONES: Record<ApiNotification["type"], string> = {
-  OrderStatus: "bg-purple-100 text-purple-700",
-  Coupon: "bg-orange-100 text-orange-700",
-  Offer: "bg-orange-100 text-orange-700",
-  General: "bg-gray-100 text-gray-600",
-};
+function getNotificationTone(n: ApiNotification): { bg: string; icon: string } {
+  const text = (n.title + " " + n.message).toLowerCase();
+  if (n.type === "OrderStatus") {
+    if (text.includes("delivered")) return { bg: "bg-emerald-100", icon: "text-emerald-700" };
+    if (text.includes("cancel")) return { bg: "bg-rose-100", icon: "text-rose-700" };
+    if (text.includes("refund")) return { bg: "bg-amber-100", icon: "text-amber-700" };
+    if (text.includes("payment") || text.includes("paid")) return { bg: "bg-blue-100", icon: "text-blue-700" };
+    if (text.includes("shipped") || text.includes("out for delivery")) return { bg: "bg-indigo-100", icon: "text-indigo-700" };
+    return { bg: "bg-purple-100", icon: "text-purple-700" };
+  }
+  if (n.type === "Coupon" || n.type === "Offer") return { bg: "bg-orange-100", icon: "text-orange-700" };
+  return { bg: "bg-gray-100", icon: "text-gray-500" };
+}
 
 type Filter = "all" | "unread" | "OrderStatus" | "Offer";
 
@@ -330,7 +354,8 @@ export default function NotificationsPage() {
                 <ul className="flex flex-col gap-2">
                   <AnimatePresence initial={false}>
                     {group.map((n) => {
-                      const Icon = ICONS[n.type] ?? BellRing;
+                      const Icon = getNotificationIcon(n);
+                      const tone = getNotificationTone(n);
                       return (
                         <motion.li
                           key={n._id}
@@ -345,16 +370,16 @@ export default function NotificationsPage() {
                               "group relative flex items-start gap-3 rounded-2xl border p-4 transition-colors",
                               n.read
                                 ? "border-[var(--color-border)] bg-white/60"
-                                : "border-purple-150 bg-purple-50/50"
+                                : "border-purple-100 bg-purple-50/50"
                             )}
                           >
                             <span
                               className={cn(
                                 "grid size-10 shrink-0 place-items-center rounded-xl",
-                                TONES[n.type] ?? TONES.General
+                                tone.bg
                               )}
                             >
-                              <Icon className="size-5" />
+                              <Icon className={cn("size-5", tone.icon)} />
                             </span>
 
                             <button
@@ -384,7 +409,7 @@ export default function NotificationsPage() {
                               <button
                                 onClick={() => remove(n._id)}
                                 aria-label="Delete notification"
-                                className="rounded-lg p-1 text-gray-300 opacity-0 transition-all hover:bg-red-50 hover:text-red-500 focus:opacity-100 group-hover:opacity-100"
+                                className="rounded-lg p-1 text-gray-400 opacity-100 transition-all hover:bg-red-50 hover:text-red-500 focus:opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
                               >
                                 <Trash2 className="size-3.5" />
                               </button>

@@ -46,7 +46,7 @@ const TABS: { key: TabKey; label: string }[] = [
 
 export function ProductDetailClient({ flavor }: { flavor: Flavor }) {
   const { settings } = useStoreSettings();
-  const { addItem } = useCart();
+  const { addItem, openCart } = useCart();
   const { has, toggle } = useWishlist();
   const router = useRouter();
   const [packId, setPackId] = React.useState(DEFAULT_PACK_ID);
@@ -104,6 +104,7 @@ export function ProductDetailClient({ flavor }: { flavor: Flavor }) {
     addItem(flavor, pack, qty);
     setAdded(true);
     setQty(1);
+    openCart();
     setTimeout(() => setAdded(false), 1600);
   };
 

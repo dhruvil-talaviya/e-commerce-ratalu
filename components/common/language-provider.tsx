@@ -5,7 +5,7 @@ import type { Language } from "@/lib/i18n/types";
 import { TRANSLATIONS, EN } from "@/lib/i18n/translations";
 import { LANGUAGE_META } from "@/lib/i18n/types";
 
-const STORAGE_KEY = "ratalu.language.v1";
+const STORAGE_KEY = "yamora.language.v1";
 
 interface LanguageContextValue {
   language: Language;

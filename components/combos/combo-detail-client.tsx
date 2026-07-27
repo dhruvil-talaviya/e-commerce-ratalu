@@ -22,12 +22,13 @@ import { WaferVisual } from "@/components/common/wafer-visual";
 import { useCart } from "@/components/cart/cart-provider";
 import { useProducts } from "@/components/shop/product-provider";
 import { ComboCard } from "@/components/shop/combo-card";
+import { ProductCard } from "@/components/shop/product-card";
 import { getPackFor } from "@/lib/data/products";
 import { formatINR, cn } from "@/lib/utils";
 import type { ShopCombo } from "@/lib/types";
 
 export function ComboDetailClient({ combo }: { combo: ShopCombo }) {
-  const { addItem } = useCart();
+  const { addCombo } = useCart();
   const { flavors } = useProducts();
 
   const [selectedImage, setSelectedImage] = React.useState(0);
@@ -47,12 +48,7 @@ export function ComboDetailClient({ combo }: { combo: ShopCombo }) {
 
   const handleAdd = () => {
     if (unavailable) return;
-    for (let q = 0; q < qty; q++) {
-      lines.forEach((line) => {
-        if (!line.flavor) return;
-        addItem(line.flavor, getPackFor(line.flavor, line.packId), line.quantity);
-      });
-    }
+    addCombo(combo, qty);
     setAdded(true);
     setTimeout(() => setAdded(false), 1600);
   };
@@ -80,7 +76,7 @@ export function ComboDetailClient({ combo }: { combo: ShopCombo }) {
 
         {/* Main Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Left: Gallery (5 cols) */}
+          {/* Left: Gallery (6 cols) */}
           <div className="lg:col-span-6 flex flex-col gap-4">
             <div className="relative aspect-[4/3] w-full overflow-hidden rounded-3xl border border-purple-200/80 bg-white p-6 shadow-sm flex items-center justify-center">
               {images.length > 0 ? (
@@ -101,105 +97,75 @@ export function ComboDetailClient({ combo }: { combo: ShopCombo }) {
                   )}
                 </div>
               )}
+            </div>
+          </div>
 
-              <Badge variant="primary" size="md" className="absolute left-4 top-4 shadow-sm z-10">
-                <Sparkles className="size-3.5" /> Combo Offer
-              </Badge>
+          {/* Right: Info (6 cols) */}
+          <div className="lg:col-span-6 flex flex-col gap-5 rounded-3xl border border-purple-200/80 bg-white p-5 sm:p-8 shadow-sm">
+            <div className="flex flex-col gap-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <Badge variant="primary" size="sm" className="bg-purple-700 text-white font-bold">
+                  <Sparkles className="size-3 mr-1" /> Super Value Combo
+                </Badge>
+                {combo.discountPercent > 0 && (
+                  <span className="rounded-full bg-emerald-600 px-3 py-1 text-xs font-extrabold text-white shadow-xs">
+                    {combo.discountPercent}% OFF
+                  </span>
+                )}
+              </div>
 
-              {combo.discountPercent > 0 && (
-                <span className="absolute right-4 top-4 rounded-full bg-green-600 px-3 py-1 text-xs font-extrabold text-white shadow-sm z-10">
-                  SAVE {combo.discountPercent}% OFF
+              <h1 className="font-serif text-2xl sm:text-3xl font-bold text-gray-900 mt-1">{combo.name}</h1>
+              {combo.subtitle && (
+                <p className="text-xs sm:text-sm font-semibold text-purple-700">{combo.subtitle}</p>
+              )}
+
+              {/* Rating */}
+              <div className="flex items-center gap-2 mt-1">
+                <div className="flex items-center gap-1 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-lg">
+                  <Star className="size-3.5 fill-amber-400 text-amber-500" />
+                  <span className="text-xs font-bold text-amber-900">{ratingVal.toFixed(1)}</span>
+                </div>
+                <span className="text-xs text-gray-500 font-medium">({reviewCount} customer reviews)</span>
+              </div>
+            </div>
+
+            {/* Price Row */}
+            <div className="flex items-baseline gap-3 border-y border-gray-100 py-3.5">
+              <span className="font-serif text-2xl sm:text-3xl font-bold text-purple-700">
+                {formatINR(combo.comboPrice * qty)}
+              </span>
+              {combo.originalPrice > combo.comboPrice && (
+                <span className="text-sm text-gray-400 line-through">
+                  {formatINR(combo.originalPrice * qty)}
+                </span>
+              )}
+              {combo.savings > 0 && (
+                <span className="rounded-md bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-xs font-extrabold text-emerald-700">
+                  Save {formatINR(combo.savings * qty)}
                 </span>
               )}
             </div>
 
-            {/* Thumbnail selector */}
-            {images.length > 1 && (
-              <div className="flex gap-3 overflow-x-auto pb-1 no-scrollbar">
-                {images.map((img, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setSelectedImage(i)}
-                    className={cn(
-                      "size-16 rounded-xl border-2 overflow-hidden transition-all shrink-0 bg-white",
-                      selectedImage === i ? "border-purple-600 ring-2 ring-purple-200" : "border-gray-200 opacity-70"
-                    )}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={img} alt="" className="size-full object-cover" />
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Right: Info & Buy Section (6 cols) */}
-          <div className="lg:col-span-6 flex flex-col gap-5 bg-white rounded-3xl border border-gray-200/80 p-5 sm:p-8 shadow-xs">
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <div className="flex items-center gap-1 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
-                  <Star className="size-3.5 fill-amber-400 text-amber-500" />
-                  <span className="text-xs font-extrabold text-amber-900">{ratingVal.toFixed(1)}</span>
-                </div>
-                <span className="text-xs font-semibold text-gray-500">({reviewCount} verified reviews)</span>
-              </div>
-
-              <h1 className="font-serif text-2xl sm:text-3xl font-extrabold text-gray-900 leading-tight">
-                {combo.name}
-              </h1>
-              {combo.subtitle && (
-                <p className="mt-1 text-sm font-semibold text-purple-700">{combo.subtitle}</p>
-              )}
-            </div>
-
-            {/* Pricing Card */}
-            <div className="rounded-2xl border border-purple-200 bg-purple-50/50 p-4">
-              <div className="flex items-baseline justify-between gap-2">
-                <div>
-                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1">Bundle Price</span>
-                  <div className="flex items-baseline gap-2">
-                    <span className="font-serif text-2xl sm:text-3xl font-extrabold text-purple-900">
-                      {formatINR(combo.comboPrice)}
-                    </span>
-                    {combo.originalPrice > combo.comboPrice && (
-                      <span className="text-sm sm:text-base text-gray-400 line-through font-medium">
-                        {formatINR(combo.originalPrice)}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {combo.savings > 0 && (
-                  <span className="rounded-xl bg-green-600 px-3 py-1.5 text-xs font-extrabold text-white shadow-xs">
-                    You Save {formatINR(combo.savings)}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Products Included */}
-            <div>
-              <h3 className="text-xs font-bold uppercase tracking-wider text-gray-900 mb-3 flex items-center gap-1.5">
-                <Tag className="size-4 text-purple-600" /> Packs Included in this Combo ({combo.items.length})
-              </h3>
-              <div className="space-y-2">
-                {lines.map((line, i) => (
+            {/* Included Items */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700">
+                Included in Combo ({combo.items.reduce((a, b) => a + b.quantity, 0)} Packs)
+              </h4>
+              <div className="grid grid-cols-1 gap-2">
+                {lines.map((line, idx) => (
                   <div
-                    key={i}
-                    className="flex items-center justify-between gap-3 rounded-xl border border-gray-200/80 bg-gray-50/70 p-3"
+                    key={idx}
+                    className="flex items-center justify-between rounded-2xl border border-purple-100 bg-purple-50/50 p-3"
                   >
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <div
-                        className="size-10 shrink-0 rounded-lg shadow-xs"
-                        style={{
-                          background: line.flavor
-                            ? `radial-gradient(120% 120% at 30% 20%, ${line.flavor.gradient.from}, ${line.flavor.gradient.to})`
-                            : "#9333ea",
-                        }}
-                      />
+                    <div className="flex items-center gap-3 min-w-0">
+                      {line.flavor ? (
+                        <div className="size-10 shrink-0">
+                          <WaferVisual flavor={line.flavor} seed={idx} />
+                        </div>
+                      ) : null}
                       <div className="min-w-0 flex-1">
                         <p className="font-serif text-xs font-bold text-gray-900 truncate">
-                          {line.flavorName}
+                          {line.flavorName || line.flavor?.name}
                         </p>
                         <p className="text-[11px] font-medium text-gray-500">{line.packLabel} pack</p>
                       </div>
@@ -212,17 +178,8 @@ export function ComboDetailClient({ combo }: { combo: ShopCombo }) {
               </div>
             </div>
 
-            {/* Description */}
-            {combo.description && (
-              <div className="border-t border-gray-100 pt-4">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-900 mb-1">About This Bundle</h4>
-                <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">{combo.description}</p>
-              </div>
-            )}
-
             {/* Action Bar */}
-            <div className="border-t border-gray-100 pt-4 space-y-4">
-              <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 pt-4">
                 <div className="flex items-center gap-1 rounded-xl border border-purple-200 bg-purple-50/50 p-1 shrink-0">
                   <button
                     onClick={() => setQty((q) => Math.max(1, q - 1))}
@@ -253,22 +210,32 @@ export function ComboDetailClient({ combo }: { combo: ShopCombo }) {
                     </>
                   ) : (
                     <>
-                      <ShoppingBag className="size-4" /> Add Combo to Cart · {formatINR(combo.comboPrice * qty)}
+                      <ShoppingBag className="size-4" /> Add Combo to Cart
                     </>
                   )}
                 </Button>
-              </div>
-
-              {/* Badges */}
-              <div className="flex flex-wrap items-center justify-around gap-2 text-[11px] font-semibold text-gray-500 pt-2 border-t border-gray-100">
-                <span className="flex items-center gap-1">
-                  <Truck className="size-3.5 text-orange-600" /> Dispatch in 24 Hrs
-                </span>
-                <span className="flex items-center gap-1">
-                  <ShieldCheck className="size-3.5 text-green-600" /> Freshness Guaranteed
-                </span>
-              </div>
             </div>
+          </div>
+        </div>
+
+        {/* You Might Also Like / Explore More Flavours */}
+        <div className="mt-16 border-t border-purple-100/80 pt-12">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+            <div>
+              <span className="text-xs font-extrabold uppercase tracking-wider text-purple-700">Explore More</span>
+              <h3 className="font-serif text-xl sm:text-2xl font-bold text-gray-900 mt-1">You Might Also Like</h3>
+            </div>
+            <Button asChild variant="outline" size="sm" className="border-purple-200 text-purple-700 font-bold hover:bg-purple-50 rounded-xl">
+              <Link href="/shop">
+                Shop All Flavours <ArrowRight className="size-4 ml-1.5" />
+              </Link>
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+            {flavors.slice(0, 4).map((flavor, i) => (
+              <ProductCard key={flavor.id} flavor={flavor} index={i} view="grid" />
+            ))}
           </div>
         </div>
       </div>

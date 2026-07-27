@@ -22,6 +22,7 @@ const setRefreshTokenCookie = (res, refreshToken) => {
     httpOnly: true,
     secure: isProd,
     sameSite: isProd ? 'none' : 'lax',
+    path: '/',
     maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
   });
 };
@@ -31,7 +32,8 @@ const clearRefreshTokenCookie = (res) => {
   res.clearCookie('refreshToken', {
     httpOnly: true,
     secure: isProd,
-    sameSite: isProd ? 'none' : 'lax'
+    sameSite: isProd ? 'none' : 'lax',
+    path: '/'
   });
 };
 

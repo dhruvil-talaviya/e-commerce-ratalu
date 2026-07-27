@@ -72,12 +72,15 @@ function LoginGateContent() {
     }
   }, [isLoginParam]);
 
+  const [rememberPhone, setRememberPhone] = React.useState<boolean>(true);
+
   // Reset local form states when the login gate opens
   const previousShowGate = React.useRef(false);
   React.useEffect(() => {
     if (showGate && !previousShowGate.current) {
       setStep("mobile");
-      setPhone("");
+      const savedPhone = typeof window !== "undefined" ? (sessionStorage.getItem("yamora.remembered_phone") || "") : "";
+      setPhone(savedPhone);
       setOtpCode("");
       setName("");
       setEmail("");
@@ -108,7 +111,7 @@ function LoginGateContent() {
   // Force the profile step for auto-created customers.
   const activeStep: Step = needsProfile ? "profile" : step;
 
-  const isValidPhone = (v: string) => v.replace(/\D/g, "").length === 10;
+  const isValidPhone = (v: string) => /^[6-9]\d{9}$/.test(v.replace(/\D/g, ""));
 
   const requestOtp = async (target: string) => {
     const res = await sendOtp(target);
@@ -134,9 +137,16 @@ function LoginGateContent() {
     e.preventDefault();
     setError("");
     if (!isValidPhone(phone)) {
-      setError("Please enter a valid 10-digit mobile number.");
+      setError("Please enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.");
       return;
     }
+
+    if (rememberPhone && typeof window !== "undefined") {
+      sessionStorage.setItem("yamora.remembered_phone", phone);
+    } else if (typeof window !== "undefined") {
+      sessionStorage.removeItem("yamora.remembered_phone");
+    }
+
     setLoading(true);
     const res = await sendOtp(phone);
     setLoading(false);
@@ -357,7 +367,7 @@ function LoginGateContent() {
                   inputMode="numeric"
                   autoComplete="tel"
                   maxLength={10}
-                  placeholder="98765 43210"
+                  placeholder="Enter 10-digit number"
                   value={phone}
                   onChange={(e) => {
                     setPhone(e.target.value.replace(/\D/g, "").slice(0, 10));
@@ -366,6 +376,21 @@ function LoginGateContent() {
                   className="h-full w-full flex-1 bg-transparent px-3.5 text-base font-extrabold tracking-wide text-gray-900 placeholder:text-gray-400 placeholder:font-normal focus:outline-none"
                 />
               </div>
+              <label className="mt-1.5 flex items-center gap-2 text-xs font-medium text-gray-600 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={rememberPhone}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setRememberPhone(checked);
+                    if (!checked && typeof window !== "undefined") {
+                      localStorage.removeItem("ratalu.remembered_phone");
+                    }
+                  }}
+                  className="size-4 rounded border-gray-300 text-[#5B2C83] focus:ring-[#5B2C83]"
+                />
+                <span>Remember my mobile number</span>
+              </label>
             </div>
 
             {lockoutTime > 0 && (
@@ -377,10 +402,6 @@ function LoginGateContent() {
             <Button type="submit" size="lg" className="h-12 w-full rounded-2xl bg-[#5B2C83] hover:bg-[#4a236c] font-bold text-white shadow-md transition-all active:scale-[0.99]" disabled={loading || lockoutTime > 0}>
               {loading ? <><Loader2 className="animate-spin" /> Sending…</> : "Continue"}
             </Button>
-
-            <p className="flex items-center justify-center gap-1.5 text-[11px] font-medium text-gray-400">
-              <ShieldCheck className="size-3.5 text-purple-600" /> No password needed — we verify by OTP.
-            </p>
           </form>
         )}
 
@@ -388,33 +409,30 @@ function LoginGateContent() {
         {activeStep === "otp" && (
           <form onSubmit={handleVerify} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="otp" className="text-xs font-bold text-gray-700">
+              <label htmlFor="otp" className="text-xs font-bold text-gray-700 text-center">
                 Verification Code
               </label>
-              <div className="flex h-12 w-full items-center overflow-hidden rounded-2xl border border-gray-200 bg-white transition-all focus-within:border-[#5B2C83] focus-within:ring-4 focus-within:ring-[#5B2C83]/10 shadow-2xs">
-                <div className="flex h-full items-center justify-center border-r border-gray-200 bg-gray-50/80 px-3.5 shrink-0">
-                  <KeyRound className="size-4 text-[#5B2C83]" />
-                </div>
+              <div className="flex h-14 w-full items-center overflow-hidden rounded-2xl border border-gray-200 bg-white transition-all focus-within:border-[#5B2C83] focus-within:ring-4 focus-within:ring-[#5B2C83]/10 shadow-2xs">
                 <input
                   id="otp"
                   type="text"
                   inputMode="numeric"
                   autoComplete="one-time-code"
                   maxLength={6}
-                  placeholder="● ● ● ● ● ●"
+                  placeholder="• • • • • •"
                   value={otpCode}
                   onChange={(e) => {
                     setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6));
                     setError("");
                   }}
-                  className="h-full w-full flex-1 bg-transparent px-3 text-center text-base font-extrabold tracking-[0.35em] text-gray-900 placeholder:text-gray-300 focus:outline-none"
+                  className="h-full w-full bg-transparent px-4 text-center text-xl font-extrabold tracking-[0.45em] text-gray-900 placeholder:text-gray-300 placeholder:tracking-[0.3em] focus:outline-none pl-[0.45em]"
                 />
               </div>
             </div>
 
             {lockoutTime > 0 && (
-              <div className="rounded-xl border border-red-100 bg-red-50 p-3 text-xs font-medium text-red-700">
-                Too many incorrect OTP attempts. Verification locked for {Math.floor(lockoutTime / 60)}:{(lockoutTime % 60).toString().padStart(2, '0')} minutes.
+              <div className="rounded-xl border border-red-100 bg-red-50 p-3 text-xs font-medium text-red-700 text-center">
+                Too many incorrect attempts. Verification locked for {Math.floor(lockoutTime / 60)}:{(lockoutTime % 60).toString().padStart(2, '0')} minutes.
               </div>
             )}
 
@@ -450,7 +468,7 @@ function LoginGateContent() {
               </label>
               <div className="flex h-12 w-full items-center overflow-hidden rounded-2xl border border-gray-200 bg-white transition-all focus-within:border-[#5B2C83] focus-within:ring-4 focus-within:ring-[#5B2C83]/10 shadow-2xs">
                 <div className="flex h-full items-center justify-center border-r border-gray-200 bg-gray-50/80 px-3.5 shrink-0">
-                  <Lock className="size-4 text-[#5B2C83]" />
+                  <KeyRound className="size-4 text-[#5B2C83]" />
                 </div>
                 <input
                   id="password"
@@ -461,12 +479,13 @@ function LoginGateContent() {
                     setPassword(e.target.value);
                     setError("");
                   }}
-                  className="h-full w-full flex-1 bg-transparent px-3 text-sm font-semibold text-gray-900 placeholder:text-gray-400 focus:outline-none"
+                  className="h-full w-full flex-1 bg-transparent px-3 text.base font-semibold text-gray-900 placeholder:text-gray-400 focus:outline-none"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="grid size-10 place-items-center pr-2 text-gray-400 transition-colors hover:text-gray-600 focus:outline-none"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  className="flex h-full items-center justify-center px-3.5 text-gray-400 transition-colors hover:text-[#5B2C83] focus:outline-none"
                 >
                   {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                 </button>

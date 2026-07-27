@@ -16,6 +16,7 @@ const {
   updateCoupon,
   deleteCoupon,
   getAdminCoupons,
+  getCouponRedemptions,
   getCouponPlacements
 } = require('../controllers/cart.controller');
 
@@ -42,6 +43,7 @@ router.post('/wishlist/sync', protect, syncWishlist);
 
 // Admin coupons CRUD
 router.get('/admin/coupons', protect, authorize('Admin', 'Super Admin'), getAdminCoupons);
+router.get('/admin/coupons/:id/redemptions', protect, authorize('Admin', 'Super Admin'), getCouponRedemptions);
 router.post('/admin/coupons', protect, authorize('Admin', 'Super Admin'), createCoupon);
 router.put('/admin/coupons/:id', protect, authorize('Admin', 'Super Admin'), updateCoupon);
 router.delete('/admin/coupons/:id', protect, authorize('Admin', 'Super Admin'), deleteCoupon);

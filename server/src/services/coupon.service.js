@@ -102,6 +102,8 @@ const assertEligible = async (args) => {
  * are applied, because showing someone a code their account will be refused is
  * just a broken promise with extra steps.
  */
+const Customer = require('../models/Customer');
+
 const listUsable = async ({ customer } = {}) => {
   const now = new Date();
 
@@ -118,9 +120,10 @@ const listUsable = async ({ customer } = {}) => {
     return coupons;
   }
 
-  const orders = await Order.find({ customerId: customer._id, status: REDEEMED_STATUSES })
-    .select('couponCode')
-    .lean();
+  const [orders, customerDoc] = await Promise.all([
+    Order.find({ customerId: customer._id, status: REDEEMED_STATUSES }).select('couponCode').lean(),
+    Customer.findById(customer._id).select('couponsUsed').lean()
+  ]);
 
   const ordersPlaced = orders.length;
   const usedCount = orders.reduce((acc, o) => {
@@ -128,9 +131,24 @@ const listUsable = async ({ customer } = {}) => {
     return acc;
   }, new Map());
 
+  const customerUsedSet = new Set(customerDoc?.couponsUsed || []);
+
   return coupons.filter((c) => {
+    // 1. Exclude if max global usage reached
+    if (c.usageLimit > 0 && c.usageCount >= c.usageLimit) return false;
+
+    // 2. Exclude first-order-only if customer has 1+ orders
     if (c.firstOrderOnly && ordersPlaced > 0) return false;
-    if (c.perAccountLimit > 0 && (usedCount.get(c.code) || 0) >= c.perAccountLimit) return false;
+
+    // 3. Exclude if used by customer in Customer doc or Order collection
+    const timesUsedInOrders = usedCount.get(c.code) || 0;
+    const recordedInCustomerDoc = customerUsedSet.has(c.code);
+
+    if (c.perAccountLimit > 0) {
+      if (timesUsedInOrders >= c.perAccountLimit) return false;
+      if (c.perAccountLimit === 1 && recordedInCustomerDoc) return false;
+    }
+
     return true;
   });
 };

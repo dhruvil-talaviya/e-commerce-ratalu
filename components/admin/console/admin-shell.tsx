@@ -85,7 +85,7 @@ export const NAV_GROUPS: { heading: string; items: NavItem[] }[] = [
     heading: "System",
     items: [
       { label: "Reports", href: "/admin/dashboard?tab=reports", icon: BarChart3 },
-      { label: "Logistics", href: "/admin/dashboard?tab=logistics", icon: Truck },
+      { label: "Logistics", href: "/admin/logistics", icon: Truck },
       { label: "Audit Logs", href: "/admin/dashboard?tab=audit-logs", icon: ScrollText },
       { label: "Settings", href: "/admin/settings", icon: SettingsIcon },
     ],
@@ -109,7 +109,7 @@ function matchNav(pathname: string, tab: string | null, href: string): boolean {
   if (!hrefTab) return true;
   return (tab ?? "dashboard") === hrefTab;
 }
-const COLLAPSE_KEY = "ratalu.admin.sidebar.collapsed";
+const COLLAPSE_KEY = "yamora.admin.sidebar.collapsed";
 
 export function AdminShell(props: {
   title: string;
@@ -222,7 +222,7 @@ function AdminShellInner({
       {NAV_GROUPS.map((group) => (
         <div key={group.heading} className="mb-1">
           {!collapsed && (
-            <p className="px-2.5 pb-1 pt-3 text-[10px] font-bold uppercase tracking-wider text-gray-400">
+            <p className="px-2.5 pb-1 pt-3 text-[10px] font-bold text-gray-400">
               {group.heading}
             </p>
           )}

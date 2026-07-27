@@ -287,7 +287,8 @@ exports.validateCheckout = async (req, res, next) => {
     const gstEnabled = settings.gstEnabled !== false;
     const globalGstRate = settings.taxRate || 5;
     const globalTaxInclusive = settings.taxInclusive !== false;
-    const freeShippingThreshold = settings.shippingFreeThreshold || 599;
+    const freeShippingThreshold = settings.freeShippingMinAmount || settings.shippingFreeThreshold || 599;
+    const isFreeShippingEnabled = settings.freeShippingEnabled !== false;
     const flatShippingFee = settings.shippingFlatRate || 49;
 
     /**
@@ -449,6 +450,30 @@ exports.placeOrder = async ({ user, items, couponCode, address, method, paymentM
   const orderItems = [];
 
   for (const item of items) {
+    if (item.isCombo || item.flavorId?.startsWith('combo-') || item.comboId) {
+      const comboId = item.comboId || (item.flavorId ? item.flavorId.replace('combo-', '') : null);
+      const comboDoc = comboId ? await Combo.findById(comboId) : null;
+      if (!comboDoc || comboDoc.status === 'Inactive') {
+        throw new ErrorResponse(`Combo ${item.flavorName || 'Pack'} is currently unavailable`, 404);
+      }
+      const qty = Math.max(parseInt(item.quantity, 10) || 1, 1);
+      const unitPrice = comboDoc.comboPrice;
+      subtotal += unitPrice * qty;
+      orderItems.push({
+        flavorId: item.flavorId || `combo-${comboDoc._id}`,
+        flavorName: comboDoc.name,
+        packId: item.packId || 'combo-pack',
+        packLabel: item.packLabel || `Combo Pack (${comboDoc.items.reduce((sum, i) => sum + i.quantity, 0)} Items)`,
+        grams: 0,
+        unitPrice,
+        quantity: qty,
+        isCombo: true,
+        comboId: comboDoc._id,
+        gradient: item.gradient || { from: '#7c3aed', via: '#9333ea', to: '#c084fc' }
+      });
+      continue;
+    }
+
     const product = await Product.findOne({ flavorId: item.flavorId });
     if (!product) {
       throw new ErrorResponse(`Flavor ${item.flavorId} no longer exists`, 404);
@@ -509,7 +534,8 @@ exports.placeOrder = async ({ user, items, couponCode, address, method, paymentM
   const gstEnabled = settings.gstEnabled !== false;
   const globalGstRate = settings.taxRate || 5;
   const globalTaxInclusive = settings.taxInclusive !== false;
-  const freeShippingThreshold = settings.shippingFreeThreshold || 599;
+  const freeShippingThreshold = settings.freeShippingMinAmount || settings.shippingFreeThreshold || 599;
+  const isFreeShippingEnabled = settings.freeShippingEnabled !== false;
   const flatShippingFee = settings.shippingFlatRate || 49;
 
   /**
@@ -594,7 +620,7 @@ exports.placeOrder = async ({ user, items, couponCode, address, method, paymentM
     }
   }
 
-  const qualifiesFreeShipping = postDiscountPrice >= freeShippingThreshold;
+  const qualifiesFreeShipping = isFreeShippingEnabled && postDiscountPrice >= freeShippingThreshold;
   let shipping = subtotal === 0 || qualifiesFreeShipping ? 0 : flatShippingFee;
   
   // Dynamic distance shipping fee calculation if GPS coordinates are available
@@ -693,8 +719,11 @@ exports.placeOrder = async ({ user, items, couponCode, address, method, paymentM
       pincode: address.pincode
     },
     method: method || payMethod,
-    payment: { method: payMethod, status: 'Pending' },
-    status: 'Pending',
+    payment: { method: payMethod, status: payMethod === 'COD' ? 'Paid' : 'Pending' },
+    status: 'Pending Confirmation',
+    orderStatus: 'Pending Confirmation',
+    fulfilmentStatus: 'On Hold',
+    cancellationDeadline: new Date(Date.now() + 5 * 60 * 1000),
     invoiceNumber
   });
 
@@ -710,7 +739,15 @@ exports.placeOrder = async ({ user, items, couponCode, address, method, paymentM
    * `couponsUsed` is kept only because the customer export still reads it.
    */
   if (couponRecord && discount > 0) {
-    await Coupon.updateOne({ _id: couponRecord._id }, { $inc: { usageCount: 1 } });
+    const updatedCoupon = await Coupon.findByIdAndUpdate(
+      couponRecord._id,
+      { $inc: { usageCount: 1 } },
+      { new: true }
+    );
+    if (updatedCoupon && updatedCoupon.usageLimit > 0 && updatedCoupon.usageCount >= updatedCoupon.usageLimit) {
+      updatedCoupon.status = "Inactive";
+      await updatedCoupon.save();
+    }
     await Customer.updateOne(
       { _id: user._id },
       { $addToSet: { couponsUsed: couponRecord.code } }
@@ -1791,4 +1828,90 @@ exports.getOrderLabels = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+};
+
+// @desc    Admin Action: Immediately confirm order and trigger Shiprocket dispatch
+// @route   POST /api/v1/admin/orders/:id/confirm-now
+// @access  Private (Admin)
+exports.confirmOrderNow = async (req, res, next) => {
+  try {
+    const order = await Order.findOne({ $or: [{ id: req.params.id }, { _id: req.params.id }] });
+    if (!order) return next(new ErrorResponse('Order not found', 404));
+
+    const now = new Date();
+    order.status = 'Confirmed';
+    order.orderStatus = 'Confirmed';
+    order.fulfilmentStatus = 'Ready to Pack';
+    order.cancellationDeadline = now;
+    order.confirmedAt = now;
+
+    order.timeline.push({
+      status: 'Confirmed',
+      time: now,
+      note: `Manually confirmed by admin (${req.user?.username || 'Admin'}). Hold window bypassed.`
+    });
+
+    await order.save();
+
+    // Trigger Shiprocket shipment creation
+    let shiprocketData = null;
+    if (order.address && order.address.pincode) {
+      try {
+        const shiprocketResult = await LogisticsService.createShipment(order);
+        if (shiprocketResult && shiprocketResult.success) {
+          order.shipmentCreatedAt = new Date();
+          if (shiprocketResult.awbCode) {
+            order.awbGeneratedAt = new Date();
+            order.trackingNumber = shiprocketResult.awbCode;
+          }
+          if (shiprocketResult.courierName) {
+            order.courierName = shiprocketResult.courierName;
+          }
+          order.timeline.push({
+            status: 'Ready to Ship',
+            time: new Date(),
+            note: `Shiprocket shipment created. AWB: ${shiprocketResult.awbCode || 'Pending'}`
+          });
+          await order.save();
+          shiprocketData = shiprocketResult;
+        }
+      } catch (shipErr) {
+        logger.warn(`Shiprocket manual dispatch failed for order ${order.id}: ${shipErr.message}`);
+      }
+    }
+
+    sendResponse(res, 200, {
+      success: true,
+      message: 'Order confirmed immediately and sent for fulfillment',
+      data: { order, shiprocket: shiprocketData }
+    });
+  } catch (error) { next(error); }
+};
+
+// @desc    Admin Action: Extend 5-minute cancellation window by +5 minutes
+// @route   POST /api/v1/admin/orders/:id/extend-timer
+// @access  Private (Admin)
+exports.extendOrderTimer = async (req, res, next) => {
+  try {
+    const order = await Order.findOne({ $or: [{ id: req.params.id }, { _id: req.params.id }] });
+    if (!order) return next(new ErrorResponse('Order not found', 404));
+
+    const currentDeadline = order.cancellationDeadline || new Date();
+    const extendedDeadline = new Date(currentDeadline.getTime() + 5 * 60 * 1000);
+    order.cancellationDeadline = extendedDeadline;
+
+    order.timeline.push({
+      status: 'Pending Confirmation',
+      time: new Date(),
+      note: `Cancellation window extended +5 minutes by admin (${req.user?.username || 'Admin'}). New deadline: ${extendedDeadline.toLocaleTimeString()}`
+    });
+
+    await order.save();
+
+    sendResponse(res, 200, {
+      success: true,
+      message: 'Cancellation timer extended by 5 minutes',
+      data: order
+    });
+  } catch (error) { next(error); }
 };

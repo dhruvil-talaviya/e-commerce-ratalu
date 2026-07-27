@@ -12,6 +12,7 @@ import {
   ShoppingBag,
   Check,
   ArrowLeft,
+  ArrowRight,
   Loader2,
   PartyPopper,
   Plus,
@@ -117,16 +118,6 @@ export default function CheckoutPage() {
   }, [paymentOptions, method]);
   const [placing, setPlacing] = React.useState(false);
   const [orderId, setOrderId] = React.useState<string | null>(null);
-  const [showAddForm, setShowAddForm] = React.useState(false);
-  const [checkoutError, setCheckoutError] = React.useState("");
-  const [editingAddress, setEditingAddress] = React.useState<SavedAddress | null>(null);
-  const [paymentFailed, setPaymentFailed] = React.useState(false);
-  /**
-   * The order that was already created for this cart (online payment only).
-   * Kept so a failed attempt can be RETRIED against the SAME order — no new
-   * order id, no second stock decrement, no second coupon use. Holds everything
-   * needed to re-open the Razorpay modal without hitting create-order again.
-   */
   const [createdOrder, setCreatedOrder] = React.useState<{
     orderId: string;
     rzpOrderId: string;
@@ -134,6 +125,59 @@ export default function CheckoutPage() {
     currency: string;
     keyId: string;
   } | null>(null);
+
+  const [showAddForm, setShowAddForm] = React.useState(false);
+  const [checkoutError, setCheckoutError] = React.useState("");
+  const [editingAddress, setEditingAddress] = React.useState<SavedAddress | null>(null);
+  const [paymentFailed, setPaymentFailed] = React.useState(false);
+
+  // Shiprocket Pincode Serviceability & Rates State
+  const [serviceability, setServiceability] = React.useState<{
+    loading: boolean;
+    serviceable: boolean;
+    courierName?: string;
+    rate?: number;
+    etdDays?: number;
+    message?: string;
+  } | null>(null);
+
+  // Auto-validate delivery PIN code with Shiprocket REST API when address is selected
+  // Dynamic DB Shipping Calculation & Shiprocket Serviceability
+  React.useEffect(() => {
+    const activeAddr = user?.addresses?.find((a) => a.id === user?.activeAddressId);
+    const pin = activeAddr?.pincode || (activeAddr as any)?.pinCode || regPin;
+    const stateName = activeAddr?.state || regState;
+    const cityName = activeAddr?.city || regCity;
+
+    if (pin && pin.length === 6) {
+      setServiceability({ loading: true, serviceable: true });
+      apiFetch<any>("/shipping/calculate", {
+        method: "POST",
+        body: {
+          subtotal: totals.subtotal,
+          weightKg: 0.5,
+          pincode: pin,
+          state: stateName,
+          city: cityName,
+          method: "home_delivery"
+        }
+      })
+        .then((res) => {
+          setServiceability({
+            loading: false,
+            serviceable: true,
+            courierName: res.courierName || "Shiprocket Express",
+            rate: res.shippingCharge || 0,
+            etdDays: 3,
+            message: res.isFree ? "Free Shipping Applied!" : `Standard Rate ₹${res.shippingCharge}`
+          });
+        })
+        .catch(() => {
+          setServiceability({ loading: false, serviceable: true });
+        });
+    }
+  }, [user?.activeAddressId, user?.addresses, regPin, regState, regCity, method, totals.subtotal]);
+
 
   const selectedAddress = user?.addresses?.find((a) => a.id === user?.activeAddressId);
 
@@ -155,15 +199,16 @@ export default function CheckoutPage() {
   }, [selectedAddress]);
 
   const alertStyles = React.useMemo(() => {
-    const bg = settings.announcementBgColor || "";
+    const bg = settings.announcementBgColor || "#5B2C83";
     const isHex = bg.startsWith("#") && bg.length === 7;
     return {
-      bgTint: isHex ? `${bg}12` : "rgba(251, 191, 36, 0.08)",
-      borderTint: isHex ? `${bg}25` : "rgba(251, 191, 36, 0.2)",
-      solidBg: bg || "#f59e0b",
-      textColor: settings.announcementTextColor || "#92400e",
+      bgTint: isHex ? `${bg}0D` : "rgba(91, 44, 131, 0.05)",
+      borderTint: isHex ? `${bg}30` : "rgba(91, 44, 131, 0.2)",
+      solidBg: bg || "#5B2C83",
+      textColor: "#111827",
+      headerColor: bg || "#5B2C83"
     };
-  }, [settings.announcementBgColor, settings.announcementTextColor]);
+  }, [settings.announcementBgColor]);
 
   React.useEffect(() => {
     if (isLoggedIn && user && (!user.addresses || user.addresses.length === 0)) {
@@ -415,6 +460,7 @@ export default function CheckoutPage() {
                 razorpay_signature: response.razorpay_signature,
               },
             });
+            window.scrollTo(0, 0);
             setOrderId(co.orderId);
             clear();
             toast.success("Payment successful! Order placed.");
@@ -469,6 +515,14 @@ export default function CheckoutPage() {
       return;
     }
 
+    if (serviceability && !serviceability.serviceable) {
+      setCheckoutError(
+        serviceability.message ||
+          `Delivery is currently not available for pincode ${activeAddr.pincode || (activeAddr as any).pinCode}. Please select a different address.`
+      );
+      return;
+    }
+
     setPlacing(true);
 
     try {
@@ -488,6 +542,8 @@ export default function CheckoutPage() {
             unitPrice: i.unitPrice,
             quantity: i.quantity,
             gradient: i.gradient,
+            isCombo: i.isCombo,
+            comboId: i.comboId,
           })),
           couponCode: coupon?.code,
           address: activeAddr,
@@ -497,6 +553,7 @@ export default function CheckoutPage() {
 
       // COD (and any offline method): the order is placed, nothing to collect.
       if (!res.requiresPayment) {
+        window.scrollTo(0, 0);
         setOrderId(res.order.id);
         clear();
         return;
@@ -698,8 +755,8 @@ export default function CheckoutPage() {
                         style={{ color: alertStyles.solidBg }}
                       />
                       <div>
-                        <p className="text-[9px] font-extrabold uppercase tracking-wider opacity-60">Delivery Notice</p>
-                        <p className="mt-0.5 text-xs font-bold leading-relaxed">{settings.announcementText}</p>
+                        <p className="text-[10px] font-extrabold uppercase tracking-wider" style={{ color: alertStyles.headerColor }}>Delivery Notice</p>
+                        <p className="mt-0.5 text-xs font-bold leading-relaxed text-gray-900">{settings.announcementText}</p>
                       </div>
                     </div>
                   )}
@@ -842,8 +899,8 @@ export default function CheckoutPage() {
                         style={{ color: alertStyles.solidBg }}
                       />
                       <div>
-                        <p className="text-[9px] font-extrabold uppercase tracking-wider opacity-60">Delivery Notice</p>
-                        <p className="mt-0.5 text-xs font-bold leading-relaxed">{settings.announcementText}</p>
+                        <p className="text-[10px] font-extrabold uppercase tracking-wider" style={{ color: alertStyles.headerColor }}>Delivery Notice</p>
+                        <p className="mt-0.5 text-xs font-bold leading-relaxed text-gray-900">{settings.announcementText}</p>
                       </div>
                     </div>
                   )}
@@ -1083,7 +1140,13 @@ export default function CheckoutPage() {
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-xs font-bold text-gray-800">{item.flavorName}</p>
-                    <p className="text-[10px] text-gray-400 font-semibold">{item.packLabel}</p>
+                    {item.isCombo ? (
+                      <span className="inline-flex items-center gap-1 rounded bg-purple-100 px-1.5 py-0.5 text-[9px] font-bold text-purple-700">
+                        🍱 {item.packLabel}
+                      </span>
+                    ) : (
+                      <p className="text-[10px] text-gray-400 font-semibold">{item.packLabel}</p>
+                    )}
                   </div>
                   <span className="text-xs font-bold text-gray-800">
                     {formatINR(item.unitPrice * item.quantity)}
@@ -1091,6 +1154,24 @@ export default function CheckoutPage() {
                 </li>
               ))}
             </ul>
+
+            {/* Direct Add More Items Link to Shop Page */}
+            <div className="mt-3.5 pt-3 border-t border-dashed border-purple-200">
+              <Link
+                href="/shop"
+                className="flex items-center justify-between gap-2 rounded-xl border border-purple-200 bg-purple-50/70 p-2.5 sm:p-3 text-xs font-bold text-purple-900 transition-all hover:bg-purple-100 hover:border-purple-300 shadow-2xs group"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="grid size-6 place-items-center rounded-lg bg-purple-600 text-white shadow-xs group-hover:scale-105 transition-transform">
+                    <Plus className="size-3.5" />
+                  </span>
+                  <span className="text-xs font-bold text-purple-950">Add More Items</span>
+                </div>
+                <span className="flex items-center gap-1 text-[10px] font-extrabold text-purple-700 bg-white px-2.5 py-1 rounded-lg border border-purple-200 shadow-2xs group-hover:bg-purple-50">
+                  Shop <ArrowRight className="size-3" />
+                </span>
+              </Link>
+            </div>
 
             <dl className="mt-4 sm:mt-5 flex flex-col gap-2 sm:gap-2.5 border-t border-gray-100 pt-4 sm:pt-5 text-[11px] sm:text-xs font-semibold text-gray-500">
               <Row label="Subtotal" value={formatINR(totals.subtotal)} />
@@ -1134,11 +1215,14 @@ export default function CheckoutPage() {
                   {selectedAddress.street ? `${selectedAddress.street}, ` : ""}
                   {selectedAddress.city}
                 </p>
-                {distanceKm !== null && (
-                  <p className="mt-1 flex items-center gap-1 text-[9px] text-green-600 font-bold uppercase tracking-wider">
-                    <CheckCircle2 className="size-3" />
-                    <span>📍 {distanceKm.toFixed(1)} km from hub</span>
-                  </p>
+                {serviceability && (
+                  <div className="mt-2 rounded-xl p-2.5 bg-purple-50/70 border border-purple-100 text-[10px]">
+                    <div className="flex items-center justify-between font-bold text-[#5B2C83]">
+                      <span>{serviceability.courierName || "Shiprocket Express"}</span>
+                      <span>{serviceability.serviceable ? "✓ Serviceable" : "✕ Not Serviceable"}</span>
+                    </div>
+                    <p className="text-gray-500 mt-0.5">Est. Delivery: {serviceability.etdDays || 3} Days</p>
+                  </div>
                 )}
               </div>
             )}
@@ -1169,9 +1253,34 @@ export default function CheckoutPage() {
               </div>
             )}
 
-            <p className="mt-3.5 text-center text-[10px] text-gray-400 font-semibold">
-              Estimated Delivery: 2–4 Business Days
-            </p>
+            {/* Delivery & Order Policy Instructions (Below Payment Button) */}
+            {(() => {
+              const instructions = (settings.checkoutInstructions && settings.checkoutInstructions.length > 0)
+                ? settings.checkoutInstructions
+                : [
+                    { title: "Delivery Timeline", text: "Standard delivery takes 5–7 business days." },
+                    { title: "No Cash on Delivery", text: "Cash on Delivery is currently unavailable. All orders are pre-paid." },
+                    { title: "No Return Policy", text: "Perishable food item — non-returnable once dispatched." }
+                  ];
+
+              return (
+                <div className="mt-4 rounded-2xl border border-purple-100 bg-purple-50/40 p-3.5 sm:p-4">
+                  <h3 className="text-[11px] font-bold text-[#5B2C83] uppercase tracking-wider mb-2">
+                    Delivery &amp; Order Instructions:
+                  </h3>
+                  <ul className="space-y-1.5 text-[11px] text-gray-700 font-medium">
+                    {instructions.map((item, idx) => (
+                      <li key={idx} className="flex items-start gap-1.5 leading-snug">
+                        <span className="text-[#5B2C83] font-bold shrink-0">•</span>
+                        <span>
+                          <strong className="text-gray-900 font-bold">{item.title}:</strong> {item.text}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })()}
           </div>
         </aside>
       </div>
@@ -1203,6 +1312,10 @@ function Row({ label, value, accent }: { label: string; value: string; accent?: 
 }
 
 function OrderConfirmation({ orderId }: { orderId: string }) {
+  React.useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   return (
     <div className="container-px mx-auto max-w-xl py-24 text-center">
       <motion.div

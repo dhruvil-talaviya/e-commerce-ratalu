@@ -3,6 +3,7 @@ const Order = require('../models/Order');
 const Payment = require('../models/Payment');
 const { placeOrder } = require('./order.controller');
 const { notifyAdmin, notify } = require('../utils/notify');
+const LogisticsService = require('../services/logistics/LogisticsService');
 const ErrorResponse = require('../utils/errorResponse');
 const sendResponse = require('../utils/response');
 const logger = require('../config/logger');
@@ -12,11 +13,49 @@ const RAZORPAY_API = 'https://api.razorpay.com/v1';
 /** Methods that settle instantly at the door rather than through a gateway. */
 const OFFLINE_METHODS = ['COD'];
 
-const gatewayConfigured = () =>
-  Boolean(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET);
+const Settings = require('../models/Settings');
+const { decrypt } = require('../utils/crypto');
+
+/** Resolves effective Razorpay credentials from DB settings with fallback to env */
+const getRazorpayCredentials = async () => {
+  try {
+    const settings = await Settings.findOne();
+    let keyId = settings?.razorpayKeyId || process.env.RAZORPAY_KEY_ID || '';
+    let keySecret = '';
+
+    if (settings?.encryptedRazorpayKeySecret) {
+      keySecret = decrypt(settings.encryptedRazorpayKeySecret);
+    }
+    if (!keySecret) {
+      keySecret = process.env.RAZORPAY_KEY_SECRET || '';
+    }
+
+    let webhookSecret = '';
+    if (settings?.encryptedRazorpayWebhookSecret) {
+      webhookSecret = decrypt(settings.encryptedRazorpayWebhookSecret);
+    }
+    if (!webhookSecret) {
+      webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET || '';
+    }
+
+    return { keyId, keySecret, webhookSecret };
+  } catch {
+    return {
+      keyId: process.env.RAZORPAY_KEY_ID || '',
+      keySecret: process.env.RAZORPAY_KEY_SECRET || '',
+      webhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET || ''
+    };
+  }
+};
+
+const gatewayConfigured = async () => {
+  const { keyId, keySecret } = await getRazorpayCredentials();
+  return Boolean(keyId && keySecret);
+};
 
 /** Constant-time HMAC-SHA256 comparison (avoids timing side-channels). */
 const safeEqualHmac = (payload, signature, secret) => {
+  if (!secret) return false;
   const expected = crypto.createHmac('sha256', secret).update(payload).digest('hex');
   const a = Buffer.from(expected, 'utf8');
   const b = Buffer.from(String(signature || ''), 'utf8');
@@ -30,9 +69,11 @@ const safeEqualHmac = (payload, signature, secret) => {
  * identical behaviour.
  */
 const createRazorpayOrder = async ({ amountPaise, receipt }) => {
+  const { keyId, keySecret } = await getRazorpayCredentials();
+
   try {
     const auth = Buffer
-      .from(`${process.env.RAZORPAY_KEY_ID}:${process.env.RAZORPAY_KEY_SECRET}`)
+      .from(`${keyId}:${keySecret}`)
       .toString('base64');
 
     const res = await fetch(`${RAZORPAY_API}/orders`, {
@@ -91,7 +132,8 @@ exports.createPaymentOrder = async (req, res, next) => {
 
     // Fail *before* creating an order if a gateway method was chosen but the
     // gateway isn't configured — otherwise we'd strand an unpayable order.
-    if (!isOffline && !gatewayConfigured()) {
+    const isConfigured = await gatewayConfigured();
+    if (!isOffline && !isConfigured) {
       return next(new ErrorResponse(
         'Online payments are not configured. Please choose Cash on Delivery.',
         503
@@ -124,6 +166,11 @@ exports.createPaymentOrder = async (req, res, next) => {
         status: 'Pending'
       });
 
+      // Trigger automatic Shiprocket shipment creation for COD order
+      LogisticsService.processOrderPostPayment(order._id).catch(err => {
+        logger.error(`Auto logistics processing failed for COD order ${order.id}: ${err.message}`);
+      });
+
       return sendResponse(res, 201, {
         success: true,
         message: 'Order placed successfully. Pay on delivery.',
@@ -134,6 +181,7 @@ exports.createPaymentOrder = async (req, res, next) => {
     // ---- Gateway methods: create a Razorpay order to collect against ----
     const amountPaise = Math.round(order.totals.total * 100);
     const rzp = await createRazorpayOrder({ amountPaise, receipt: order.id });
+    const { keyId } = await getRazorpayCredentials();
 
     order.payment.gatewayOrderId = rzp.id;
     await order.save();
@@ -159,7 +207,7 @@ exports.createPaymentOrder = async (req, res, next) => {
           orderId: rzp.id,
           amount: amountPaise,
           currency: 'INR',
-          keyId: process.env.RAZORPAY_KEY_ID // publishable — safe to expose
+          keyId: keyId || process.env.RAZORPAY_KEY_ID
         }
       }
     });
@@ -178,7 +226,8 @@ exports.verifyPayment = async (req, res, next) => {
     if (!orderId || !razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
       return next(new ErrorResponse('Incomplete payment verification payload', 400));
     }
-    if (!gatewayConfigured()) {
+    const isConfigured = await gatewayConfigured();
+    if (!isConfigured) {
       return next(new ErrorResponse('Payment gateway is not configured', 503));
     }
 
@@ -199,14 +248,7 @@ exports.verifyPayment = async (req, res, next) => {
       });
     }
 
-    /**
-     * The signature is the ONLY proof the payment is real. This used to be
-     * bypassed for anything whose order id started with "order_" — which every
-     * genuine Razorpay order does, so verification never actually ran and a
-     * payment could be forged. Now the HMAC is always checked in production; the
-     * "mock_signature" shortcut exists only for local sandbox testing and is
-     * refused when NODE_ENV is 'production'.
-     */
+    const { keySecret } = await getRazorpayCredentials();
     const allowMock = process.env.NODE_ENV !== 'production';
     const isMock = allowMock && razorpay_signature === 'mock_signature';
     const isValid =
@@ -214,7 +256,7 @@ exports.verifyPayment = async (req, res, next) => {
       safeEqualHmac(
         `${razorpay_order_id}|${razorpay_payment_id}`,
         razorpay_signature,
-        process.env.RAZORPAY_KEY_SECRET
+        keySecret
       );
 
     const payment = await Payment.findOne({ orderId, gatewayOrderId: razorpay_order_id });
@@ -263,20 +305,27 @@ exports.verifyPayment = async (req, res, next) => {
     order.payment.status = 'Paid';
     order.payment.transactionId = razorpay_payment_id;
     order.payment.paidAt = now;
-    order.status = 'Confirmed';
-    order.timeline.push({ status: 'Confirmed', note: `Payment received (${razorpay_payment_id}).` });
+    order.status = 'Pending Confirmation';
+    order.orderStatus = 'Pending Confirmation';
+    order.fulfilmentStatus = 'On Hold';
+    order.cancellationDeadline = new Date(now.getTime() + 5 * 60 * 1000);
+    order.timeline.push({
+      status: 'Pending Confirmation',
+      time: now,
+      note: `Payment received (${razorpay_payment_id}). 5-minute cancellation window started.`
+    });
     await order.save();
 
-    // Confirm to the customer that the payment landed and the order is moving.
+    // Confirm to the customer that the payment landed and 5-min cancellation window is active.
     await notify(order.customerId, {
       title: `Payment received — Order ${order.displayId || order.id}`,
-      message: `Thanks! We've received your payment of ₹${Number(order.totals.total).toLocaleString('en-IN')}. Your order ${order.displayId || order.id} is confirmed and being prepared.`,
+      message: `Thanks! We've received your payment of ₹${Number(order.totals.total).toLocaleString('en-IN')}. Your 5-minute cancellation window has started for Order ${order.displayId || order.id}.`,
       type: 'OrderStatus'
     });
 
     await notifyAdmin({
-      title: 'Payment Success',
-      message: `Payment of ₹${order.totals.total} successfully captured for Order ${order.displayId || order.id}.`,
+      title: 'Payment Success (5-min Hold Window)',
+      message: `Payment of ₹${order.totals.total} captured for Order ${order.displayId || order.id}. 5-minute cancellation timer started.`,
       type: 'OrderStatus'
     });
 
@@ -306,8 +355,25 @@ exports.paymentWebhook = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid signature' });
     }
 
+    const eventId = req.body?.contains ? req.body.contains : req.body?.event_id || req.headers['x-razorpay-event-id'];
     const event = req.body?.event;
     const entity = req.body?.payload?.payment?.entity;
+
+    // Idempotency check: process each webhook event ID exactly once
+    if (eventId) {
+      const AuditLog = require('../models/AuditLog');
+      const alreadyProcessed = await AuditLog.findOne({ action: `Webhook Event:${eventId}` });
+      if (alreadyProcessed) {
+        logger.info(`Webhook event ${eventId} already processed. Skipping.`);
+        return res.status(200).json({ success: true, received: true, idempotent: true });
+      }
+      await AuditLog.create({
+        user: 'Razorpay Webhook',
+        role: 'System',
+        action: `Webhook Event:${eventId}`,
+        ipAddress: req.ip || '127.0.0.1'
+      });
+    }
 
     if (entity?.order_id) {
       const payment = await Payment.findOne({ gatewayOrderId: entity.order_id });
@@ -325,19 +391,26 @@ exports.paymentWebhook = async (req, res) => {
           order.payment.status = 'Paid';
           order.payment.transactionId = entity.id;
           order.payment.paidAt = now;
-          order.status = 'Confirmed';
-          order.timeline.push({ status: 'Confirmed', note: 'Payment captured (webhook).' });
+          order.status = 'Pending Confirmation';
+          order.orderStatus = 'Pending Confirmation';
+          order.fulfilmentStatus = 'On Hold';
+          order.cancellationDeadline = new Date(now.getTime() + 5 * 60 * 1000);
+          order.timeline.push({
+            status: 'Pending Confirmation',
+            time: now,
+            note: 'Payment captured via Webhook. 5-minute cancellation window started.'
+          });
           await order.save();
 
           await notify(order.customerId, {
             title: `Payment received — Order ${order.displayId || order.id}`,
-            message: `Thanks! We've received your payment of ₹${Number(order.totals.total).toLocaleString('en-IN')}. Your order ${order.displayId || order.id} is confirmed and being prepared.`,
+            message: `Thanks! We've received your payment of ₹${Number(order.totals.total).toLocaleString('en-IN')}. Your 5-minute cancellation window has started for Order ${order.displayId || order.id}.`,
             type: 'OrderStatus'
           });
 
           await notifyAdmin({
-            title: 'Payment Success',
-            message: `Payment of ₹${order.totals.total} successfully captured via Webhook for Order ${order.displayId || order.id}.`,
+            title: 'Payment Success (5-min Hold Window)',
+            message: `Payment of ₹${order.totals.total} captured via Webhook for Order ${order.displayId || order.id}. 5-minute cancellation timer started.`,
             type: 'OrderStatus'
           });
         } else if (event === 'payment.failed') {

@@ -6,7 +6,6 @@ import { FlavorShowcase } from "@/components/sections/flavor-showcase";
 import { FarmFresh } from "@/components/sections/farm-fresh";
 import { About } from "@/components/sections/about";
 import { HowItsMade } from "@/components/sections/how-its-made";
-import { WhyChooseUs } from "@/components/sections/why-choose-us";
 import { Reviews } from "@/components/sections/reviews";
 import { InstagramGallery } from "@/components/sections/instagram-gallery";
 import { Faq } from "@/components/sections/faq";
@@ -33,7 +32,6 @@ export default function HomePage() {
       <FarmFresh />
       <About />
       <HowItsMade />
-      <WhyChooseUs />
 
       {/* Social proof */}
       <Reviews />

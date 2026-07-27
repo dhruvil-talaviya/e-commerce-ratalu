@@ -21,6 +21,8 @@ import { toast } from "@/components/ui/toast";
 import { apiFetchEnvelope, apiFetch, getTokens } from "@/lib/api";
 import { useAccount } from "@/components/account/account-provider";
 import { AdminShell } from "@/components/admin/console/admin-shell";
+import { LiveCountdown } from "@/components/common/live-countdown";
+import { OrderTimeline } from "@/components/common/order-timeline";
 import { DataTable, type Column } from "@/components/admin/ui/data-table";
 import {
   Badge,
@@ -429,9 +431,20 @@ function OrdersView() {
       key: "status",
       header: "Status",
       sortable: true,
-      cell: (o) => (
-        <Badge tone={ORDER_STATUS[o.status]?.tone ?? "neutral"}>{o.status}</Badge>
-      ),
+      cell: (o) => {
+        const isHold = (o.status as string) === "Pending Confirmation" || (o.status as string) === "Pending";
+        const deadline = (o as any).cancellationDeadline || (o as any).cancellableUntil;
+        const isExpired = deadline && new Date(deadline) <= new Date();
+
+        if (isHold && !isExpired) {
+          return (
+            <LiveCountdown deadline={deadline} onExpire={load} />
+          );
+        }
+
+        const tone = ORDER_STATUS[o.status]?.tone ?? "neutral";
+        return <Badge tone={tone}>{o.status}</Badge>;
+      },
     },
     {
       key: "createdAt",
@@ -486,6 +499,114 @@ function OrdersView() {
         </>
       }
     >
+      {/* ─── Clickable Order KPI Cards ───────────────────────────────────── */}
+      <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
+        <button
+          onClick={() => setFilter("status", "Pending Confirmation")}
+          className={cn(
+            "flex flex-col items-start justify-between rounded-xl border p-3 text-left transition-all cursor-pointer",
+            filters.status === "Pending Confirmation"
+              ? "border-amber-400 bg-amber-50/80 ring-2 ring-amber-400/20 shadow-xs"
+              : "border-gray-200 bg-white hover:border-amber-200 hover:bg-amber-50/40"
+          )}
+        >
+          <span className="text-[10px] font-semibold text-amber-700">Pending Hold</span>
+          <span className="mt-1 text-lg font-extrabold text-amber-950">
+            {orders.filter((o) => (o.status as string) === "Pending Confirmation" || o.status === "Pending").length}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setFilter("status", "Confirmed")}
+          className={cn(
+            "flex flex-col items-start justify-between rounded-xl border p-3 text-left transition-all cursor-pointer",
+            filters.status === "Confirmed"
+              ? "border-emerald-400 bg-emerald-50/80 ring-2 ring-emerald-400/20 shadow-xs"
+              : "border-gray-200 bg-white hover:border-emerald-200 hover:bg-emerald-50/40"
+          )}
+        >
+          <span className="text-[10px] font-semibold text-emerald-700">Confirmed</span>
+          <span className="mt-1 text-lg font-extrabold text-emerald-950">
+            {orders.filter((o) => o.status === "Confirmed" || o.status === "Preparing").length}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setFilter("status", "Packed")}
+          className={cn(
+            "flex flex-col items-start justify-between rounded-xl border p-3 text-left transition-all cursor-pointer",
+            filters.status === "Packed"
+              ? "border-blue-400 bg-blue-50/80 ring-2 ring-blue-400/20 shadow-xs"
+              : "border-gray-200 bg-white hover:border-blue-200 hover:bg-blue-50/40"
+          )}
+        >
+          <span className="text-[10px] font-semibold text-blue-700">Packed</span>
+          <span className="mt-1 text-lg font-extrabold text-blue-950">
+            {orders.filter((o) => o.status === "Packed" || o.status === "Ready to Ship").length}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setFilter("status", "Shipped")}
+          className={cn(
+            "flex flex-col items-start justify-between rounded-xl border p-3 text-left transition-all cursor-pointer",
+            filters.status === "Shipped"
+              ? "border-purple-400 bg-purple-50/80 ring-2 ring-purple-400/20 shadow-xs"
+              : "border-gray-200 bg-white hover:border-purple-200 hover:bg-purple-50/40"
+          )}
+        >
+          <span className="text-[10px] font-semibold text-purple-700">Shipped</span>
+          <span className="mt-1 text-lg font-extrabold text-purple-950">
+            {orders.filter((o) => o.status === "Shipped" || o.status === "Out for Delivery").length}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setFilter("status", "Delivered")}
+          className={cn(
+            "flex flex-col items-start justify-between rounded-xl border p-3 text-left transition-all cursor-pointer",
+            filters.status === "Delivered"
+              ? "border-green-400 bg-green-50/80 ring-2 ring-green-400/20 shadow-xs"
+              : "border-gray-200 bg-white hover:border-green-200 hover:bg-green-50/40"
+          )}
+        >
+          <span className="text-[10px] font-semibold text-green-700">Delivered</span>
+          <span className="mt-1 text-lg font-extrabold text-green-950">
+            {orders.filter((o) => o.status === "Delivered" || (o.status as string) === "Completed").length}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setFilter("status", "Cancelled")}
+          className={cn(
+            "flex flex-col items-start justify-between rounded-xl border p-3 text-left transition-all cursor-pointer",
+            filters.status === "Cancelled"
+              ? "border-rose-400 bg-rose-50/80 ring-2 ring-rose-400/20 shadow-xs"
+              : "border-gray-200 bg-white hover:border-rose-200 hover:bg-rose-50/40"
+          )}
+        >
+          <span className="text-[10px] font-semibold text-rose-700">Cancelled</span>
+          <span className="mt-1 text-lg font-extrabold text-rose-950">
+            {orders.filter((o) => o.status === "Cancelled").length}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setFilter("status", "Refunded")}
+          className={cn(
+            "flex flex-col items-start justify-between rounded-xl border p-3 text-left transition-all cursor-pointer",
+            filters.status === "Refunded"
+              ? "border-slate-400 bg-slate-100 ring-2 ring-slate-400/20 shadow-xs"
+              : "border-gray-200 bg-white hover:border-slate-300 hover:bg-slate-50"
+          )}
+        >
+          <span className="text-[10px] font-semibold text-slate-600">Refunded</span>
+          <span className="mt-1 text-lg font-extrabold text-slate-900">
+            {orders.filter((o) => ["Refunded", "Refund Completed", "Refund Processing"].includes(o.status)).length}
+          </span>
+        </button>
+      </div>
+
       {/* ─── Today + quick status tabs ─────────────────────────────────────── */}
       {statusTabs.length > 1 && (
         <div className="mb-3 flex gap-1.5 overflow-x-auto pb-1">
@@ -654,7 +775,7 @@ function OrdersView() {
               options={options?.paymentMethods ?? []}
             />
             <div className="flex flex-wrap items-center gap-1.5 sm:col-span-2 lg:col-span-4">
-              <span className="mr-0.5 text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">
+              <span className="mr-0.5 text-[10px] font-bold text-[#6B7280]">
                 Quick range
               </span>
               {DATE_PRESETS.map((p) => {
@@ -1002,7 +1123,7 @@ function OrderDetail({
         >
           <div className="space-y-4 py-2">
             <div className="space-y-1">
-              <label className="text-[11px] font-bold uppercase tracking-wider text-gray-500">Target Status</label>
+              <label className="text-[11px] font-bold text-gray-500">Target Status</label>
               <select
                 value={overrideStatus}
                 onChange={(e) => setOverrideStatus(e.target.value)}
@@ -1018,7 +1139,7 @@ function OrderDetail({
             </div>
 
             <div className="space-y-1">
-              <label className="text-[11px] font-bold uppercase tracking-wider text-gray-500">Override Reason</label>
+              <label className="text-[11px] font-bold text-gray-500">Override Reason</label>
               <textarea
                 value={overrideReason}
                 onChange={(e) => setOverrideReason(e.target.value)}
@@ -1059,6 +1180,23 @@ function OrderDetail({
         />
       )}
 
+      {/* ── Visual Order Progress Timeline ───────────────────────────── */}
+      <div className="mb-4">
+        <OrderTimeline
+          orderStatus={order.status}
+          paymentStatus={order.payment?.status ?? "Pending"}
+          fulfilmentStatus={(order as any).fulfilmentStatus}
+          cancellationDeadline={(order as any).cancellationDeadline || (order as any).cancellableUntil}
+          confirmedAt={(order as any).confirmedAt}
+          packedAt={(order as any).packedAt}
+          shippedAt={(order as any).shippedAt}
+          deliveredAt={(order as any).deliveredAt}
+          cancelledAt={(order as any).cancelledAt}
+          trackingNumber={order.trackingNumber}
+          courierName={order.courierName}
+        />
+      </div>
+
       {/* ── Status + what can happen next ─────────────────────────────── */}
       <div className="rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] p-3">
         <div className="flex flex-wrap items-center gap-2">
@@ -1066,6 +1204,45 @@ function OrderDetail({
           <Badge tone={PAYMENT_STATUS[order.payment?.status ?? "Pending"] ?? "neutral"}>
             {order.payment?.status ?? "Pending"} · {order.payment?.method || order.method}
           </Badge>
+
+          {((order.status as string) === "Pending Confirmation" || (order.status as string) === "Pending") && (
+            <div className="flex items-center gap-1.5 ml-auto sm:ml-0">
+              <Button
+                variant="primary"
+                size="sm"
+                disabled={busy}
+                onClick={async () => {
+                  try {
+                    const res = await apiFetch<any>(`/admin/orders/${order.id}/confirm-now`, { method: "POST" });
+                    toast.success("Order confirmed immediately & sent for fulfillment!");
+                    onUpdated(res.data?.order || res.order || order);
+                  } catch (err: any) {
+                    toast.error(err.message || "Confirmation failed");
+                  }
+                }}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white border-none text-xs font-bold"
+              >
+                Confirm Now
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={busy}
+                onClick={async () => {
+                  try {
+                    const res = await apiFetch<any>(`/admin/orders/${order.id}/extend-timer`, { method: "POST" });
+                    toast.success("Timer extended +5 minutes!");
+                    onUpdated(res.data || order);
+                  } catch (err: any) {
+                    toast.error(err.message || "Timer extension failed");
+                  }
+                }}
+                className="text-xs font-semibold"
+              >
+                +5m Timer
+              </Button>
+            </div>
+          )}
 
           <Button
             variant="secondary"
@@ -1106,7 +1283,7 @@ function OrderDetail({
         )}
         {isSuperAdmin && (
           <div className="mt-3 border-t border-red-100 pt-3 flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-red-500">Super Admin Controls</span>
+            <span className="text-[10px] font-bold text-red-500">Super Admin Controls</span>
             <Button
               variant="secondary"
               size="sm"
@@ -1155,7 +1332,7 @@ function OrderDetail({
       {/* Customer + address */}
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         <Card className="p-3">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">Customer</p>
+          <p className="text-[10px] font-bold text-[#6B7280]">Customer</p>
           <p className="mt-1 text-xs font-bold text-[#111827]">{order.userName}</p>
           <a
             href={`tel:${order.userPhone}`}
@@ -1166,7 +1343,7 @@ function OrderDetail({
           </a>
         </Card>
         <Card className="p-3">
-          <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">
+          <p className="flex items-center gap-1 text-[10px] font-bold text-[#6B7280]">
             <MapPin className="size-3" />
             Ship to
           </p>
@@ -1178,10 +1355,106 @@ function OrderDetail({
         </Card>
       </div>
 
+      {/* Shiprocket Logistics Block */}
+      <Card className="mt-3 p-3.5 bg-amber-50/50 border-amber-200/80">
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-[10px] font-bold text-amber-900 flex items-center gap-1">
+            <Truck className="size-3 text-amber-700" />
+            Shiprocket Logistics Fulfillment
+          </p>
+          {order.trackingNumber && (
+            <span className="text-[10px] font-mono font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded border border-amber-300">
+              AWB: {order.trackingNumber}
+            </span>
+          )}
+        </div>
+
+        <div className="grid gap-2 text-[11px] sm:grid-cols-3 mb-3">
+          <div>
+            <span className="text-gray-500">Courier:</span>{" "}
+            <span className="font-bold text-gray-900">{order.courierName || "Not assigned"}</span>
+          </div>
+          <div>
+            <span className="text-gray-500">AWB Code:</span>{" "}
+            <span className="font-mono font-bold text-gray-900">{order.trackingNumber || "Pending"}</span>
+          </div>
+          <div>
+            <span className="text-gray-500">Shipment Status:</span>{" "}
+            <span className="font-bold text-amber-700">{order.status}</span>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-amber-200/60">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={async () => {
+              try {
+                await apiFetch("/admin/logistics/shipments/create", {
+                  method: "POST",
+                  body: { orderId: (order as any)._id || order.id }
+                });
+                toast.success("Shiprocket Order Created!");
+                onUpdated({ ...order });
+              } catch (err: any) {
+                toast.error(err.message || "Failed to create shipment");
+              }
+            }}
+          >
+            Create Shipment
+          </Button>
+
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={async () => {
+              try {
+                const res = await apiFetch<any>(`/admin/logistics/shipments/${(order as any)._id || order.id}/document?type=label`);
+                if (res.data?.url) window.open(res.data.url, "_blank");
+                else toast.error("Label URL not available");
+              } catch (err: any) {
+                toast.error(err.message || "Label fetch failed");
+              }
+            }}
+          >
+            <Printer className="size-3.5" />
+            Label
+          </Button>
+
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={async () => {
+              try {
+                const res = await apiFetch<any>(`/admin/logistics/shipments/${(order as any)._id || order.id}/document?type=manifest`);
+                if (res.data?.url) window.open(res.data.url, "_blank");
+                else toast.error("Manifest URL not available");
+              } catch (err: any) {
+                toast.error(err.message || "Manifest fetch failed");
+              }
+            }}
+          >
+            <FileText className="size-3.5" />
+            Manifest
+          </Button>
+
+          {order.trackingNumber && (
+            <a
+              href={`https://shiprocket.co/tracking/${order.trackingNumber}`}
+              target="_blank"
+              rel="noreferrer"
+              className="px-2.5 py-1 text-xs font-semibold bg-amber-500 text-neutral-950 rounded hover:bg-amber-600 transition"
+            >
+              Track on Shiprocket ↗
+            </a>
+          )}
+        </div>
+      </Card>
+
       {/* Payment Gateway details */}
       {order.payment?.method === "Razorpay" && (
         <Card className="mt-3 p-3 bg-purple-50/30 border-purple-100/60">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-[#5B2C83]">Gateway Details (Razorpay)</p>
+          <p className="text-[10px] font-bold text-[#5B2C83]">Gateway Details (Razorpay)</p>
           <div className="mt-1.5 grid gap-2 text-[11px] sm:grid-cols-2">
             <div>
               <span className="text-[#6B7280]">Order ID:</span>{" "}
@@ -1197,7 +1470,7 @@ function OrderDetail({
 
       {order.payment?.method === "COD" && (
         <Card className="mt-3 p-3 bg-gray-50/50 border-gray-150">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Payment Details</p>
+          <p className="text-[10px] font-bold text-gray-500">Payment Details</p>
           <div className="mt-1 text-[11px]">
             <span className="text-[#6B7280]">Method:</span>{" "}
             <span className="font-semibold text-[#111827]">Cash on Delivery (COD)</span>
@@ -1207,7 +1480,7 @@ function OrderDetail({
 
       {/* Items */}
       <div className="mt-4">
-        <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">Items</p>
+        <p className="mb-2 text-[10px] font-bold text-[#6B7280]">Items</p>
         <Card className="divide-y divide-gray-100">
           {order.items?.map((item) => (
             <div
@@ -1248,7 +1521,7 @@ function OrderDetail({
 
       {/* Timeline */}
       <div className="mt-4">
-        <p className="mb-2 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">
+        <p className="mb-2 flex items-center gap-1 text-[10px] font-bold text-[#6B7280]">
           <Clock className="size-3" />
           Timeline
         </p>
@@ -1312,7 +1585,7 @@ function FilterField({
 }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">
+      <span className="text-[10px] font-bold text-[#6B7280]">
         {label}
       </span>
       {children}

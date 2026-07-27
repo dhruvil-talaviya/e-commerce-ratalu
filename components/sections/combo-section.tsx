@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ComboCard } from "@/components/shop/combo-card";
 import { apiFetch } from "@/lib/api";
+import { cn } from "@/lib/utils";
 import type { ShopCombo } from "@/lib/types";
 
 export function ComboSection() {
@@ -59,13 +60,13 @@ export function ComboSection() {
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-6">
             {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-64 sm:h-80 w-full rounded-2xl sm:rounded-3xl" />
+              <Skeleton key={i} className="h-56 sm:h-80 w-full rounded-xl sm:rounded-3xl" />
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-6 w-full">
             {combos.slice(0, 8).map((combo, i) => (
               <ComboCard key={combo._id} combo={combo} index={i} view="grid" />
             ))}

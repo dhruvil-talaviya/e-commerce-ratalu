@@ -229,12 +229,7 @@ const seed = async () => {
     await mongoose.connect(mongoUri);
     console.log('Database connected successfully.');
 
-    // Create uploads directory if it does not exist
-    const uploadsDir = path.join(__dirname, '../../uploads');
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-      console.log('Created local uploads/ directory.');
-    }
+    // Seeding database records with Cloudinary CDN media assets
 
     // Clean up collections
     await Flavor.deleteMany();

@@ -291,12 +291,21 @@ function ProductsPage() {
         const p = effective(row);
         return (
           <div className="flex items-center gap-2.5">
-            <span
-              className="size-9 shrink-0 rounded-lg"
-              style={{
-                background: `radial-gradient(120% 120% at 30% 20%, ${p.gradient?.from}, ${p.gradient?.to})`,
-              }}
-            />
+            {p.image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={p.image}
+                alt={p.name}
+                className="size-9 shrink-0 rounded-lg object-cover border border-gray-200"
+              />
+            ) : (
+              <span
+                className="size-9 shrink-0 rounded-lg"
+                style={{
+                  background: `radial-gradient(120% 120% at 30% 20%, ${p.gradient?.from}, ${p.gradient?.to})`,
+                }}
+              />
+            )}
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-1.5">
                 <p className="truncate font-bold text-[#111827]">{p.name}</p>
@@ -598,7 +607,7 @@ function Field({
 }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">
+      <span className="text-[10px] font-bold text-[#6B7280]">
         {label}
       </span>
       {children}
@@ -641,7 +650,7 @@ function PackEditor({
     <div className="rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] p-3.5">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">
+          <p className="text-[10px] font-bold text-[#6B7280]">
             Price per weight
           </p>
           <p className="text-[10px] text-gray-400">What the customer pays for each pack size.</p>
@@ -1304,7 +1313,7 @@ function ProductEditor({
 
         {/* ── Storefront card preview ──────────────────────────────── */}
         <div className="lg:sticky lg:top-0 lg:self-start">
-          <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">
+          <p className="mb-2 text-[10px] font-bold text-[#6B7280]">
             Storefront card
           </p>
           <Card className="overflow-hidden">

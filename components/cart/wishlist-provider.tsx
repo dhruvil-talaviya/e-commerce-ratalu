@@ -4,7 +4,7 @@ import * as React from "react";
 import { useAccount, isAdminSession } from "@/components/account/account-provider";
 import { apiFetch } from "@/lib/api";
 
-const STORAGE_KEY = "ratalu.wishlist.v1";
+const STORAGE_KEY = "yamora.wishlist.v1";
 
 interface WishlistContextValue {
   ids: string[];

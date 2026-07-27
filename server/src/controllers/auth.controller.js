@@ -21,15 +21,11 @@ exports.sendOtp = async (req, res, next) => {
       return next(new ErrorResponse('Mobile number is required', 400));
     }
 
-    // 1. Rate limit check: max 5 requests per 15 minutes per phone or IP
+    // 1. Rate limit check: max 5 requests per 15 minutes per mobile number (phone)
     const requestCountPhone = await OtpLog.countDocuments({ phone, type: 'request' });
-    const requestCountIp = await OtpLog.countDocuments({ ip, type: 'request' });
 
-    if (requestCountPhone >= 5 || requestCountIp >= 5) {
-      const oldestLog = await OtpLog.findOne({ 
-        $or: [{ phone }, { ip }], 
-        type: 'request' 
-      }).sort({ createdAt: 1 });
+    if (requestCountPhone >= 5) {
+      const oldestLog = await OtpLog.findOne({ phone, type: 'request' }).sort({ createdAt: 1 });
 
       const remainingMs = oldestLog 
         ? Math.max(900000 - (Date.now() - new Date(oldestLog.createdAt).getTime()), 0)
@@ -40,13 +36,13 @@ exports.sendOtp = async (req, res, next) => {
       await AuditLog.create({
         user: phone,
         role: 'Customer',
-        action: `OTP request blocked (Rate limited). IP: ${ip}`,
+        action: `OTP request blocked for +91 ${phone} (Rate limited 5 requests/15min). IP: ${ip}`,
         ipAddress: ip
       });
 
       return res.status(429).json({
         success: false,
-        message: 'Too many OTP requests. Please try again after 15 minutes.',
+        message: `Too many OTP requests for +91 ${phone}. Please try again after 15 minutes.`,
         errorType: 'RATE_LIMIT_OTP',
         remainingSeconds
       });
@@ -145,15 +141,11 @@ exports.verifyOtp = async (req, res, next) => {
       return next(new ErrorResponse('Mobile number and verification code are required', 400));
     }
 
-    // 2. Lockout check: max 5 fails per 15 minutes per phone or IP
+    // 2. Lockout check: max 5 fails per 15 minutes per mobile number (phone)
     const failCountPhone = await OtpLog.countDocuments({ phone, type: 'verify_fail' });
-    const failCountIp = await OtpLog.countDocuments({ ip, type: 'verify_fail' });
 
-    if (failCountPhone >= 5 || failCountIp >= 5) {
-      const oldestFail = await OtpLog.findOne({ 
-        $or: [{ phone }, { ip }], 
-        type: 'verify_fail' 
-      }).sort({ createdAt: 1 });
+    if (failCountPhone >= 5) {
+      const oldestFail = await OtpLog.findOne({ phone, type: 'verify_fail' }).sort({ createdAt: 1 });
 
       const remainingMs = oldestFail 
         ? Math.max(900000 - (Date.now() - new Date(oldestFail.createdAt).getTime()), 0)
@@ -164,13 +156,13 @@ exports.verifyOtp = async (req, res, next) => {
       await AuditLog.create({
         user: phone,
         role: 'Customer',
-        action: `Login attempt blocked (OTP Lockout). IP: ${ip}`,
+        action: `Login attempt blocked for +91 ${phone} (5 failed OTP attempts). IP: ${ip}`,
         ipAddress: ip
       });
 
       return res.status(429).json({
         success: false,
-        message: 'Too many incorrect OTP attempts. Verification locked for 15 minutes.',
+        message: `Too many incorrect OTP attempts for +91 ${phone}. Verification locked for 15 minutes.`,
         errorType: 'LOCKOUT_OTP',
         remainingSeconds
       });
@@ -281,7 +273,6 @@ exports.verifyOtp = async (req, res, next) => {
         isRegistered: true,
         profileComplete: user.profileComplete,
         accessToken,
-        refreshToken,
         user
       }
     });
@@ -332,7 +323,6 @@ exports.register = async (req, res, next) => {
       message: 'Account created successfully',
       data: {
         accessToken,
-        refreshToken,
         user: {
           id: customer._id,
           name: customer.name,
@@ -399,8 +389,7 @@ exports.refresh = async (req, res, next) => {
       success: true,
       message: 'Token refreshed',
       data: {
-        accessToken,
-        refreshToken: newRefreshToken
+        accessToken
       }
     });
   } catch (error) {

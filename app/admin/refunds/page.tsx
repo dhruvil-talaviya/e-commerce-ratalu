@@ -387,7 +387,7 @@ function StatCard({
 }) {
   return (
     <Card className="p-3.5">
-      <p className="text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">{label}</p>
+      <p className="text-[10px] font-bold text-[#6B7280]">{label}</p>
       {value === null ? (
         <Skeleton className="mt-1.5 h-6 w-20" />
       ) : (
@@ -508,7 +508,7 @@ function RefundDetail({
                 {r.refundType && <Badge tone="primary">{r.refundType}</Badge>}
               </div>
               <div className="text-right">
-                <p className="text-[10px] uppercase tracking-wider text-[#6B7280]">
+                <p className="text-[10px] text-[#6B7280]">
                   Requested / Max refundable
                 </p>
                 <p className="text-sm font-bold text-[#111827]">
@@ -532,7 +532,7 @@ function RefundDetail({
             {/* Customer + payment */}
             <div className="grid gap-3 sm:grid-cols-2">
               <Card className="p-3">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">
+                <p className="text-[10px] font-bold text-[#6B7280]">
                   Customer
                 </p>
                 <p className="mt-1 text-xs font-bold">{r.customerName}</p>
@@ -551,7 +551,7 @@ function RefundDetail({
               </Card>
 
               <Card className="p-3">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">
+                <p className="text-[10px] font-bold text-[#6B7280]">
                   Payment
                 </p>
                 <p className="mt-1 text-xs font-semibold">
@@ -575,7 +575,7 @@ function RefundDetail({
 
             {/* What the customer said */}
             <Card className="p-3">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">
+              <p className="text-[10px] font-bold text-[#6B7280]">
                 Customer&apos;s description
               </p>
               <p className="mt-1 text-xs leading-relaxed text-[#111827]">
@@ -613,7 +613,7 @@ function RefundDetail({
             {/* Ledger */}
             {r.approvedAmount != null && (
               <Card className="p-3">
-                <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">
+                <p className="mb-2 text-[10px] font-bold text-[#6B7280]">
                   Refund ledger
                 </p>
                 <div className="space-y-1 text-[11px]">
@@ -642,7 +642,7 @@ function RefundDetail({
 
             {/* Timeline */}
             <div>
-              <p className="mb-2 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">
+              <p className="mb-2 flex items-center gap-1 text-[10px] font-bold text-[#6B7280]">
                 <Clock className="size-3" />
                 Timeline
               </p>
@@ -668,7 +668,7 @@ function RefundDetail({
             {/* Internal notes */}
             {r.internalNotes && (
               <Card className="bg-amber-50/50 p-3">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-amber-800">
+                <p className="text-[10px] font-bold text-amber-800">
                   Internal notes
                 </p>
                 <pre className="mt-1 whitespace-pre-wrap font-sans text-[10px] leading-relaxed text-amber-900">
@@ -680,7 +680,7 @@ function RefundDetail({
             {/* ── Actions ────────────────────────────────────────────────── */}
             {!terminal && (
               <Card className="p-3">
-                <p className="mb-3 text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">
+                <p className="mb-3 text-[10px] font-bold text-[#6B7280]">
                   Actions
                 </p>
 

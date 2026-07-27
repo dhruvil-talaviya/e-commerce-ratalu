@@ -38,7 +38,7 @@ function OrderStatusBanner() {
   if (!showBanner) return null;
 
   return (
-    <div className="bg-orange-50 border-b border-orange-100 py-3 text-orange-950 px-4 transition-all duration-300 animate-in slide-in-from-top duration-300">
+    <div className="hidden sm:block bg-orange-50 border-b border-orange-100 py-3 text-orange-950 px-4 transition-all duration-300 animate-in slide-in-from-top duration-300">
       <div className="container mx-auto max-w-7xl flex items-center justify-between gap-3 text-xs sm:text-sm font-medium">
         <div className="flex items-center gap-3 min-w-0">
           <span className="relative flex size-2 shrink-0">
@@ -74,6 +74,9 @@ function OrderStatusBanner() {
     </div>
   );
 }
+
+import { CartSheet } from "@/components/cart/cart-sheet";
+import { FloatingCheckoutBar } from "@/components/layout/floating-checkout-bar";
 
 export function StorefrontLayoutWrapper({
   cms,
@@ -113,6 +116,8 @@ export function StorefrontLayoutWrapper({
           <main className="flex-1">{children}</main>
           <Footer />
           <WhatsAppButton />
+          <CartSheet />
+          <FloatingCheckoutBar />
         </div>
       </CmsProvider>
     </SystemStatusProvider>

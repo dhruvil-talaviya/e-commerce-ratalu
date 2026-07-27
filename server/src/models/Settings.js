@@ -41,15 +41,89 @@ const SettingsSchema = new mongoose.Schema({
   currency: { type: String, default: 'INR' },
   language: { type: String, default: 'en' },
 
-  // ─── Shipping ──────────────────────────────────────────────────────────────
-  shippingFreeThreshold: { type: Number, default: 599 },  // free shipping above this
-  shippingFlatRate: { type: Number, default: 49 },         // flat fee if below threshold
+  // ─── Shipping & Delivery Configuration ─────────────────────────────────────
+  shippingFreeThreshold: { type: Number, default: 599 },
+  shippingFlatRate: { type: Number, default: 49 },
+  sameDayFlatRate: { type: Number, default: 149 },
+  expressFlatRate: { type: Number, default: 99 },
 
-  // ─── Payment Methods ───────────────────────────────────────────────────────
+  // Shipping Methods Switches
+  storePickupEnabled: { type: Boolean, default: false },
+  homeDeliveryEnabled: { type: Boolean, default: true },
+  sameDayDeliveryEnabled: { type: Boolean, default: false },
+  expressDeliveryEnabled: { type: Boolean, default: false },
+  internationalShippingEnabled: { type: Boolean, default: false },
+
+  // Free Shipping Rules
+  freeShippingEnabled: { type: Boolean, default: true },
+  freeShippingMinAmount: { type: Number, default: 599 },
+  freeShippingScope: {
+    type: String,
+    enum: ['all_india', 'selected_states', 'selected_cities', 'selected_pincodes', 'specific_products', 'specific_categories', 'vip_customers', 'coupon_based', 'membership_based'],
+    default: 'all_india'
+  },
+  freeShippingStates: { type: [String], default: [] },
+  freeShippingCities: { type: [String], default: [] },
+  freeShippingPincodes: { type: [String], default: [] },
+  freeShippingCategories: { type: [String], default: [] },
+
+  // Tiered / Rule-based Shipping Charges
+  shippingRules: [{
+    minPrice: { type: Number, default: 0 },
+    maxPrice: { type: Number, default: 999999 },
+    charge: { type: Number, default: 49 },
+    minWeight: { type: Number, default: 0 },
+    maxWeight: { type: Number, default: 100 },
+    pincodes: { type: [String], default: [] },
+    states: { type: [String], default: [] },
+    cities: { type: [String], default: [] },
+    category: { type: String, default: '' }
+  }],
+
+  // ─── Payment Methods & Razorpay Configuration ────────────────────────────────
   codEnabled: { type: Boolean, default: true },
   razorpayEnabled: { type: Boolean, default: true },
   upiEnabled: { type: Boolean, default: true },
   razorpayKeyId: { type: String, default: '' },
+  encryptedRazorpayKeySecret: { type: String, default: '' },
+  encryptedRazorpayWebhookSecret: { type: String, default: '' },
+  razorpayWebhookUrl: { type: String, default: '' },
+  razorpayMerchantName: { type: String, default: 'Yamora Chips' },
+  razorpayBrandLogo: { type: String, default: '' },
+  razorpayThemeColor: { type: String, default: '#5B2C6F' },
+  razorpayTestMode: { type: Boolean, default: true },
+  razorpayAutoCapture: { type: Boolean, default: true },
+  razorpayEnableRefunds: { type: Boolean, default: true },
+  razorpayEnablePartialRefunds: { type: Boolean, default: true },
+  razorpayEnableWebhooks: { type: Boolean, default: true },
+  
+  // Specific Gateway Payment Types
+  razorpayEnableUPI: { type: Boolean, default: true },
+  razorpayEnableCards: { type: Boolean, default: true },
+  razorpayEnableWallets: { type: Boolean, default: true },
+  razorpayEnableNetBanking: { type: Boolean, default: true },
+  razorpayEnableEMI: { type: Boolean, default: false },
+
+  // ─── Checkout Rules & Restrictions ─────────────────────────────────────────
+  guestCheckoutEnabled: { type: Boolean, default: true },
+  loginRequired: { type: Boolean, default: false },
+  minOrderAmount: { type: Number, default: 0 },
+  maxOrderAmount: { type: Number, default: 50000 },
+  maxCodAmount: { type: Number, default: 3000 },
+  maxCartItems: { type: Number, default: 50 },
+  maxQuantityPerItem: { type: Number, default: 10 },
+  otpVerificationRequired: { type: Boolean, default: true },
+  addressValidationRequired: { type: Boolean, default: true },
+  deliverySlotSelectionEnabled: { type: Boolean, default: false },
+  estimatedDeliveryDays: { type: String, default: '3–5 Business Days' },
+
+  // ─── Order Flow Steps Pipeline ──────────────────────────────────────────────
+  orderPipeline: [{
+    key: { type: String, required: true },
+    label: { type: String, required: true },
+    enabled: { type: Boolean, default: true },
+    description: { type: String, default: '' }
+  }],
 
   // ─── Announcement Bar ──────────────────────────────────────────────────────
   announcementText: { type: String, default: 'Free shipping on orders above ₹599!' },
@@ -193,7 +267,33 @@ const SettingsSchema = new mongoose.Schema({
 
   // ─── Extended Business Policy Settings ──────────────────────────────────────
   inventoryEnabled: { type: Boolean, default: false },
-  allowCustomerCancellationInPreparing: { type: Boolean, default: false }
+  allowCustomerCancellationInPreparing: { type: Boolean, default: false },
+
+  // ─── Checkout Policy & Delivery Instructions ──────────────────────────────────
+  checkoutInstructions: {
+    type: [{
+      title: { type: String, required: true },
+      text: { type: String, required: true },
+      icon: { type: String, default: 'truck' }
+    }],
+    default: [
+      {
+        title: 'Delivery Timeline',
+        text: 'Standard delivery takes 5–7 business days.',
+        icon: 'truck'
+      },
+      {
+        title: 'No Cash on Delivery',
+        text: 'Cash on Delivery is currently unavailable. All orders are pre-paid.',
+        icon: 'ban'
+      },
+      {
+        title: 'No Return Policy',
+        text: 'Perishable food item — non-returnable once dispatched.',
+        icon: 'shield-check'
+      }
+    ]
+  }
 
 }, { timestamps: true });
 

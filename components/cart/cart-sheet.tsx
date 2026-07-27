@@ -138,7 +138,15 @@ export function CartSheet() {
                             <p className="font-serif text-sm font-bold text-gray-900 leading-snug truncate">
                               {item.flavorName}
                             </p>
-                            <p className="text-[11px] font-medium text-gray-500">{item.packLabel} pack</p>
+                            {item.isCombo ? (
+                              <div className="mt-0.5">
+                                <span className="inline-flex items-center gap-1 rounded bg-purple-100 px-1.5 py-0.5 text-[10px] font-bold text-purple-700">
+                                  🍱 {item.packLabel}
+                                </span>
+                              </div>
+                            ) : (
+                              <p className="text-[11px] font-medium text-gray-500">{item.packLabel} pack</p>
+                            )}
                             <p className="mt-1 font-bold text-xs text-purple-700">
                               {formatINR(item.unitPrice * item.quantity)}
                             </p>
@@ -290,9 +298,9 @@ export function CartSheet() {
                     <dt>Item Total (Subtotal)</dt>
                     <dd className="font-medium text-gray-900">{formatINR(totals.subtotal)}</dd>
                   </div>
-                  {totals.discount > 0 && (
+                  {coupon && totals.discount > 0 && (
                     <div className="flex justify-between text-green-700 font-medium">
-                      <dt>Coupon Discount</dt>
+                      <dt>Coupon Discount ({coupon.code})</dt>
                       <dd>− {formatINR(totals.discount)}</dd>
                     </div>
                   )}

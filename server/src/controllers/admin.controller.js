@@ -486,8 +486,14 @@ exports.updateBanner = async (req, res, next) => {
 // @access  Private (Admin)
 exports.deleteBanner = async (req, res, next) => {
   try {
-    const banner = await Banner.findByIdAndDelete(req.params.id);
+    const banner = await Banner.findById(req.params.id);
     if (!banner) return next(new ErrorResponse('Banner not found', 404));
+
+    const { deleteCloudinaryAssetByUrlOrId } = require('../services/cloudinary.service');
+    if (banner.imageUrl) await deleteCloudinaryAssetByUrlOrId(banner.imageUrl);
+    if (banner.mobileImageUrl) await deleteCloudinaryAssetByUrlOrId(banner.mobileImageUrl);
+
+    await banner.deleteOne();
     await AuditLog.create({ user: req.user?.username || 'Admin', role: req.user?.role || 'Admin', action: `Deleted banner: ${banner.title}`, ipAddress: req.ip || '127.0.0.1' });
     sendResponse(res, 200, { success: true, message: 'Banner deleted' });
   } catch (error) { next(error); }
@@ -922,13 +928,12 @@ exports.deleteMedia = async (req, res, next) => {
   try {
     const item = await Media.findById(req.params.id);
     if (!item) return next(new ErrorResponse('Media item not found', 404));
-    const fs = require('fs');
-    const path = require('path');
-    const filename = item.name;
-    const filepath = path.join(__dirname, '../../uploads', filename);
-    if (fs.existsSync(filepath)) {
-      fs.unlinkSync(filepath);
+    
+    const { deleteCloudinaryAssetByUrlOrId } = require('../services/cloudinary.service');
+    if (item.public_id || item.url) {
+      await deleteCloudinaryAssetByUrlOrId(item.public_id || item.url);
     }
+
     await item.deleteOne();
     sendResponse(res, 200, { success: true, message: 'Media item deleted' });
   } catch (error) { next(error); }

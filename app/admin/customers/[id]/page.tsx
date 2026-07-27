@@ -323,7 +323,7 @@ export default function CustomerDetailPage() {
                   <Badge tone={detail.status === "Active" ? "success" : "danger"}>
                     {detail.status}
                   </Badge>
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                  <span className="text-[10px] font-bold text-gray-400 ">
                     {detail.stats.totalOrders === 0
                       ? "New Customer"
                       : detail.stats.totalOrders > 5
@@ -424,7 +424,7 @@ export default function CustomerDetailPage() {
 
                 {detail.notes && (
                   <div className="mt-2 rounded-xl bg-purple-50/70 border border-purple-100 p-3 text-[11px] font-medium text-purple-900 leading-relaxed">
-                    <span className="block font-bold text-purple-800 not-italic uppercase tracking-wider text-[9px] mb-1">Staff Note</span>
+                    <span className="block font-bold text-purple-800 not-italic text-[9px] mb-1">Staff Note</span>
                     {detail.notes}
                   </div>
                 )}
@@ -435,7 +435,7 @@ export default function CustomerDetailPage() {
           {/* Saved Addresses */}
           <Card className="p-5 shadow-sm border border-gray-200 bg-white rounded-2xl">
             <div className="mb-3.5 flex items-center justify-between">
-              <p className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-gray-400">
+              <p className="flex items-center gap-1.5 text-[10px] font-extrabold text-gray-400">
                 <MapPin className="size-3.5 text-purple-600" />
                 Saved Delivery Addresses ({detail.addresses?.length ?? 0})
               </p>
@@ -495,7 +495,7 @@ export default function CustomerDetailPage() {
 
           {/* ── Status Overview ─────────────────────────────────────── */}
           <Card className="p-5 shadow-sm border border-gray-200 bg-white rounded-2xl">
-            <p className="mb-3.5 flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-gray-400">
+            <p className="mb-3.5 flex items-center gap-1.5 text-[10px] font-extrabold text-gray-400">
               <Activity className="size-3.5 text-purple-600" />
               Account & Order Status Overview
             </p>
@@ -523,7 +523,7 @@ export default function CustomerDetailPage() {
             {/* Orders & Payments Status Breakdown */}
             <div className="mt-4 grid gap-4 sm:grid-cols-2 border-t border-gray-100 pt-4">
               <div>
-                <p className="mb-2 text-[10px] font-extrabold uppercase tracking-wider text-gray-400">
+                <p className="mb-2 text-[10px] font-extrabold text-gray-400">
                   Orders Breakdown
                 </p>
                 {detail.orders.length === 0 ? (
@@ -540,7 +540,7 @@ export default function CustomerDetailPage() {
               </div>
 
               <div>
-                <p className="mb-2 text-[10px] font-extrabold uppercase tracking-wider text-gray-400">
+                <p className="mb-2 text-[10px] font-extrabold text-gray-400">
                   Payments Breakdown
                 </p>
                 {detail.orders.length === 0 ? (
@@ -561,7 +561,7 @@ export default function CustomerDetailPage() {
           {/* ── Order & Payment History ───────────────────────────── */}
           <Card className="p-5 shadow-sm border border-gray-200 bg-white rounded-2xl">
             <p className="mb-3.5 flex items-center justify-between">
-              <span className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-gray-400">
+              <span className="flex items-center gap-1.5 text-[10px] font-extrabold text-gray-400">
                 <Package className="size-3.5 text-purple-600" />
                 Order &amp; Payment History ({detail.orders.length})
               </span>
@@ -652,7 +652,7 @@ export default function CustomerDetailPage() {
 
           {/* ── Activity Log ────────────────────────────────────────── */}
           <Card className="p-5 shadow-sm border border-gray-200 bg-white rounded-2xl">
-            <p className="mb-4 flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-gray-400">
+            <p className="mb-4 flex items-center gap-1.5 text-[10px] font-extrabold text-gray-400">
               <Clock className="size-3.5 text-purple-600" />
               Customer Activity Audit Log ({detail.activity.length})
             </p>
@@ -732,7 +732,7 @@ export default function CustomerDetailPage() {
 function Labeled({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#6B7280]">{label}</span>
+      <span className="text-[10px] font-extrabold text-[#6B7280]">{label}</span>
       {children}
     </label>
   );
@@ -754,7 +754,7 @@ function MiniStat({
   return (
     <Card className="p-4 shadow-sm border border-gray-200 bg-white hover:border-purple-200 transition-all flex items-center justify-between rounded-2xl">
       <div>
-        <p className="text-[10px] font-extrabold uppercase tracking-wider text-gray-400">{label}</p>
+        <p className="text-[10px] font-extrabold text-gray-400">{label}</p>
         <p className="mt-1 text-xl font-black text-gray-900">{value}</p>
         {sub && <p className="mt-0.5 text-[10px] font-semibold text-gray-400">{sub}</p>}
       </div>

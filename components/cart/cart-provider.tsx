@@ -45,6 +45,7 @@ interface CartContextValue {
   closeCart: () => void;
   setOpen: (open: boolean) => void;
   addItem: (flavor: Flavor, pack: PackSize, quantity?: number) => void;
+  addCombo: (combo: any, quantity?: number) => void;
   removeItem: (key: string) => void;
   updateQuantity: (key: string, quantity: number) => void;
   clear: () => void;
@@ -188,19 +189,31 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     load();
   }, [ownerId, isShopper]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Save applied coupon code whenever coupon changes (transient in sessionStorage)
+  React.useEffect(() => {
+    if (!hydrated) return;
+    if (typeof window === "undefined") return;
+    if (coupon?.code) {
+      sessionStorage.setItem("yamora.applied_coupon", coupon.code);
+    } else {
+      sessionStorage.removeItem("yamora.applied_coupon");
+    }
+  }, [coupon, hydrated]);
+
   /**
-   * Re-apply a coupon the guest had on their cart before the page reloaded.
-   *
-   * Re-validated rather than trusted: the stored code is just a string in the
-   * browser, and it may have expired (or been revoked) since it was applied.
+   * Re-apply a coupon the user had on their cart before navigating away or reloading.
+   * Re-validated against server: removed only if coupon is inactive or expired.
    */
   const rehydratedCoupon = React.useRef(false);
   React.useEffect(() => {
-    if (!hydrated || isShopper || coupon || rehydratedCoupon.current || !items.length) return;
+    if (!hydrated || coupon || rehydratedCoupon.current || !items.length) return;
+    if (typeof window === "undefined") return;
 
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      const storedCode = raw ? JSON.parse(raw).coupon : null;
+      const storedCode = sessionStorage.getItem("yamora.applied_coupon") || (() => {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? JSON.parse(raw).coupon : null;
+      })();
       if (!storedCode) return;
 
       rehydratedCoupon.current = true;
@@ -210,15 +223,19 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         method: "POST",
         body: { code: storedCode, subtotal },
       })
-        .then(setCoupon)
-        .catch(() => setCoupon(null));
+        .then((valid) => {
+          setCoupon(valid);
+        })
+        .catch(() => {
+          sessionStorage.removeItem("yamora.applied_coupon");
+          setCoupon(null);
+        });
     } catch {
-      /* nothing worth recovering */
+      /* ignore */
     }
-  }, [hydrated, isShopper, coupon, items]);
+  }, [hydrated, coupon, items]);
 
-  // Persist the guest cart — never before the right cart has loaded, or we'd
-  // write the previous account's items back out under the guest key.
+  // Persist the guest cart items
   React.useEffect(() => {
     if (!hydrated || isShopper || loadedOwner !== ownerId) return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ items, coupon: coupon?.code }));
@@ -287,9 +304,46 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           ];
         });
       }
-      setIsOpen(true);
+      // Do not open cart drawer automatically on item add — user will open manually when clicking cart
     },
     [items, settings.maxOrderLimit, isShopper]
+  );
+
+  const addCombo = React.useCallback(
+    async (combo: any, quantity = 1) => {
+      const key = `combo:${combo._id || combo.id}`;
+      const totalPacks = combo.items ? combo.items.reduce((s: number, i: any) => s + (i.quantity || 1), 0) : 0;
+      const packLabel = `Combo Pack (${totalPacks} Items)`;
+      const unitPrice = combo.comboPrice;
+
+      setItems((prev) => {
+        const existing = prev.find((i) => i.key === key);
+        if (existing) {
+          return prev.map((i) =>
+            i.key === key ? { ...i, quantity: Math.min(i.quantity + quantity, 99) } : i
+          );
+        }
+        return [
+          ...prev,
+          {
+            key,
+            flavorId: `combo-${combo._id || combo.id}`,
+            flavorName: combo.name,
+            packId: "combo-pack",
+            packLabel,
+            grams: 0,
+            unitPrice,
+            quantity,
+            isCombo: true,
+            comboId: combo._id || combo.id,
+            gradient: { from: "#7c3aed", via: "#9333ea", to: "#c084fc" },
+          },
+        ];
+      });
+      // Do not open cart drawer automatically on combo add — user will open manually when clicking cart
+      toast.success("Combo added to cart", { description: `${combo.name} added to cart.` });
+    },
+    []
   );
 
   const removeItem = React.useCallback(async (key: string) => {
@@ -375,41 +429,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     const rawSubtotal = items.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0);
     const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
 
-    // Calculate combo discounts first
-    let comboDiscount = 0;
-    const pool = { ...Object.fromEntries(items.map(item => [`${item.flavorId}:${item.packId}`, item.quantity])) };
-    const sortedCombos = [...combos].sort((a, b) => b.savings - a.savings);
-
-    for (const combo of sortedCombos) {
-      let possibleApplications = Infinity;
-      for (const reqItem of combo.items) {
-        const key = `${reqItem.flavorId}:${reqItem.packId}`;
-        const available = pool[key] || 0;
-        const needed = reqItem.quantity;
-        if (needed <= 0) continue;
-        const count = Math.floor(available / needed);
-        if (count < possibleApplications) {
-          possibleApplications = count;
-        }
-      }
-
-      if (possibleApplications > 0 && possibleApplications !== Infinity) {
-        for (const reqItem of combo.items) {
-          const key = `${reqItem.flavorId}:${reqItem.packId}`;
-          pool[key] -= reqItem.quantity * possibleApplications;
-        }
-        comboDiscount += combo.savings * possibleApplications;
-      }
-    }
-
-    let discount = comboDiscount;
-    const subtotalAfterCombos = Math.max(rawSubtotal - comboDiscount, 0);
-    if (coupon && subtotalAfterCombos >= (coupon.minSubtotal ?? 0)) {
-      const couponSavings =
+    // Coupon discount applies ONLY when an explicit coupon code has been applied by the user
+    let discount = 0;
+    if (coupon && rawSubtotal >= (coupon.minSubtotal ?? 0)) {
+      discount =
         coupon.type === "percent"
-          ? Math.round((subtotalAfterCombos * coupon.value) / 100)
-          : Math.min(coupon.value, subtotalAfterCombos);
-      discount += couponSavings;
+          ? Math.round((rawSubtotal * coupon.value) / 100)
+          : Math.min(coupon.value, rawSubtotal);
     }
 
     const discountRatio = rawSubtotal > 0 ? Math.max(rawSubtotal - discount, 0) / rawSubtotal : 0;
@@ -417,7 +443,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     const gstEnabled = settings.gstEnabled !== false;
     const globalGstRate = settings.taxRate || 5;
     const globalTaxInclusive = settings.taxInclusive !== false;
-    const freeShippingThreshold = settings.shippingFreeThreshold || 599;
+    const freeShippingThreshold = settings.freeShippingMinAmount || settings.shippingFreeThreshold || 599;
+    const isFreeShippingEnabled = settings.freeShippingEnabled !== false;
     const flatShippingFee = settings.shippingFlatRate || 49;
 
     let totalTaxableBase = 0;
@@ -456,7 +483,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
     const gst = Math.round(totalOriginalGst * discountRatio);
     const postDiscountPrice = Math.max(rawSubtotal - discount, 0);
-    const qualifiesFreeShipping = postDiscountPrice >= freeShippingThreshold;
+    const qualifiesFreeShipping = isFreeShippingEnabled && postDiscountPrice >= freeShippingThreshold;
     const shipping = itemCount === 0 ? 0 : (qualifiesFreeShipping ? 0 : flatShippingFee);
 
     let total = 0;
@@ -551,6 +578,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     closeCart: () => setIsOpen(false),
     setOpen: setIsOpen,
     addItem,
+    addCombo,
     removeItem,
     updateQuantity,
     clear,

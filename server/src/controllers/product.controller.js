@@ -442,6 +442,15 @@ exports.deleteProduct = async (req, res, next) => {
     }
 
     const actualSlug = flavor.slug;
+
+    const { deleteCloudinaryAssetByUrlOrId } = require('../services/cloudinary.service');
+    if (flavor.image) await deleteCloudinaryAssetByUrlOrId(flavor.image);
+    if (Array.isArray(flavor.images)) {
+      for (const imgUrl of flavor.images) {
+        await deleteCloudinaryAssetByUrlOrId(imgUrl);
+      }
+    }
+
     await Flavor.findByIdAndDelete(flavor._id);
     await Product.findOneAndDelete({ flavorId: actualSlug });
     

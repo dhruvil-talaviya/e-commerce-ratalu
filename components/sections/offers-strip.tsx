@@ -126,25 +126,25 @@ export function OffersStrip() {
                 className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-orange-500 via-orange-500 to-gold-400 p-6 text-white shadow-[var(--shadow-lift)] sm:p-9"
               >
                 <div className="pointer-events-none absolute -right-10 -top-10 size-48 rounded-full bg-white/15 blur-3xl" />
-                <div className="relative flex flex-col items-start justify-between gap-5 sm:flex-row sm:items-center">
-                  <div className="flex items-start gap-4">
-                    <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-white/20 backdrop-blur">
-                      <Sparkles className="size-6" />
+                <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-6">
+                  <div className="flex items-start gap-3.5 sm:gap-4 min-w-0">
+                    <span className="grid size-10 sm:size-12 shrink-0 place-items-center rounded-2xl bg-white/20 backdrop-blur">
+                      <Sparkles className="size-5 sm:size-6" />
                     </span>
-                    <div className="min-w-0">
-                      <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-white/80">
-                        <Clock className="size-3.5" /> {combo.badge || "Combo offer"}
+                    <div className="min-w-0 flex-1">
+                      <p className="flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold uppercase tracking-[0.16em] text-white/90">
+                        <Clock className="size-3.5" /> {combo.badge || "Best Value Combo"}
                       </p>
-                      <h3 className="mt-1 font-serif text-xl font-bold sm:text-3xl">{combo.name}</h3>
-                      <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-white/90">
-                        <span className="font-bold">{formatINR(combo.comboPrice)}</span>
+                      <h3 className="mt-0.5 font-serif text-lg sm:text-3xl font-bold truncate">{combo.name}</h3>
+                      <p className="mt-1 flex flex-wrap items-center gap-2 text-xs sm:text-sm text-white/90">
+                        <span className="font-bold text-base sm:text-lg">{formatINR(combo.comboPrice)}</span>
                         {combo.originalPrice > combo.comboPrice && (
-                          <span className="text-white/70 line-through">
+                          <span className="text-white/70 line-through text-xs sm:text-sm">
                             {formatINR(combo.originalPrice)}
                           </span>
                         )}
                         {combo.savings > 0 && (
-                          <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-bold">
+                          <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] sm:text-xs font-bold whitespace-nowrap">
                             Save {formatINR(combo.savings)} · {combo.discountPercent}% off
                           </span>
                         )}
@@ -155,9 +155,9 @@ export function OffersStrip() {
                     asChild
                     variant="subtle"
                     size="lg"
-                    className="shrink-0 bg-white text-orange-600 hover:bg-white"
+                    className="w-full sm:w-auto shrink-0 bg-white text-orange-600 hover:bg-amber-50 font-bold shadow-md h-10 sm:h-12 text-xs sm:text-sm"
                   >
-                    <Link href="/products">Shop the combo</Link>
+                    <Link href={`/combos/${combo.slug}`}>Shop the combo</Link>
                   </Button>
                 </div>
               </motion.div>

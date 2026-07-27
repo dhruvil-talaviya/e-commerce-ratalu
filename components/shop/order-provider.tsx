@@ -260,7 +260,7 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
     }
   }, [isLoggedIn, isAdmin, fetchMyOrders, loadAdminOrders, loadOrderFilterOptions]);
 
-  useLiveRefresh(refreshOrders, { enabled: isLoggedIn, minIntervalMs: 2500 });
+  useLiveRefresh(refreshOrders, { enabled: isLoggedIn, minIntervalMs: 15000 });
 
   const placeOrder = React.useCallback(
     async (
