@@ -6,30 +6,28 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full font-semibold transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-background)] disabled:pointer-events-none disabled:opacity-50 active:scale-[0.97] select-none cursor-pointer [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full font-semibold transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5B2C83] focus-visible:ring-offset-2 focus-visible:ring-offset-[#FFF8EC] disabled:pointer-events-none disabled:opacity-50 active:scale-[0.97] select-none cursor-pointer [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        /** Purple background — primary brand CTA */
+        /** Deep Purple #5B2C83 background — primary brand CTA with Golden Wafer #F4B400 hover */
         primary:
-          "bg-purple-500 text-white shadow-[var(--shadow-soft)] hover:bg-purple-600 hover:shadow-[var(--shadow-lift)] hover:-translate-y-0.5",
-        /** Orange background — secondary CTA */
+          "bg-[#5B2C83] text-white shadow-[var(--shadow-soft)] hover:bg-[#F4B400] hover:text-[#2D2D2D] hover:shadow-[var(--shadow-lift)] hover:-translate-y-0.5 font-semibold",
+        /** Royal Purple #7B3FA0 background — secondary CTA */
         secondary:
-          "bg-orange-500 text-white shadow-[var(--shadow-soft)] hover:bg-orange-600 hover:shadow-[var(--shadow-lift)] hover:-translate-y-0.5",
-        /** Yellow accent — accent CTA */
+          "bg-[#7B3FA0] text-white shadow-[var(--shadow-soft)] hover:bg-[#5B2C83] hover:shadow-[var(--shadow-lift)] hover:-translate-y-0.5",
+        /** Golden Wafer #F4B400 accent — accent CTA */
         accent:
-          "bg-yellow-400 text-gray-900 shadow-[var(--shadow-soft)] hover:bg-yellow-300 hover:shadow-[var(--shadow-glow)] hover:-translate-y-0.5",
+          "bg-[#F4B400] text-[#2D2D2D] shadow-[var(--shadow-soft)] hover:bg-[#5B2C83] hover:text-white hover:shadow-[var(--shadow-glow)] hover:-translate-y-0.5 font-bold",
         /** Purple outline */
         outline:
-          "border border-purple-200 bg-transparent text-purple-700 hover:bg-purple-50 hover:border-purple-300",
-        ghost: "bg-transparent text-gray-700 hover:bg-purple-50 hover:text-purple-700",
+          "border border-[#5B2C83]/30 bg-transparent text-[#5B2C83] hover:bg-[#5B2C83] hover:text-white hover:border-[#5B2C83]",
+        ghost: "bg-transparent text-[#555555] hover:bg-[#f5ebfc] hover:text-[#5B2C83]",
         subtle:
-          "bg-white/70 text-gray-700 backdrop-blur border border-[var(--color-border)] hover:bg-white hover:shadow-[var(--shadow-soft)]",
-        link: "text-purple-600 underline-offset-4 hover:underline rounded-none px-0",
+          "bg-white/80 text-[#2D2D2D] backdrop-blur border border-[#e8d9eb] hover:bg-white hover:shadow-[var(--shadow-soft)]",
+        link: "text-[#5B2C83] underline-offset-4 hover:underline hover:text-[#F4B400] rounded-none px-0",
       },
       size: {
-        // Mobile-first: compact on phones so two buttons fit side-by-side,
-        // full size restored from `sm:` up (desktop unchanged).
         sm:      "h-9 px-3.5 text-[13px] [&_svg]:size-4 sm:px-4 sm:text-sm",
         md:      "h-11 px-4 text-sm [&_svg]:size-4 sm:px-6",
         lg:      "h-12 px-5 text-sm [&_svg]:size-5 sm:h-13 sm:px-8 sm:text-base",

@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { motion, useScroll, useTransform, useReducedMotion } from "motion/react";
-import { ArrowRight, Sparkles, Star } from "lucide-react";
+import { ArrowRight, Sparkles, Star, Leaf } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WaferVisual } from "@/components/common/wafer-visual";
 import { AnimatedCounter } from "@/components/common/animated-counter";
@@ -24,13 +24,7 @@ interface HeroSlide {
   description?: string;
   primaryCta?: { label: string; href: string };
   secondaryCta?: { label: string; href: string };
-  /**
-   * A real brand photo or animated GIF/video-frame for the hero visual. When
-   * set it replaces the generated wafer blob; when blank the blob renders, so
-   * the page still looks finished before any image is uploaded.
-   */
   image?: string;
-  /** Price shown on the floating tag. Was hardcoded "₹99". */
   priceFrom?: number;
 }
 
@@ -40,35 +34,21 @@ interface HeroContent extends Record<string, unknown> {
   showStats: boolean;
 }
 
-/**
- * What the hero renders if the CMS has nothing to say — the copy the site
- * shipped with. Keeps the page whole if the content API is unreachable, and
- * means a fresh install still looks finished.
- */
 const HERO_FALLBACK: HeroContent = {
   slides: [
     {
       enabled: true,
-      // No count baked in. The badge is filled from the real customer count and
-      // hidden if there isn't one — it used to claim "2,000+ snackers" against
-      // a customer table holding 14 rows.
       badge: "Loved by {count} snackers",
       badgeCount: 0,
       headingLine1: "Crispy. Natural.",
-      headingLine2: "Irresistible.",
+      headingLine2: "Irresistible Yam Wafers.",
       description:
-        "Made from hand-selected fresh Ratalu, kettle-cooked into perfectly crispy wafers with unforgettable flavours. Small-batch, no artificial colours, delivered fresh.",
+        "Made from hand-selected fresh Ratalu (Purple Yam), kettle-cooked into perfectly crispy wafers with unforgettable flavours. Small-batch, no artificial colours, 100% vegetarian.",
       primaryCta: { label: "Shop Now", href: "/shop" },
       secondaryCta: { label: "Explore Flavours", href: "#flavours" },
     },
   ],
-  /**
-   * Only claims we can substantiate. "4.9★ Avg. rating" was hardcoded here and
-   * shown to every visitor while the store had zero approved reviews. The rating
-   * and flavour count are replaced with live figures below; anything we can't
-   * count is simply not shown.
-   */
-  stats: [{ value: 100, suffix: "%", decimals: 0, label: "Natural" }],
+  stats: [{ value: 100, suffix: "%", decimals: 0, label: "Natural Ratalu" }],
   showStats: true,
 };
 
@@ -93,23 +73,8 @@ export function Hero() {
     return /\.(mp4|webm|ogg|mov)(\?|$)/i.test(activeMedia);
   }, [activeMedia, videoError]);
 
-  /**
-   * Real numbers, from the database. A rating we haven't earned is not a
-   * rounding error — it's a lie to a customer deciding whether to buy.
-   */
   const siteStats = useSiteStats();
 
-  /**
-   * ONE source of stats — the CMS list (or the fallback) — with real numbers
-   * filled in by label, never appended on top.
-   *
-   * Appending live stats to the stored CMS stats produced two "Bold flavours"
-   * tiles and re-surfaced a hardcoded "4.9★" that lived in the published hero
-   * content. Here a tile labelled like a rating takes the real average (and is
-   * dropped entirely when there are no reviews); a tile labelled like a flavour
-   * count takes the live count; everything else (e.g. "100% Natural") is left
-   * exactly as the admin wrote it.
-   */
   const stats = React.useMemo(() => {
     const source = cms.stats ?? HERO_FALLBACK.stats;
 
@@ -118,7 +83,7 @@ export function Hero() {
         const label = String(s.label ?? "").toLowerCase();
 
         if (label.includes("rating")) {
-          if (!siteStats || siteStats.avgRating == null) return null; // no reviews → no tile
+          if (!siteStats || siteStats.avgRating == null) return null;
           return { ...s, value: siteStats.avgRating, decimals: 1, suffix: s.suffix || "★" };
         }
 
@@ -133,7 +98,6 @@ export function Hero() {
       .filter((s): s is NonNullable<typeof s> => Boolean(s));
   }, [cms.stats, siteStats]);
 
-  // The badge only appears once there are real customers to point at.
   const badgeCount = siteStats?.customerCount ?? 0;
   const showBadge = Boolean(slide.badge) && badgeCount > 0;
   const { scrollYProgress } = useScroll({
@@ -156,32 +120,31 @@ export function Hero() {
   };
 
   return (
-    <section ref={ref} id="hero" className="relative overflow-hidden bg-radial-cream">
-      {/* Decorative background — orange/yellow glow orbs */}
+    <section ref={ref} id="hero" className="relative overflow-hidden bg-[#FFF8EC]">
+      {/* Decorative ambient glow orbs */}
       <motion.div style={{ y: yGlow }} className="pointer-events-none absolute inset-0" aria-hidden>
-        <div className="absolute -left-24 top-24 size-96 rounded-full bg-orange-200/40 blur-3xl" />
-        <div className="absolute -right-16 top-40 size-80 rounded-full bg-yellow-200/40 blur-3xl" />
-        <div className="absolute bottom-0 left-1/3 size-72 rounded-full bg-orange-100/50 blur-3xl" />
+        <div className="absolute -left-24 top-24 size-96 rounded-full bg-[#5B2C83]/10 blur-3xl" />
+        <div className="absolute -right-16 top-40 size-80 rounded-full bg-[#F4B400]/20 blur-3xl" />
+        <div className="absolute bottom-0 left-1/3 size-72 rounded-full bg-[#4CAF50]/15 blur-3xl" />
       </motion.div>
 
-      <div className="container-px relative mx-auto grid max-w-7xl items-center gap-6 py-6 sm:gap-12 sm:py-16 lg:grid-cols-[1.05fr_1fr] lg:gap-8 lg:py-24">
+      <div className="container-px relative mx-auto grid max-w-7xl items-center gap-6 py-8 sm:gap-12 sm:py-16 lg:grid-cols-[1.05fr_1fr] lg:gap-8 lg:py-24">
         {/* Copy */}
         <motion.div variants={container} initial="hidden" animate="visible" className="relative z-10 text-center lg:text-left">
-          {/* Social proof — only when there is proof. */}
-          {showBadge && (
+          {/* Social proof badge */}
+          {showBadge ? (
             <motion.div variants={item} className="flex justify-center lg:justify-start">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-orange-100 bg-white/80 px-3 py-1 text-[11px] font-semibold text-orange-700 shadow-[var(--shadow-soft)] backdrop-blur sm:px-4 sm:py-1.5 sm:text-xs">
-                {/* Stars only mean something next to a real rating. */}
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#5B2C83]/20 bg-white/90 px-3.5 py-1.5 text-xs font-bold text-[#5B2C83] shadow-[var(--shadow-soft)] backdrop-blur">
                 {siteStats?.avgRating != null && (
                   <span className="flex -space-x-0.5">
                     {[0, 1, 2, 3, 4].map((i) => (
                       <Star
                         key={i}
                         className={cn(
-                          "size-3 sm:size-3.5",
+                          "size-3.5",
                           i < Math.round(siteStats.avgRating ?? 0)
-                            ? "fill-yellow-400 text-yellow-400"
-                            : "text-yellow-200"
+                            ? "fill-[#F4B400] text-[#F4B400]"
+                            : "text-[#F4B400]/30"
                         )}
                       />
                     ))}
@@ -190,12 +153,18 @@ export function Hero() {
                 {(slide.badge ?? "").replace("{count}", badgeCount.toLocaleString("en-IN"))}
               </span>
             </motion.div>
+          ) : (
+            <motion.div variants={item} className="flex justify-center lg:justify-start">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#4CAF50]/30 bg-white/90 px-3.5 py-1.5 text-xs font-bold text-[#4CAF50] shadow-[var(--shadow-soft)] backdrop-blur">
+                <Leaf className="size-3.5 text-[#4CAF50]" /> 100% Fresh Kettle-Cooked Ratalu Wafers
+              </span>
+            </motion.div>
           )}
 
-          {/* Hero heading — 48px Bold Poppins on desktop, compact 26px on mobile */}
+          {/* Hero heading */}
           <motion.h1
             variants={item}
-            className="mt-3 text-2xl font-extrabold leading-[1.1] text-gray-800 sm:mt-6 sm:text-4xl lg:text-5xl"
+            className="mt-4 text-3xl font-extrabold leading-[1.1] text-[#2D2D2D] sm:mt-6 sm:text-5xl lg:text-6xl tracking-tight"
           >
             {slide.headingLine1}{" "}
             <span className="text-gradient-warm block sm:inline">{slide.headingLine2}</span>
@@ -203,23 +172,23 @@ export function Hero() {
 
           <motion.p
             variants={item}
-            className="mt-2.5 max-w-xl text-xs leading-relaxed text-gray-500 mx-auto lg:mx-0 sm:mt-6 sm:text-base lg:text-lg"
+            className="mt-3 max-w-xl text-sm leading-relaxed text-[#555555] mx-auto lg:mx-0 sm:mt-6 sm:text-base lg:text-lg"
           >
             {slide.description}
           </motion.p>
 
-          <motion.div variants={item} className="mt-4 flex flex-row items-center justify-center gap-2 sm:mt-9 sm:justify-start sm:gap-3">
+          <motion.div variants={item} className="mt-6 flex flex-row items-center justify-center gap-3 sm:mt-9 sm:justify-start">
             {slide.primaryCta?.label && (
-              <Button asChild size="md" className="sm:h-12 sm:px-6 sm:text-base flex-1 sm:flex-none">
+              <Button asChild size="lg" variant="primary" className="sm:h-13 sm:px-8 text-sm sm:text-base font-bold flex-1 sm:flex-none">
                 <Link href={slide.primaryCta.href || "/shop"}>
-                  {slide.primaryCta.label} <ArrowRight className="size-3.5 sm:size-4" />
+                  {slide.primaryCta.label} <ArrowRight className="size-4 ml-1" />
                 </Link>
               </Button>
             )}
             {slide.secondaryCta?.label && (
-              <Button asChild size="md" variant="outline" className="sm:h-12 sm:px-6 sm:text-base flex-1 sm:flex-none">
+              <Button asChild size="lg" variant="accent" className="sm:h-13 sm:px-8 text-sm sm:text-base font-bold flex-1 sm:flex-none">
                 <Link href={slide.secondaryCta.href || "#flavours"}>
-                  <Sparkles className="size-3.5 sm:size-4 text-orange-500" /> {slide.secondaryCta.label}
+                  <Sparkles className="size-4 text-[#2D2D2D]" /> {slide.secondaryCta.label}
                 </Link>
               </Button>
             )}
@@ -229,7 +198,7 @@ export function Hero() {
           {cms.showStats !== false && stats.length > 0 && (
             <motion.div
               variants={item}
-              className="mt-4 grid max-w-lg grid-cols-3 gap-2 border-t border-[var(--color-border)] pt-3 sm:mt-12 sm:gap-4 sm:pt-8"
+              className="mt-6 grid max-w-lg grid-cols-3 gap-3 border-t border-[#e8d9eb] pt-4 sm:mt-12 sm:gap-6 sm:pt-8"
             >
               {stats.slice(0, 3).map((s, i) => (
                 <Stat
@@ -248,23 +217,21 @@ export function Hero() {
           )}
         </motion.div>
 
-        {/* Visual */}
+        {/* Visual Artwork */}
         <motion.div
           style={{ y: yVisual }}
-          className={cn("relative z-0 mx-auto w-full transition-all", isVideo ? "aspect-video max-w-full sm:max-w-xl lg:max-w-2xl mt-4 lg:mt-0" : "aspect-square max-w-[280px] sm:max-w-md lg:max-w-lg")}
+          className={cn("relative z-0 mx-auto w-full transition-all", isVideo ? "aspect-video max-w-full sm:max-w-xl lg:max-w-2xl mt-4 lg:mt-0" : "aspect-square max-w-[300px] sm:max-w-md lg:max-w-lg")}
         >
-          {/* rotating dashed ring */}
           {!isVideo && (
-            <div className="absolute inset-4 rounded-full border border-dashed border-orange-200 animate-spin-slow" aria-hidden />
+            <div className="absolute inset-4 rounded-full border border-dashed border-[#5B2C83]/30 animate-spin-slow" aria-hidden />
           )}
-          <div className="absolute inset-0 -z-10 rounded-full bg-gradient-to-br from-white/70 to-transparent blur-2xl" aria-hidden />
+          <div className="absolute inset-0 -z-10 rounded-full bg-gradient-to-br from-white/80 to-[#F4B400]/20 blur-2xl" aria-hidden />
 
-          {/* hero visual — the admin's brand image, or the generated blob */}
           <motion.div
             initial={{ opacity: 0, scale: 0.85, rotate: slide.image ? 0 : -6 }}
             animate={{ opacity: 1, scale: 1, rotate: 0 }}
             transition={{ duration: 0.9, ease: EASE, delay: 0.2 }}
-            className="relative z-10 h-full w-full drop-shadow-2xl"
+            className="relative z-10 h-full w-full drop-shadow-2xl flex items-center justify-center"
           >
             {activeMedia && !videoError ? (
               <div className="grid h-full w-full place-items-center">
@@ -284,7 +251,7 @@ export function Hero() {
                     src={activeMedia}
                     alt={slide.headingLine1 || "Ratalu wafers"}
                     onError={() => setVideoError(true)}
-                    className="max-h-full max-w-full object-contain"
+                    className="max-h-full max-w-full object-contain drop-shadow-xl"
                   />
                 )}
               </div>
@@ -293,7 +260,7 @@ export function Hero() {
             )}
           </motion.div>
 
-          {/* orbiting flavour chips */}
+          {/* Floating Orbit Chips */}
           {!isVideo && orbit.map((f, i) => {
             const positions = [
               "bottom-6 left-0",
@@ -307,7 +274,7 @@ export function Hero() {
                 initial={{ opacity: 0, scale: 0 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.8 + i * 0.12, duration: 0.5, ease: EASE }}
-                className={`hidden sm:block absolute z-20 size-16 sm:size-20 rounded-2xl border border-white/80 bg-white/30 shadow-[0_8px_32px_0_rgba(124,58,237,0.08)] backdrop-blur-md hover:scale-110 hover:rotate-6 hover:border-purple-300/40 hover:shadow-[0_12px_40px_0_rgba(124,58,237,0.18)] transition-all duration-300 cursor-pointer ${positions[i]}`}
+                className={`hidden sm:block absolute z-20 size-16 sm:size-20 rounded-2xl border border-white/90 bg-white/80 shadow-[0_8px_32px_0_rgba(91,44,131,0.12)] backdrop-blur-md hover:scale-110 hover:rotate-6 hover:border-[#F4B400] transition-all duration-300 cursor-pointer ${positions[i]}`}
                 style={{ animation: `float-slow ${6 + i}s var(--ease-premium) ${i * 0.4}s infinite` }}
                 title={f.name}
               >
@@ -317,7 +284,6 @@ export function Hero() {
           })}
         </motion.div>
       </div>
-
     </section>
   );
 }
@@ -325,8 +291,8 @@ export function Hero() {
 function Stat({ value, label }: { value: React.ReactNode; label: string }) {
   return (
     <div>
-      <p className="text-2xl font-bold text-gray-800 sm:text-3xl">{value}</p>
-      <p className="mt-1 text-xs text-gray-500">{label}</p>
+      <p className="text-2xl font-extrabold text-[#5B2C83] sm:text-3xl font-mono">{value}</p>
+      <p className="mt-1 text-xs font-semibold text-[#555555]">{label}</p>
     </div>
   );
 }

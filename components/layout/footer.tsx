@@ -60,50 +60,49 @@ export function Footer() {
   ];
 
   return (
-    <footer className="relative mt-8 overflow-hidden sm:mt-24" style={{
-      background: "linear-gradient(135deg, #7c3506 0%, #9a4409 30%, #c2570b 70%, #ea6c0a 100%)"
-    }}>
-      {/* Top glow */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-orange-600/30 to-transparent" />
+    <footer className="relative mt-8 overflow-hidden sm:mt-24 bg-[#2E1148] text-white">
+      {/* Top golden accent line */}
+      <div className="h-1.5 w-full bg-gradient-to-r from-[#5B2C83] via-[#F4B400] to-[#5B2C83]" />
 
-      {/* Decorative pattern */}
-      <div className="pointer-events-none absolute inset-0 opacity-5"
+      {/* Decorative background overlay */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-5"
         style={{
           backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)",
           backgroundSize: "32px 32px"
         }}
       />
 
-      <div className="container-px relative mx-auto max-w-7xl py-8 sm:py-16">
+      <div className="container-px relative mx-auto max-w-7xl py-10 sm:py-16">
         <div className="grid gap-8 sm:gap-12 lg:grid-cols-[1.4fr_2fr]">
-          {/* Brand */}
+          {/* Brand & Contact */}
           <div>
             <Logo onDark />
-            <p className="mt-3 sm:mt-5 max-w-sm text-xs sm:text-sm leading-relaxed text-white/70">
+            <p className="mt-3 sm:mt-5 max-w-sm text-xs sm:text-sm leading-relaxed text-[#D7C4F5]">
               {t("footer_tagline")}
             </p>
 
-            <ul className="mt-4 sm:mt-6 flex flex-col gap-2 text-xs sm:text-sm">
+            <ul className="mt-4 sm:mt-6 flex flex-col gap-2.5 text-xs sm:text-sm">
               <li className="flex items-center gap-2.5">
-                <Mail className="size-3.5 sm:size-4 text-yellow-400" />
-                <a href={`mailto:${settings.supportEmail}`} className="text-white/80 hover:text-white transition-colors">
+                <Mail className="size-4 text-[#F4B400]" />
+                <a href={`mailto:${settings.supportEmail}`} className="text-[#D7C4F5] hover:text-[#F4B400] transition-colors font-medium">
                   {settings.supportEmail}
                 </a>
               </li>
               <li className="flex items-center gap-2.5">
-                <Phone className="size-3.5 sm:size-4 text-yellow-400" />
-                <a href={`tel:${settings.customerCareNumber}`} className="text-white/80 hover:text-white transition-colors">
+                <Phone className="size-4 text-[#F4B400]" />
+                <a href={`tel:${settings.customerCareNumber}`} className="text-[#D7C4F5] hover:text-[#F4B400] transition-colors font-medium">
                   {settings.customerCareNumber}
                 </a>
               </li>
               <li className="flex items-start gap-2.5">
-                <MapPin className="mt-0.5 size-3.5 sm:size-4 shrink-0 text-yellow-400" />
-                <span className="text-white/80">{settings.businessAddress}</span>
+                <MapPin className="mt-0.5 size-4 shrink-0 text-[#F4B400]" />
+                <span className="text-[#D7C4F5] font-medium">{settings.businessAddress}</span>
               </li>
             </ul>
 
             {socials.length > 0 && (
-              <div className="mt-4 sm:mt-6 flex flex-wrap gap-2">
+              <div className="mt-5 sm:mt-6 flex flex-wrap gap-2.5">
                 {socials.map((s) => (
                   <a
                     key={s._id}
@@ -111,7 +110,7 @@ export function Footer() {
                     target={s.openInNewTab ? "_blank" : undefined}
                     rel={s.openInNewTab ? "noopener noreferrer" : undefined}
                     aria-label={SOCIAL_LABELS[s.platform] ?? s.platform}
-                    className="grid size-9 sm:size-10 place-items-center rounded-full bg-white/10 text-white transition-all hover:-translate-y-0.5 hover:bg-yellow-400 hover:text-orange-900"
+                    className="grid size-9 sm:size-10 place-items-center rounded-full bg-white/10 text-white transition-all hover:-translate-y-0.5 hover:bg-[#F4B400] hover:text-[#2E1148] shadow-sm"
                   >
                     <SocialIcon platform={s.platform} className="size-4" />
                   </a>
@@ -121,7 +120,7 @@ export function Footer() {
           </div>
 
           {/* Link columns: Accordion on mobile, grid on desktop */}
-          <div className="flex flex-col sm:grid sm:grid-cols-4 gap-3 sm:gap-8 border-t border-white/15 pt-6 sm:border-0 sm:pt-0">
+          <div className="flex flex-col sm:grid sm:grid-cols-4 gap-3 sm:gap-8 border-t border-white/10 pt-6 sm:border-0 sm:pt-0">
             {COLUMNS.map((col) => {
               const isOpen = openSection === col.title;
               return (
@@ -130,13 +129,13 @@ export function Footer() {
                     onClick={() => toggleMobileCol(col.title)}
                     className="flex w-full items-center justify-between py-1 text-left sm:cursor-default sm:py-0 focus:outline-none"
                   >
-                    <h4 className="text-sm sm:text-base font-semibold text-white">{col.title}</h4>
-                    <ChevronDown className={`size-4 text-white/70 transition-transform sm:hidden ${isOpen ? "rotate-180" : ""}`} />
+                    <h4 className="text-sm sm:text-base font-bold text-white tracking-wide">{col.title}</h4>
+                    <ChevronDown className={`size-4 text-[#F4B400] transition-transform sm:hidden ${isOpen ? "rotate-180" : ""}`} />
                   </button>
-                  <ul className={`mt-2.5 flex-col gap-2 text-xs sm:text-sm ${isOpen ? "flex" : "hidden sm:flex"}`}>
+                  <ul className={`mt-3 flex-col gap-2.5 text-xs sm:text-sm ${isOpen ? "flex" : "hidden sm:flex"}`}>
                     {col.links.map((link) => (
                       <li key={link.label}>
-                        <Link href={link.href} className="text-white/75 transition-colors hover:text-yellow-300">
+                        <Link href={link.href} className="text-[#D7C4F5] transition-colors hover:text-[#F4B400] font-medium">
                           {link.label}
                         </Link>
                       </li>
@@ -148,11 +147,12 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-14 flex flex-col items-center justify-between gap-4 border-t border-white/15 pt-8 text-xs text-white/70 sm:flex-row font-medium">
+        {/* Copyright */}
+        <div className="mt-8 flex flex-col items-center justify-between gap-4 border-t border-white/10 pt-6 text-xs text-[#D7C4F5] sm:flex-row font-medium">
           <p>© {new Date().getFullYear()} {settings.storeName || settings.businessName || SITE.name}. All rights reserved.</p>
-          <p className="flex items-center gap-2">
+          <p className="flex items-center gap-2 text-white/80">
             <span>{t("footer_made_in")}</span>
-            <span aria-hidden>·</span>
+            <span aria-hidden className="text-[#F4B400]">·</span>
             <span>{t("footer_fssai")}</span>
           </p>
         </div>

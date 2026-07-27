@@ -1,95 +1,101 @@
 @import "tailwindcss";
 
 /*
-  Ratalu Wafers — Design System v3
+  Yamora Purple Yam Wafers — Design System v4 (Production Brand Palette)
   ------------------------------------------------------------------
-  Premium D2C food brand. Purple & Orange theme. Light Theme only.
-  Tokens are exposed to Tailwind v4 via the @theme directive.
+  Primary (Purple Yam):      #5B2C83
+  Secondary (Royal Purple):  #7B3FA0
+  Accent (Golden Wafer):     #F4B400
+  Fresh Leaf Green:          #4CAF50
+  Background (Warm Cream):   #FFF8EC
+  Footer (Dark Purple):      #2E1148
+  Text Colors: Heading #2D2D2D, Body #555555, Muted #777777
 */
 
 @theme {
-  /* ---- Brand palette — Purple Primary & Orange Secondary ---------- */
-  --color-purple-50:  #f3e8ff;
-  --color-purple-100: #e9d5ff;
-  --color-purple-200: #d8b4fe;
-  --color-purple-300: #c084fc;
-  --color-purple-400: #a855f7;
+  /* ---- Purple Yam Palette ---- */
+  --color-purple-50:  #f5ebfc;
+  --color-purple-100: #e8d3f7;
+  --color-purple-200: #d7c4f5; /* Footer link color */
+  --color-purple-300: #b894e6;
+  --color-purple-400: #9661d4;
   --color-purple-500: #5b2c83; /* Primary — Deep Purple */
-  --color-purple-600: #4a206d;
-  --color-purple-650: #421b62;
-  --color-purple-700: #3b1757;
-  --color-purple-750: #34134d;
-  --color-purple-800: #2d1043;
-  --color-purple-900: #1d072d;
+  --color-purple-600: #7b3fa0; /* Secondary — Royal Purple */
+  --color-purple-700: #4a216e;
+  --color-purple-800: #391757;
+  --color-purple-900: #2e1148; /* Dark Purple — Footer */
 
-  --color-orange-50:  #fff7ed;
-  --color-orange-100: #ffedd5;
-  --color-orange-200: #fed7aa;
-  --color-orange-300: #fdba74;
-  --color-orange-400: #fb923c;
-  --color-orange-500: #e67e22; /* Secondary — Sweet Potato Orange */
-  --color-orange-600: #c2570b;
-  --color-orange-700: #9a4409;
+  /* ---- Golden Wafer Accent ---- */
+  --color-amber-400:  #f4b400; /* Golden Wafer */
+  --color-amber-500:  #d99f00;
+  --color-orange-50:  #fff8ec;
+  --color-orange-100: #fff3db;
+  --color-orange-200: #ffe4b3;
+  --color-orange-300: #ffd485;
+  --color-orange-400: #f4b400;
+  --color-orange-500: #f4b400; /* Map orange to Golden Wafer */
+  --color-orange-600: #d99f00;
+  --color-orange-700: #b38300;
+  --color-yellow-400: #f4b400;
+  --color-yellow-500: #d99f00;
+  --color-gold-400:   #f4b400;
 
-  /* ---- Accent Yellow ----------------------------------------------- */
-  --color-yellow-400: #f4b400; /* Accent Yellow */
-  --color-yellow-500: #dca000;
-  
-  /* Legacy aliases for wafer-visual */
-  --color-gold-300: #fde047;
-  --color-gold-400: #f4b400;
+  /* ---- Fresh Leaf Green ---- */
+  --color-green-50:   #eefbe9;
+  --color-green-100:  #dcf7d4;
+  --color-green-500:  #4caf50; /* Fresh Leaf Green */
+  --color-green-600:  #43a047;
+  --color-green-700:  #388e3c;
+  --color-success:    #4caf50;
+  --color-success-fg: #ffffff;
 
-  /* ---- Success Green ------------------------------------------------- */
-  --color-success:    #2ecc71;
-  --color-success-fg: #052e16;
+  /* ---- Neutral / Text ---- */
+  --color-gray-50:  #fff8ec;
+  --color-gray-100: #f7eedf;
+  --color-gray-200: #e8d8c8;
+  --color-gray-300: #d4c0ae;
+  --color-gray-400: #777777; /* Muted Text */
+  --color-gray-500: #555555; /* Body Text */
+  --color-gray-600: #444444;
+  --color-gray-700: #373737;
+  --color-gray-800: #2d2d2d; /* Heading Text */
+  --color-gray-900: #2d2d2d;
 
-  /* ---- Neutral / Text --------------------------------------------- */
-  --color-gray-50:  #f9fafb;
-  --color-gray-100: #f3f4f6;
-  --color-gray-200: #e5e7eb;
-  --color-gray-300: #d1d5db;
-  --color-gray-400: #9ca3af;
-  --color-gray-500: #6b7280; /* Secondary Text */
-  --color-gray-600: #4b5563;
-  --color-gray-700: #374151;
-  --color-gray-800: #1f2937;
-  --color-gray-900: #111827; /* Primary Text */
-
-  /* ---- Semantic design tokens ------------------------------------- */
-  --color-background:          #ffffff;
-  --color-section-bg:          #fafafa;
-  --color-foreground:          #111827;
-  --color-primary:             #5b2c83;
+  /* ---- Semantic design tokens ---- */
+  --color-background:          #fff8ec; /* Warm Cream Body Background */
+  --color-section-bg:          #fff8ec;
+  --color-foreground:          #555555; /* Body Text */
+  --color-primary:             #5b2c83; /* Deep Purple */
   --color-primary-foreground:  #ffffff;
-  --color-secondary:           #e67e22;
+  --color-secondary:           #7b3fa0; /* Royal Purple */
   --color-secondary-foreground: #ffffff;
-  --color-accent:              #f4b400;
-  --color-muted:               #6b7280;
-  --color-border:              #e5e7eb;
+  --color-accent:              #f4b400; /* Golden Wafer */
+  --color-muted:               #777777; /* Muted Text */
+  --color-border:              #e8d9eb;
   --color-ring:                #5b2c83;
 
   /* Semantic state colors */
   --color-danger:     #dc2626;
-  --color-danger-fg:  #7f1d1d;
+  --color-danger-fg:  #ffffff;
   --color-info:       #2563eb;
-  --color-warning:    #e67e22;
+  --color-warning:    #f4b400;
 
   /* Neutral utility surfaces */
-  --color-ink:         #111827;
-  --color-ink-muted:   #6b7280;
-  --color-line:        #e5e7eb;
+  --color-ink:         #2d2d2d;
+  --color-ink-muted:   #555555;
+  --color-line:        #e8d9eb;
   --color-surface:     #ffffff;
-  --color-surface-2:   #fafafa;
+  --color-surface-2:   #fff8ec;
 
-  /* Legacy charcoal colors */
-  --color-charcoal:        #111827;
-  --color-charcoal-muted:  #6b7280;
-  --color-charcoal-soft:   #9ca3af;
-  --color-cream:           #ffffff;
-  --color-cream-100:       #fafafa;
-  --color-cream-200:       #f3f4f6;
+  /* Charcoal aliases mapped to brand text colors */
+  --color-charcoal:        #2d2d2d; /* Heading */
+  --color-charcoal-muted:  #555555; /* Body */
+  --color-charcoal-soft:   #777777; /* Muted */
+  --color-cream:           #fff8ec;
+  --color-cream-100:       #fff4e3;
+  --color-cream-200:       #ffeed4;
 
-  /* ---- Typography ------------------------------------------------- */
+  /* ---- Typography ---- */
   --font-plus-jakarta: var(--font-plus-jakarta), ui-sans-serif, system-ui, sans-serif;
   --font-manrope:      var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
 
@@ -101,30 +107,25 @@
   --font-devanagari: var(--font-devanagari), "Noto Sans Devanagari", sans-serif;
   --font-gujarati:   var(--font-gujarati), "Noto Sans Gujarati", sans-serif;
 
-  /* ---- Radii ----------------------------------------------------- */
-  --radius-xl:  1.0rem; /* 16px radius for cards (rounded-2xl is ~16px) */
+  /* ---- Radii ---- */
+  --radius-xl:  1.0rem;
   --radius-2xl: 1.25rem;
   --radius-3xl: 1.75rem;
 
-  /* ---- Elevation — purple-keyed shadows -------------------------- */
-  --shadow-soft: 0 2px 8px -2px rgb(91 44 131 / 0.06),
-    0 8px 24px -8px rgb(91 44 131 / 0.1);
-  --shadow-lift: 0 10px 30px -10px rgb(91 44 131 / 0.16),
-    0 20px 50px -20px rgb(91 44 131 / 0.2);
-  --shadow-glow: 0 0 0 1px rgb(244 180 0 / 0.25),
-    0 12px 40px -12px rgb(91 44 131 / 0.25);
+  /* ---- Elevation ---- */
+  --shadow-soft: 0 4px 20px -4px rgb(46 17 72 / 0.07);
+  --shadow-lift: 0 12px 36px -8px rgb(46 17 72 / 0.14);
+  --shadow-glow: 0 0 0 2px rgb(244 180 0 / 0.4), 0 12px 40px -12px rgb(91 44 131 / 0.3);
 
-  /* ---- Motion ---------------------------------------------------- */
+  /* ---- Motion ---- */
   --ease-premium: cubic-bezier(0.22, 1, 0.36, 1);
 
-  /* ---- Breakpoints ----------------------------------------------- */
+  /* ---- Breakpoints ---- */
   --breakpoint-xs:  26rem;
   --breakpoint-3xl: 96rem;
 }
 
-/*
-  Base layer — global element defaults.
-*/
+/* Base layer — global element defaults */
 @layer base {
   * {
     border-color: var(--color-border);
@@ -134,13 +135,12 @@
     scroll-behavior: smooth;
     -webkit-text-size-adjust: 100%;
     overflow-x: hidden;
-    /* Prevent layout shift when scrollbar disappears (e.g., when overlays open) */
     scrollbar-gutter: stable;
   }
 
   body {
-    background-color: var(--color-background);
-    color: var(--color-foreground);
+    background-color: #fff8ec !important;
+    color: #555555;
     font-family: var(--font-sans);
     font-feature-settings: "ss01", "cv01";
     text-rendering: optimizeLegibility;
@@ -149,7 +149,6 @@
     overflow-x: hidden;
     width: 100%;
     max-width: 100%;
-    /* Minimum full viewport height so footer is always pushed to bottom */
     min-height: 100dvh;
   }
 
@@ -159,13 +158,11 @@
     height: auto;
   }
 
-  /* Prevent long words/URLs from breaking layout */
   p, li, h1, h2, h3, h4, h5, h6 {
     overflow-wrap: break-word;
     word-break: break-word;
   }
 
-  /* Comfortable focus ring */
   a:focus-visible,
   button:focus-visible,
   [role="button"]:focus-visible {
@@ -173,28 +170,28 @@
     outline-offset: 2px;
   }
 
-  /* Prevent iOS auto-zoom on input focus */
   @media (max-width: 640px) {
     input, select, textarea {
       font-size: 16px;
     }
   }
 
-  /* Headings: Plus Jakarta Sans */
+  /* Headings */
   h1, h2, h3, h4, h5, h6, .font-serif {
     font-family: var(--font-heading) !important;
     font-weight: 700;
+    color: #2d2d2d;
     letter-spacing: -0.02em;
     text-wrap: balance;
   }
 
-  /* Hero Headings */
   .hero-heading, .hero-title {
     font-family: var(--font-heading) !important;
     font-weight: 800 !important;
     font-size: 34px !important;
     line-height: 1.1 !important;
     letter-spacing: -0.03em !important;
+    color: #2d2d2d !important;
   }
   @media (min-width: 640px) {
     .hero-heading, .hero-title {
@@ -207,11 +204,11 @@
     }
   }
 
-  /* Section Titles */
   .section-title, .section-heading h2 {
     font-family: var(--font-heading) !important;
     font-weight: 700 !important;
     font-size: 28px !important;
+    color: #2d2d2d !important;
     letter-spacing: -0.02em !important;
   }
   @media (min-width: 640px) {
@@ -225,11 +222,11 @@
     }
   }
 
-  /* Product Name */
   .product-name, .product-title {
     font-family: var(--font-heading) !important;
-    font-weight: 600 !important;
+    font-weight: 700 !important;
     font-size: 20px !important;
+    color: #5b2c83 !important;
     letter-spacing: -0.015em !important;
   }
   @media (min-width: 768px) {
@@ -243,16 +240,15 @@
     }
   }
 
-  /* Numbers & Price Styling */
   .font-numbers, .tabular-nums, .font-mono, [data-numbers="true"] {
     font-family: var(--font-numbers) !important;
   }
 
-  /* Product Price */
   .product-price, .price-display {
     font-family: var(--font-numbers) !important;
     font-weight: 800 !important;
     font-size: 28px !important;
+    color: #f4b400 !important;
     letter-spacing: -0.02em !important;
   }
   @media (min-width: 768px) {
@@ -266,29 +262,27 @@
     }
   }
 
-  /* Original Price */
   .original-price {
     font-family: var(--font-numbers) !important;
     font-weight: 600 !important;
     font-size: 18px !important;
     text-decoration: line-through !important;
-    color: var(--color-gray-400) !important;
+    color: #777777 !important;
   }
 
-  /* Discount Badge */
   .discount-badge {
     font-family: var(--font-numbers) !important;
     font-weight: 700 !important;
     font-size: 16px !important;
-    color: var(--color-success) !important;
+    color: #4caf50 !important;
   }
 
-  /* Product Description */
   .product-description {
     font-family: var(--font-sans) !important;
     font-weight: 400 !important;
     font-size: 16px !important;
     line-height: 1.7 !important;
+    color: #555555 !important;
     max-width: 650px !important;
   }
   @media (min-width: 1024px) {
@@ -297,7 +291,6 @@
     }
   }
 
-  /* Buttons */
   button, .btn, .button {
     font-family: var(--font-sans) !important;
     font-weight: 600 !important;
@@ -306,49 +299,54 @@
     border-radius: 12px !important;
   }
 
-  /* Navigation Link */
   .nav-link {
     font-family: var(--font-sans) !important;
     font-weight: 500 !important;
     font-size: 15px !important;
-    transition: font-weight 0.2s ease !important;
+    color: #2d2d2d !important;
+    transition: font-weight 0.2s ease, color 0.2s ease !important;
   }
   .nav-link:hover {
     font-weight: 600 !important;
+    color: #f4b400 !important;
   }
 
-  /* Inputs and Labels */
   label, .form-label {
     font-family: var(--font-sans) !important;
     font-weight: 500 !important;
     font-size: 15px !important;
+    color: #2d2d2d !important;
   }
   input, select, textarea, .form-input {
     font-family: var(--font-sans) !important;
     font-weight: 400 !important;
     font-size: 16px !important;
+    border-color: #e8d9eb !important;
+  }
+  input:focus, select:focus, textarea:focus {
+    border-color: #5b2c83 !important;
+    box-shadow: 0 0 0 2px rgba(91, 44, 131, 0.2) !important;
   }
 
   ::selection {
-    background-color: var(--color-purple-100);
-    color: var(--color-purple-900);
+    background-color: #f5ebfc;
+    color: #5b2c83;
   }
 
-  /* On-brand scrollbar */
   ::-webkit-scrollbar {
     width: 11px;
     height: 11px;
   }
   ::-webkit-scrollbar-track {
-    background: var(--color-gray-50);
+    background: #fff8ec;
   }
   ::-webkit-scrollbar-thumb {
-    background: var(--color-purple-200);
+    background: #d7c4f5;
     border-radius: 9999px;
-    border: 3px solid var(--color-gray-50);
+    border: 3px solid #fff8ec;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: var(--color-purple-300);
+    background: #5b2c83;
   }
 }
 
@@ -406,24 +404,22 @@
     padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
   }
 
-  /* Warm gradient text — purple → orange */
+  /* Warm gradient text — Deep Purple #5B2C83 -> Golden Wafer #F4B400 */
   .text-gradient-warm {
     background-image: linear-gradient(
       100deg,
-      var(--color-purple-500),
-      var(--color-orange-500)
+      #5b2c83,
+      #f4b400
     );
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
   }
 
-  /* Brand font utility */
   .font-brand {
     font-family: var(--font-brand);
   }
 
-  /* Language-scoped font utilities */
   .font-devanagari {
     font-family: var(--font-devanagari);
   }
@@ -499,7 +495,6 @@
   }
 }
 
-/* Respect reduced-motion preferences */
 @media (prefers-reduced-motion: reduce) {
   *,
   ::before,

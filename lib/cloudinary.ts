@@ -47,17 +47,37 @@ export function extractPublicId(urlOrId: string): string {
 }
 
 /**
- * Generates an optimized Cloudinary CDN URL for responsive images
+ * Returns true when the URL points to an SVG asset (Cloudinary or otherwise).
+ * SVGs must NOT have Cloudinary image transformations applied — they corrupt the file.
+ */
+export function isSvgUrl(url: string): boolean {
+  if (!url) return false;
+  // Check file extension in URL path (before any query string)
+  const pathname = url.split('?')[0].toLowerCase();
+  return pathname.endsWith('.svg') || url.includes('/image/upload/') && url.includes('.svg');
+}
+
+/**
+ * Generates an optimized Cloudinary CDN URL for responsive images.
+ * SVG assets are returned unmodified — Cloudinary transforms break SVGs.
  */
 export function getCloudinaryUrl(
   urlOrId: string,
   optionsOrPreset: CloudinaryTransformOptions | PresetSize = 'raw'
 ): string {
   if (!urlOrId) return '';
-  
-  // If it's a non-Cloudinary URL (e.g. data URI or external non-Cloudinary domain), return as is
+
+  // Non-Cloudinary URLs: return as-is
   if (urlOrId.startsWith('data:') || (urlOrId.startsWith('http') && !urlOrId.includes('cloudinary.com'))) {
     return urlOrId;
+  }
+
+  // SVG assets: skip all transformations — they break the vector file
+  if (isSvgUrl(urlOrId)) {
+    // If already a full URL, return as-is
+    if (urlOrId.startsWith('http')) return urlOrId;
+    // Otherwise build plain URL without transforms
+    return `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/${urlOrId}`;
   }
 
   const publicId = extractPublicId(urlOrId);

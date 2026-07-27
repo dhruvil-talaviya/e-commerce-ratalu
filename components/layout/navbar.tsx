@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from "motion/react";
-import { Menu, ShoppingBag, User, X, ShieldCheck, Bell, LogOut } from "lucide-react";
+import { Menu, ShoppingBag, User, X, ShieldCheck, Bell, LogOut, Search } from "lucide-react";
 import { Logo } from "./logo";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
@@ -37,10 +37,6 @@ export function Navbar() {
   const { user, isLoggedIn, logout } = useAccount();
   const { t } = useLanguage();
 
-  /**
-   * Keyed on the session role, never a phone number — the previous hardcoded
-   * check silently broke the moment the admin's number changed.
-   */
   const isAdmin = isLoggedIn && isAdminSession(user);
   const unreadNotifications = useUnreadNotifications();
 
@@ -48,7 +44,7 @@ export function Navbar() {
     setScrolled(latest > 16);
   });
 
-  // Lock body scroll while the mobile drawer is open, compensating for scrollbar width.
+  // Lock body scroll while the mobile drawer is open
   React.useEffect(() => {
     if (!menuOpen) return;
     const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
@@ -64,7 +60,7 @@ export function Navbar() {
     };
   }, [menuOpen]);
 
-  // Close the drawer when the viewport grows to desktop.
+  // Close drawer on desktop screen
   React.useEffect(() => {
     const mq = window.matchMedia("(min-width: 1024px)");
     const onChange = () => mq.matches && setMenuOpen(false);
@@ -76,47 +72,72 @@ export function Navbar() {
     <header className="sticky top-0 z-40">
       <motion.div
         className={cn(
-          "transition-colors duration-300",
+          "transition-all duration-300 border-b",
           scrolled
-            ? "border-b border-[var(--color-border)] bg-[#fff8f0]/90 backdrop-blur-xl shadow-[0_4px_20px_-12px_rgba(249,115,22,0.2)]"
-            : "bg-transparent"
+            ? "border-[#5B2C83]/20 bg-[#FFF8EC]/95 backdrop-blur-xl shadow-[0_4px_20px_-8px_rgba(91,44,131,0.15)]"
+            : "border-transparent bg-[#FFF8EC]"
         )}
       >
-        <nav className="container-px mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 lg:h-18">
+        <nav className="container-px mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 lg:h-20">
           <Logo />
 
-          {/* Desktop nav */}
-          <div className="hidden items-center gap-1 lg:flex">
-            {NAV_LINKS.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="relative rounded-full px-4 py-2 text-[15px] font-medium text-gray-500 transition-colors hover:text-orange-600 hover:bg-orange-50"
-              >
-                {t((NAV_KEY_MAP[link.href] || "nav_shop") as Parameters<typeof t>[0])}
-              </Link>
-            ))}
+          {/* Desktop Navigation Centered */}
+          <div className="hidden items-center gap-1.5 lg:flex">
+            {NAV_LINKS.map((link) => {
+              const isActive = pathname === link.href || ((link.href as string) !== "/" && pathname.startsWith(link.href));
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={cn(
+                    "relative rounded-full px-4 py-2 text-[15px] font-semibold transition-all duration-200",
+                    isActive
+                      ? "text-[#5B2C83] font-bold"
+                      : "text-[#2D2D2D] hover:text-[#5B2C83] hover:bg-[#f5ebfc]"
+                  )}
+                >
+                  {t((NAV_KEY_MAP[link.href] || "nav_shop") as Parameters<typeof t>[0])}
+                  {isActive && (
+                    <motion.div
+                      layoutId="activeNavIndicator"
+                      className="absolute bottom-0 left-4 right-4 h-0.5 rounded-full bg-[#F4B400]"
+                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                    />
+                  )}
+                </Link>
+              );
+            })}
           </div>
 
-          {/* Actions */}
-          <div className="flex items-center gap-1 sm:gap-2">
-            {/* Only the store owner sees this — it's their way back to the console. */}
+          {/* Actions on right */}
+          <div className="flex items-center gap-1.5 sm:gap-2.5">
+            {/* Search shortcut button */}
+            <Link
+              href="/shop"
+              className="grid size-10 place-items-center rounded-full text-[#5B2C83] transition-colors hover:bg-[#f5ebfc] hover:text-[#F4B400] sm:size-11"
+              aria-label="Search Flavours"
+              title="Search Flavours"
+            >
+              <Search className="size-5" />
+            </Link>
+
+            {/* Store Owner Admin Link */}
             {isAdmin && (
               <Link
                 href="/admin/dashboard"
-                className="grid size-11 place-items-center rounded-full text-purple-700 transition-colors hover:bg-purple-50"
+                className="grid size-10 place-items-center rounded-full text-[#5B2C83] transition-colors hover:bg-[#f5ebfc] sm:size-11"
                 aria-label="Back to admin dashboard"
                 title="Back to admin dashboard"
               >
-                <ShieldCheck className="size-5.5" />
+                <ShieldCheck className="size-5.5 text-[#5B2C83]" />
               </Link>
             )}
 
-            {/* Notifications live in the header, opening as a side drawer panel. */}
+            {/* Notifications Drawer Toggle */}
             {isLoggedIn && (
               <button
                 onClick={() => setNotificationsOpen(true)}
-                className="relative grid size-11 place-items-center rounded-full text-gray-700 transition-colors hover:bg-orange-50 hover:text-orange-600"
+                className="relative grid size-10 place-items-center rounded-full text-[#555555] transition-colors hover:bg-[#f5ebfc] hover:text-[#5B2C83] sm:size-11"
                 aria-label={
                   unreadNotifications > 0
                     ? `Notifications, ${unreadNotifications} unread`
@@ -125,20 +146,21 @@ export function Navbar() {
               >
                 <Bell className="size-5.5" />
                 {unreadNotifications > 0 && (
-                  <span className="absolute right-1.5 top-1.5 grid min-w-4 place-items-center rounded-full bg-orange-500 px-1 text-[9px] font-bold text-white shadow-sm">
+                  <span className="absolute right-1.5 top-1.5 grid min-w-4 place-items-center rounded-full bg-[#F4B400] px-1 text-[9px] font-extrabold text-[#2D2D2D] shadow-sm">
                     {unreadNotifications > 9 ? "9+" : unreadNotifications}
                   </span>
                 )}
               </button>
             )}
 
+            {/* User Account */}
             <Link
               href={isLoggedIn ? "/account" : `${pathname}?login=true`}
-              className="flex size-10 items-center justify-center rounded-full text-gray-700 transition-colors hover:bg-orange-50 hover:text-orange-600 sm:size-11"
+              className="flex size-10 items-center justify-center rounded-full text-[#555555] transition-colors hover:bg-[#f5ebfc] hover:text-[#5B2C83] sm:size-11"
               aria-label={isLoggedIn && user ? `Account of ${(user.name || "Snacker").split(" ")[0]}` : t("nav_account")}
             >
               {isLoggedIn && user ? (
-                <span className="grid size-7 place-items-center rounded-full bg-orange-100 text-xs font-bold text-orange-700 border border-orange-200 shadow-sm">
+                <span className="grid size-7 place-items-center rounded-full bg-[#5B2C83] text-xs font-bold text-white shadow-xs">
                   {(user.name || "S")[0].toUpperCase()}
                 </span>
               ) : (
@@ -146,9 +168,10 @@ export function Navbar() {
               )}
             </Link>
 
+            {/* Shopping Cart Trigger Button */}
             <button
               onClick={openCart}
-              className="relative grid size-11 place-items-center rounded-full text-gray-700 transition-colors hover:bg-orange-50 hover:text-orange-600"
+              className="relative grid size-10 place-items-center rounded-full text-[#5B2C83] transition-colors hover:bg-[#f5ebfc] sm:size-11"
               aria-label={`Cart, ${totals.itemCount} items`}
             >
               <ShoppingBag className="size-5" />
@@ -160,7 +183,7 @@ export function Navbar() {
                     animate={{ scale: 1 }}
                     exit={{ scale: 0 }}
                     transition={{ type: "spring", stiffness: 500, damping: 25 }}
-                    className="absolute -right-1 -top-1 grid min-w-5 place-items-center rounded-full bg-orange-500 px-1.5 text-[10px] font-bold text-white shadow-sm"
+                    className="absolute -right-1 -top-1 grid min-w-5 place-items-center rounded-full bg-[#F4B400] px-1.5 text-[10px] font-black text-[#2D2D2D] shadow-sm"
                   >
                     {totals.itemCount}
                   </motion.span>
@@ -168,13 +191,15 @@ export function Navbar() {
               </AnimatePresence>
             </button>
 
-            <Button asChild size="sm" className="ml-1 hidden md:inline-flex">
+            {/* CTA Button */}
+            <Button asChild size="sm" variant="primary" className="ml-1 hidden md:inline-flex">
               <Link href="/shop">{t("nav_shop_now")}</Link>
             </Button>
 
+            {/* Mobile Menu Hamburger */}
             <button
               onClick={() => setMenuOpen(true)}
-              className="grid size-11 place-items-center rounded-full text-gray-700 transition-colors hover:bg-orange-50 lg:hidden"
+              className="grid size-10 place-items-center rounded-full text-[#5B2C83] transition-colors hover:bg-[#f5ebfc] lg:hidden"
               aria-label={t("nav_open_menu")}
             >
               <Menu className="size-5" />
@@ -183,7 +208,7 @@ export function Navbar() {
         </nav>
       </motion.div>
 
-      {/* Mobile menu */}
+      {/* Mobile Menu Drawer */}
       <AnimatePresence>
         {menuOpen && (
           <motion.div
@@ -194,7 +219,7 @@ export function Navbar() {
           >
             <motion.div
               variants={{ hidden: { opacity: 0 }, visible: { opacity: 1 } }}
-              className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm"
+              className="absolute inset-0 bg-[#2E1148]/60 backdrop-blur-sm"
               onClick={() => setMenuOpen(false)}
             />
             <motion.div
@@ -202,46 +227,56 @@ export function Navbar() {
                 hidden: { x: "100%" },
                 visible: { x: 0 },
               }}
-              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-              className="absolute right-0 top-0 flex h-full w-[82%] max-w-sm flex-col bg-[#fff8f0] p-6 shadow-[var(--shadow-lift)]"
+              transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+              className="absolute right-0 top-0 flex h-full w-[85%] max-w-sm flex-col bg-[#FFF8EC] p-6 shadow-2xl"
             >
               <div className="flex items-center justify-between">
                 <Logo />
                 <button
                   onClick={() => setMenuOpen(false)}
-                  className="grid size-10 place-items-center rounded-full text-gray-700 hover:bg-orange-50"
+                  className="grid size-10 place-items-center rounded-full text-[#5B2C83] hover:bg-[#f5ebfc]"
                   aria-label={t("nav_close_menu")}
                 >
                   <X className="size-5" />
                 </button>
               </div>
 
-              <div className="mt-8 flex flex-col gap-1">
-                {NAV_LINKS.map((link, i) => (
-                  <motion.div
-                    key={link.href}
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.1 + i * 0.05 }}
-                  >
-                    <Link
-                      href={link.href}
-                      onClick={() => setMenuOpen(false)}
-                      className="block rounded-2xl px-4 py-3.5 text-xl font-semibold text-gray-700 transition-colors hover:bg-orange-50 hover:text-orange-600"
+              <div className="mt-8 flex flex-col gap-1.5">
+                {NAV_LINKS.map((link, i) => {
+                  const isActive = pathname === link.href;
+                  return (
+                    <motion.div
+                      key={link.href}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.1 + i * 0.04 }}
                     >
-                      {t((NAV_KEY_MAP[link.href] || "nav_shop") as Parameters<typeof t>[0])}
-                    </Link>
-                  </motion.div>
-                ))}
+                      <Link
+                        href={link.href}
+                        onClick={() => setMenuOpen(false)}
+                        className={cn(
+                          "block rounded-2xl px-4 py-3.5 text-lg font-bold transition-all",
+                          isActive
+                            ? "bg-[#5B2C83] text-white shadow-sm"
+                            : "text-[#2D2D2D] hover:bg-[#f5ebfc] hover:text-[#5B2C83]"
+                        )}
+                      >
+                        {t((NAV_KEY_MAP[link.href] || "nav_shop") as Parameters<typeof t>[0])}
+                      </Link>
+                    </motion.div>
+                  );
+                })}
               </div>
 
               <div className="mt-auto flex flex-col gap-3">
-                <Button asChild size="lg" className="w-full" onClick={() => setMenuOpen(false)}>
+                <Button asChild size="lg" variant="primary" className="w-full" onClick={() => setMenuOpen(false)}>
                   <Link href="/shop">{t("nav_shop_now")}</Link>
                 </Button>
                 <div className="flex flex-col gap-2">
                   <Button asChild variant="outline" size="lg" className="w-full" onClick={() => setMenuOpen(false)}>
-                    <Link href={isLoggedIn ? "/account" : `${pathname}?login=true`}>{isLoggedIn && user ? `Hi, ${(user.name || "Snacker").split(" ")[0]}` : t("nav_account")}</Link>
+                    <Link href={isLoggedIn ? "/account" : `${pathname}?login=true`}>
+                      {isLoggedIn && user ? `Hi, ${(user.name || "Snacker").split(" ")[0]}` : t("nav_account")}
+                    </Link>
                   </Button>
                   {isLoggedIn && (
                     <Button
@@ -263,7 +298,7 @@ export function Navbar() {
                       asChild
                       variant="outline"
                       size="lg"
-                      className="w-full border-purple-200 text-purple-700"
+                      className="w-full border-[#5B2C83]/30 text-[#5B2C83]"
                       onClick={() => setMenuOpen(false)}
                     >
                       <Link href="/admin/dashboard">Back to Admin Dashboard</Link>
