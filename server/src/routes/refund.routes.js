@@ -18,7 +18,7 @@ const {
 
 const { protect, authorize } = require('../middlewares/auth');
 
-const adminOnly = [protect, authorize('Admin', 'Super Admin', 'Manager')];
+const adminOnly = [protect, authorize('admin')];
 
 // ─── Customer ────────────────────────────────────────────────────────────────
 router.get('/orders/:id/refund-eligibility', protect, getEligibility);

@@ -14,7 +14,7 @@ const AccordionItem = React.forwardRef<
   <AccordionPrimitive.Item
     ref={ref}
     className={cn(
-      "overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white/70 backdrop-blur-sm transition-colors data-[state=open]:bg-white data-[state=open]:shadow-[var(--shadow-soft)]",
+      "overflow-hidden rounded-xl sm:rounded-2xl border border-[#E8DED4] bg-white/80 backdrop-blur-sm transition-all data-[state=open]:bg-white data-[state=open]:shadow-md",
       className
     )}
     {...props}
@@ -30,14 +30,14 @@ const AccordionTrigger = React.forwardRef<
     <AccordionPrimitive.Trigger
       ref={ref}
       className={cn(
-        "group flex flex-1 items-center justify-between gap-4 px-6 py-5 text-left font-serif text-lg font-medium text-charcoal outline-none transition-colors hover:text-purple-600 focus-visible:text-purple-600",
+        "group flex flex-1 items-center justify-between gap-3 px-3.5 py-3 sm:px-5 sm:py-4 text-left font-serif text-sm sm:text-base font-bold text-[#4A1942] outline-none transition-colors hover:text-[#6B2D5B]",
         className
       )}
       {...props}
     >
       {children}
-      <span className="grid size-8 shrink-0 place-items-center rounded-full bg-purple-50 text-purple-600 transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] group-data-[state=open]:rotate-[135deg] group-data-[state=open]:bg-purple-500 group-data-[state=open]:text-cream">
-        <Plus className="size-4" />
+      <span className="grid size-6 sm:size-7 shrink-0 place-items-center rounded-full bg-[#E8C8E4]/40 text-[#4A1942] transition-all duration-300 group-data-[state=open]:rotate-[135deg] group-data-[state=open]:bg-[#4A1942] group-data-[state=open]:text-white">
+        <Plus className="size-3.5 sm:size-4" />
       </span>
     </AccordionPrimitive.Trigger>
   </AccordionPrimitive.Header>
@@ -50,10 +50,10 @@ const AccordionContent = React.forwardRef<
 >(({ className, children, ...props }, ref) => (
   <AccordionPrimitive.Content
     ref={ref}
-    className="overflow-hidden text-charcoal-muted data-[state=closed]:animate-[accordion-up_0.25s_ease] data-[state=open]:animate-[accordion-down_0.3s_ease]"
+    className="overflow-hidden text-[#3D2B1F] data-[state=closed]:animate-[accordion-up_0.25s_ease] data-[state=open]:animate-[accordion-down_0.3s_ease]"
     {...props}
   >
-    <div className={cn("px-6 pb-6 pt-0 leading-relaxed", className)}>{children}</div>
+    <div className={cn("px-3.5 pb-3.5 pt-0 sm:px-5 sm:pb-4 text-xs sm:text-sm leading-relaxed text-[#3D2B1F]/90", className)}>{children}</div>
   </AccordionPrimitive.Content>
 ));
 AccordionContent.displayName = "AccordionContent";

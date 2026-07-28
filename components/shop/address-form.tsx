@@ -11,7 +11,7 @@ import { useAccount, type SavedAddress } from "@/components/account/account-prov
 // Every Indian state + union territory. Real e-commerce doesn't guess the
 // customer's town from a short list — it derives city & state from the PIN code
 // (India Post) and lets them pick the exact locality, so any address works.
-const INDIAN_STATES: string[] = [
+export const INDIAN_STATES: string[] = [
   "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh",
   "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka",
   "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram",
@@ -52,13 +52,6 @@ export function AddressForm({ initialAddress, onSubmit, onCancel, loading }: Add
   const [country, setCountry] = React.useState("India");
   const [addressType, setAddressType] = React.useState<"Home" | "Work" | "Other">("Home");
   const [isDefault, setIsDefault] = React.useState(false);
-
-  // New address: the recipient defaults to the signed-in customer.
-  React.useEffect(() => {
-    if (initialAddress) return;
-    setFullName((v) => v || user?.name || "");
-    setPhone((v) => v || (user?.phone || "").replace(/\D/g, "").slice(-10));
-  }, [initialAddress, user?.name, user?.phone]);
 
   // Load initial address if editing
   React.useEffect(() => {
@@ -147,8 +140,8 @@ export function AddressForm({ initialAddress, onSubmit, onCancel, loading }: Add
      * the fix is in the profile — say that instead of naming a field that
      * isn't on screen.
      */
-    if (!fullName.trim() || !/^\d{10}$/.test(phone.trim())) {
-      return toast.error("Add your name and mobile number to your profile first.");
+    if (phone.trim() && !/^\d{10}$/.test(phone.trim())) {
+      return toast.error("Please enter a valid 10-digit mobile number or leave blank.");
     }
 
     // Validation checks
@@ -227,7 +220,7 @@ export function AddressForm({ initialAddress, onSubmit, onCancel, loading }: Add
               <Input
                 required
                 list="locality-options"
-                placeholder={localities.length > 0 ? "Pick or type your locality" : "e.g. Adajan"}
+                placeholder=""
                 className="h-11 rounded-xl border-gray-300 bg-white text-sm text-gray-900 placeholder:text-gray-400"
                 value={area}
                 onChange={(e) => setArea(e.target.value)}

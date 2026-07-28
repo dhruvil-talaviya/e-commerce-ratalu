@@ -38,6 +38,7 @@ import {
   Menu,
   X,
   FileSpreadsheet,
+  Sparkles,
   RefreshCw,
   SlidersHorizontal,
   Bell,
@@ -2490,8 +2491,9 @@ function CustomersTab({
 
   const filtered = customers.filter(
     (c) =>
-      c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.phone.includes(searchTerm)
+      (c.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (c.email || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (c.phone || "").includes(searchTerm)
   );
 
   const totalPages = Math.ceil(filtered.length / rowsPerPage) || 1;
@@ -2500,8 +2502,8 @@ function CustomersTab({
     currentPage * rowsPerPage
   );
 
-  const getCustTotals = React.useCallback((phone: string) => {
-    const custOrders = orders.filter((o) => o.userPhone === phone);
+  const getCustTotals = React.useCallback((phone?: string, email?: string) => {
+    const custOrders = orders.filter((o) => (phone && o.userPhone === phone) || (email && (o as any).userEmail === email));
     const completedOrders = custOrders.filter((o) => o.status !== "Cancelled");
     const count = completedOrders.length;
     const spent = completedOrders.reduce((sum, o) => sum + o.totals.total, 0);
@@ -2513,13 +2515,13 @@ function CustomersTab({
     return { count, spent, lastOrderDate, allOrders: custOrders };
   }, [orders]);
 
-  const handleStatusToggle = (phone: string, currentStatus?: "Active" | "Blocked") => {
+  const handleStatusToggle = (phone?: string, currentStatus?: "Active" | "Blocked") => {
     const nextStatus: "Active" | "Blocked" = currentStatus === "Blocked" ? "Active" : "Blocked";
     
     // Update state & localStorage
     setCustomers((prev) => {
       const copy = prev.map((c) => {
-        if (c.phone === phone) {
+        if (phone && c.phone === phone) {
           const updated = { ...c, status: nextStatus };
           if (selectedCust && selectedCust.phone === phone) {
             setSelectedCust(updated);
@@ -2528,7 +2530,9 @@ function CustomersTab({
         }
         return c;
       });
-      localStorage.setItem("ratalu.accounts", JSON.stringify(copy));
+      if (typeof window !== "undefined") {
+        localStorage.setItem("ratalu.admin.customers", JSON.stringify(copy));
+      }
       return copy;
     });
 
@@ -2563,14 +2567,14 @@ function CustomersTab({
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 bg-white">
-                {paginated.map((c) => {
-                  const { count, spent } = getCustTotals(c.phone);
+                {paginated.map((c, index) => {
+                  const { count, spent } = getCustTotals(c.phone, c.email);
                   const isBlocked = c.status === "Blocked";
                   return (
-                    <tr key={c.phone} className="hover:bg-gray-50/50">
+                    <tr key={c.phone || c.email || `cust_${index}`} className="hover:bg-gray-50/50">
                       <td className="p-4">
                         <p className="font-bold text-gray-800">{c.name}</p>
-                        <p className="text-[10px] text-gray-400 mt-0.5">+91 {c.phone}</p>
+                        <p className="text-[10px] text-gray-400 mt-0.5">{c.email || c.phone || ""}</p>
                       </td>
                       <td className="p-4 font-semibold text-gray-650">{count} orders</td>
                       <td className="p-4 font-bold text-purple-650">{formatINR(spent)}</td>
@@ -2622,7 +2626,7 @@ function CustomersTab({
         <div className="bg-gray-50 rounded-xl border border-gray-200 p-5 flex flex-col gap-4">
           {selectedCust ? (
             (() => {
-              const { count, spent, lastOrderDate, allOrders } = getCustTotals(selectedCust.phone);
+              const { count, spent, lastOrderDate, allOrders } = getCustTotals(selectedCust.phone, selectedCust.email);
               const isBlocked = selectedCust.status === "Blocked";
               return (
                 <>
@@ -2640,7 +2644,7 @@ function CustomersTab({
                   <div className="flex items-start justify-between gap-3 bg-white p-3.5 border border-gray-150 rounded-xl shadow-sm">
                     <div>
                       <p className="text-base font-bold text-gray-800">{selectedCust.name}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">Mobile: +91 {selectedCust.phone}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{selectedCust.email || selectedCust.phone || ""}</p>
                       <div className="mt-1">
                         <Badge variant={isBlocked ? "red" : "soft"}>
                           Account: {selectedCust.status || "Active"}
@@ -4257,6 +4261,18 @@ function HomepageTab({
     }
   };
 
+  const handleDeduplicateMedia = async () => {
+    try {
+      const res = await apiFetch<any>("/admin/media/deduplicate", {
+        method: "POST",
+      });
+      toast.success(res?.message || "Duplicate media cleaned successfully");
+      refreshSubData();
+    } catch (err) {
+      toast.error("Failed to clean duplicate media");
+    }
+  };
+
   // Customer Inquiries inbox handlers
   const handleUpdateInquiry = async (id: string, fields: any) => {
     try {
@@ -5230,6 +5246,32 @@ function HomepageTab({
       {/* 6. Media Library Tab */}
       {subTab === "media" && (
         <div className="flex flex-col gap-5">
+          {/* Storage & Cloudinary CDN Info Banner */}
+          <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-purple-200/80 bg-purple-50/60 p-4 sm:p-5 shadow-xs">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#5B2C83] text-white shadow-xs">
+                <Sparkles className="size-5 text-[#E8B923]" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-xs sm:text-sm font-extrabold text-[#4A1942]">Cloudinary Media CDN Storage</h3>
+                <p className="text-[11px] font-medium text-gray-600 leading-snug">
+                  All media assets are stored securely on Cloudinary CDN for instant global delivery. Duplicate files can be cleaned automatically with 1-click below to save storage.
+                </p>
+              </div>
+            </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleDeduplicateMedia}
+              className="border-purple-300 bg-white text-purple-900 hover:bg-purple-100 font-extrabold text-xs rounded-xl cursor-pointer shadow-xs shrink-0"
+            >
+              <Sparkles className="size-3.5 mr-1 text-[#E8B923]" />
+              Clean Duplicate Files
+            </Button>
+          </div>
+
           <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex flex-col gap-1 w-32">

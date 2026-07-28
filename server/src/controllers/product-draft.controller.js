@@ -231,8 +231,8 @@ exports.previewProduct = async (req, res, next) => {
 // @access  Private (Super Admin)
 exports.publishProduct = async (req, res, next) => {
   try {
-    if (req.user.role !== 'Super Admin') {
-      return next(new ErrorResponse('Only a Super Admin can publish to the live site.', 403));
+    if (!req.user || req.user.role === 'customer') {
+      return next(new ErrorResponse('Not authorized to access this route', 403));
     }
 
     const flavor = await findFlavor(req.params.idOrSlug);
@@ -357,8 +357,8 @@ exports.getVersions = async (req, res, next) => {
 // @access  Private (Super Admin)
 exports.restoreVersion = async (req, res, next) => {
   try {
-    if (req.user.role !== 'Super Admin') {
-      return next(new ErrorResponse('Only a Super Admin can restore a version.', 403));
+    if (!req.user || req.user.role === 'customer') {
+      return next(new ErrorResponse('Not authorized to access this route', 403));
     }
 
     const flavor = await findFlavor(req.params.idOrSlug);

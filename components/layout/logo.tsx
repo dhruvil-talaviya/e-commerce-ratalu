@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { cn, sanitizeMediaUrl } from "@/lib/utils";
 import { useStoreSettings } from "@/components/common/settings-provider";
 import { isSvgUrl } from "@/lib/cloudinary";
 
@@ -120,12 +120,13 @@ export function Logo({
 }) {
   const { settings } = useStoreSettings();
 
-  const rawLogo = settings?.storeLogo?.trim() ?? "";
-  const hasLogo = rawLogo.length > 0;
+  const lightLogo = settings?.storeLogo?.trim() ?? "";
+  const darkLogo = settings?.storeLogoDark?.trim() ?? "";
+  const rawLogo = onDark && darkLogo ? darkLogo : lightLogo;
+  const logoSrc = sanitizeMediaUrl(rawLogo);
+  const hasLogo = logoSrc.length > 0;
   const name = settings?.storeName?.trim() || "Yamora Wafers";
-
-  const logoSrc = rawLogo;
-  const isSvg = isSvgUrl(rawLogo);
+  const isSvg = isSvgUrl(logoSrc);
 
   return (
     <Link
@@ -142,7 +143,7 @@ export function Logo({
           <img
             src={logoSrc}
             alt={`${name} logo`}
-            className="h-16 sm:h-20 w-auto max-w-[300px] object-contain"
+            className="h-10 sm:h-12 lg:h-13 w-auto max-w-[240px] object-contain"
             style={{ background: "transparent" }}
           />
         ) : (
@@ -150,11 +151,11 @@ export function Logo({
           <img
             src={logoSrc}
             alt={`${name} logo`}
-            className="h-16 sm:h-20 w-auto max-w-[300px] object-contain"
+            className="h-10 sm:h-12 lg:h-13 w-auto max-w-[240px] object-contain"
           />
         )
       ) : (
-        <YamoraSymbol size={80} onDark={onDark} />
+        <YamoraSymbol size={52} onDark={onDark} className="h-10 sm:h-12 lg:h-13 w-auto" />
       )}
     </Link>
   );

@@ -1,5 +1,4 @@
 const Admin = require('../models/Admin');
-const OTP = require('../models/OTP');
 const AuditLog = require('../models/AuditLog');
 const Settings = require('../models/Settings');
 const Offer = require('../models/Offer');
@@ -21,96 +20,40 @@ const { invalidateCache: invalidateMaintenanceCache } = require('../middlewares/
 // AUTH
 // ─────────────────────────────────────────────────────────────────────────────
 
-// @desc    Admin login via OTP
-// @route   POST /api/v1/admin/login/otp
+// @desc    Admin login via Email / Password
+// @route   POST /api/v1/admin/login
 // @access  Public
-const OtpLog = require('../models/OtpLog');
-
-// @desc    Admin login via OTP
-// @route   POST /api/v1/admin/login/otp
-// @access  Public
-exports.adminLoginOtp = async (req, res, next) => {
+exports.adminLogin = async (req, res, next) => {
   try {
-    const { phone, otp } = req.body;
+    const { email, password } = req.body;
     const ip = req.ip || req.headers['x-forwarded-for'] || '127.0.0.1';
 
-    if (!isAdminPhone(phone)) {
-      return next(new ErrorResponse('Unauthorized access. Admin owner restriction.', 403));
+    if (!email || !password) {
+      return next(new ErrorResponse('Email and password are required', 400));
     }
 
-    if (!phone || !otp) {
-      return next(new ErrorResponse('Mobile number and verification code are required', 400));
+    const cleanEmail = email.trim().toLowerCase();
+
+    let admin = await Admin.findOne({ email: cleanEmail });
+
+    if (!admin) {
+      return next(new ErrorResponse('Invalid email or password credentials.', 401));
     }
 
-    // 1. Lockout check: max 5 fails per 15 minutes per phone or IP
-    const failCountPhone = await OtpLog.countDocuments({ phone, type: 'verify_fail' });
-    const failCountIp = await OtpLog.countDocuments({ ip, type: 'verify_fail' });
-
-    if (failCountPhone >= 5 || failCountIp >= 5) {
-      const oldestFail = await OtpLog.findOne({ 
-        $or: [{ phone }, { ip }], 
-        type: 'verify_fail' 
-      }).sort({ createdAt: 1 });
-
-      const remainingMs = oldestFail 
-        ? Math.max(900000 - (Date.now() - new Date(oldestFail.createdAt).getTime()), 0)
-        : 900000;
-      const remainingSeconds = Math.ceil(remainingMs / 1000);
-
-      // Audit Log
+    const isMatch = await admin.comparePassword(password);
+    if (!isMatch) {
       await AuditLog.create({
-        user: 'Admin',
-        role: 'Admin',
-        action: `Admin login attempt blocked (OTP Lockout). IP: ${ip}`,
+        user: admin.username || 'Admin',
+        role: admin.role || 'admin',
+        action: `Failed admin login attempt (Invalid Password). IP: ${ip}`,
         ipAddress: ip
       });
-
-      return res.status(429).json({
-        success: false,
-        message: 'Too many incorrect OTP attempts. Verification locked for 15 minutes.',
-        errorType: 'LOCKOUT_OTP',
-        remainingSeconds
-      });
+      return next(new ErrorResponse('Invalid email or password credentials.', 401));
     }
 
-    const isStaticTest = otp === '123456';
-    let otpRecord = null;
-
-    if (!isStaticTest) {
-      otpRecord = await OTP.findOne({ phone, otp });
-      if (!otpRecord) {
-        await OtpLog.create({ phone, ip, type: 'verify_fail' });
-        const left = Math.max(5 - (failCountPhone + 1), 0);
-
-        // Audit Log
-        await AuditLog.create({
-          user: 'Admin',
-          role: 'Admin',
-          action: `Admin login failed (incorrect OTP). Attempts remaining: ${left}. IP: ${ip}`,
-          ipAddress: ip
-        });
-
-        return next(new ErrorResponse(`Invalid or expired admin verification code. ${left} attempt(s) remaining.`, 400));
-      }
-    }
-
-    if (otpRecord) {
-      await OTP.deleteMany({ phone });
-    }
-    await OtpLog.deleteMany({ phone, type: 'verify_fail' });
-
-    let admin = await Admin.findOne({ phone: ADMIN_PHONE });
-    if (!admin) {
-      admin = await Admin.create({
-        username: ADMIN_USERNAME,
-        phone: ADMIN_PHONE,
-        password: require('crypto').randomBytes(24).toString('hex'),
-        role: 'Super Admin'
-      });
-    }
-
-    const accessToken = generateAccessToken(admin);
-    const refreshToken = generateRefreshToken(admin);
+    // Always mint tokens with lowercase 'admin' — normalized role
+    const accessToken = generateAccessToken(admin._id, 'admin');
+    const refreshToken = generateRefreshToken(admin._id, 'admin');
 
     admin.refreshTokens = [...(admin.refreshTokens || []).slice(-4), refreshToken];
     await admin.save();
@@ -120,17 +63,8 @@ exports.adminLoginOtp = async (req, res, next) => {
     await AuditLog.create({
       user: admin.username,
       role: admin.role,
-      action: `Admin Session Verified via OTP. IP: ${ip}`,
+      action: `Admin Session Authenticated via Password. IP: ${ip}`,
       ipAddress: ip
-    });
-
-    // Notify Admin of Successful Admin Login
-    const Notification = require('../models/Notification');
-    await Notification.create({
-      isAdmin: true,
-      title: 'Admin Logged In',
-      message: `Admin user ${admin.username} successfully logged in from IP ${ip}.`,
-      type: 'General'
     });
 
     sendResponse(res, 200, {
@@ -139,7 +73,7 @@ exports.adminLoginOtp = async (req, res, next) => {
       data: {
         accessToken,
         refreshToken,
-        user: { id: admin._id, username: admin.username, phone: admin.phone, role: admin.role }
+        user: { id: admin._id, _id: admin._id, username: admin.username, email: admin.email, role: admin.role }
       }
     });
   } catch (error) {
@@ -147,76 +81,54 @@ exports.adminLoginOtp = async (req, res, next) => {
   }
 };
 
-// @desc    Admin login via Password
-// @route   POST /api/v1/admin/login
-// @access  Public
-exports.adminLogin = async (req, res, next) => {
+// @desc    Change Admin Password (Inside Settings)
+// @route   PUT /api/v1/admin/change-password
+// @access  Private (Admin)
+exports.changeAdminPassword = async (req, res, next) => {
   try {
-    const { phone, password } = req.body;
+    const { currentPassword, newPassword, confirmPassword } = req.body;
     const ip = req.ip || req.headers['x-forwarded-for'] || '127.0.0.1';
 
-    if (!isAdminPhone(phone)) {
-      return next(new ErrorResponse('Unauthorized access. Admin owner restriction.', 403));
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      return next(new ErrorResponse('Current password, new password, and confirm password are required', 400));
     }
 
-    if (!phone || !password) {
-      return next(new ErrorResponse('Mobile number and password are required', 400));
+    if (newPassword !== confirmPassword) {
+      return next(new ErrorResponse('New password and confirm password do not match', 400));
     }
 
-    let admin = await Admin.findOne({ phone: ADMIN_PHONE });
+    if (newPassword.length < 6) {
+      return next(new ErrorResponse('New password must be at least 6 characters long', 400));
+    }
+
+    const admin = await Admin.findById(req.user._id);
     if (!admin) {
-      return next(new ErrorResponse('Admin account not found.', 404));
+      return next(new ErrorResponse('Admin account not found', 444));
     }
 
-    // Check if password login is enabled
-    if (!admin.passwordLoginEnabled) {
-      return next(new ErrorResponse('Password login is not enabled. Please log in with OTP.', 400));
-    }
-
-    // Verify password
-    const isMatch = await admin.comparePassword(password);
+    const isMatch = await admin.comparePassword(currentPassword);
     if (!isMatch) {
-      await AuditLog.create({
-        user: 'Admin',
-        role: 'Admin',
-        action: `Admin password login failed (incorrect password). IP: ${ip}`,
-        ipAddress: ip
-      });
-      return next(new ErrorResponse('Invalid password credentials.', 401));
+      return next(new ErrorResponse('Current password is incorrect', 401));
     }
 
-    const accessToken = generateAccessToken(admin);
-    const refreshToken = generateRefreshToken(admin);
-
-    admin.refreshTokens = [...(admin.refreshTokens || []).slice(-4), refreshToken];
+    // Set new password (pre-save hook hashes it)
+    admin.password = newPassword;
+    // Invalidate old refresh tokens
+    admin.refreshTokens = [];
     await admin.save();
 
-    setRefreshTokenCookie(res, refreshToken);
+    clearRefreshTokenCookie(res);
 
     await AuditLog.create({
       user: admin.username,
       role: admin.role,
-      action: `Admin Session Verified via Password. IP: ${ip}`,
+      action: `Admin password updated & sessions invalidated. IP: ${ip}`,
       ipAddress: ip
-    });
-
-    // Notify Admin of Successful Admin Login
-    const Notification = require('../models/Notification');
-    await Notification.create({
-      isAdmin: true,
-      title: 'Admin Logged In',
-      message: `Admin user ${admin.username} successfully logged in with password from IP ${ip}.`,
-      type: 'General'
     });
 
     sendResponse(res, 200, {
       success: true,
-      message: 'Admin authenticated successfully',
-      data: {
-        accessToken,
-        refreshToken,
-        user: { id: admin._id, username: admin.username, phone: admin.phone, role: admin.role }
-      }
+      message: 'Password changed successfully. Please log in again with your new password.'
     });
   } catch (error) {
     next(error);
@@ -936,6 +848,35 @@ exports.deleteMedia = async (req, res, next) => {
 
     await item.deleteOne();
     sendResponse(res, 200, { success: true, message: 'Media item deleted' });
+  } catch (error) { next(error); }
+};
+
+// @desc    Remove duplicate media entries (keeping 1 unique copy per URL or name)
+// @route   POST /api/v1/admin/admin/media/deduplicate
+// @access  Private (Admin)
+exports.deduplicateMedia = async (req, res, next) => {
+  try {
+    const all = await Media.find().sort({ createdAt: -1 });
+    const seen = new Set();
+    let removedCount = 0;
+
+    for (const item of all) {
+      const key = item.url || item.public_id || item.name;
+      if (seen.has(key)) {
+        await item.deleteOne();
+        removedCount++;
+      } else {
+        seen.add(key);
+      }
+    }
+
+    const remaining = await Media.find().sort({ createdAt: -1 });
+    sendResponse(res, 200, {
+      success: true,
+      message: `Deduplication complete. Removed ${removedCount} duplicate file(s).`,
+      data: remaining,
+      removedCount
+    });
   } catch (error) { next(error); }
 };
 

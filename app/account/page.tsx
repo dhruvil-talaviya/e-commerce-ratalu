@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "motion/react";
 import {
   User,
   Package,
+  Clock,
   MapPin,
   Heart,
   Gift,
@@ -26,10 +27,17 @@ import {
   Send,
   Mail,
   Phone,
+  Tag,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   Truck,
+  Lock,
+  Eye,
+  EyeOff,
+  AlertCircle,
+  Loader2,
+  ArrowLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,13 +48,15 @@ import { PageHeader } from "@/components/common/page-header";
 import { HeatMeter } from "@/components/common/heat-meter";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { OrderTimeline } from "@/components/common/order-timeline";
+import { ComboCard } from "@/components/shop/combo-card";
+import type { ShopCombo, Flavor } from "@/lib/types";
 import { WaferVisual } from "@/components/common/wafer-visual";
 import { useWishlist } from "@/components/cart/wishlist-provider";
 import { useCart } from "@/components/cart/cart-provider";
 import { useAccount, type SavedAddress } from "@/components/account/account-provider";
 import { useLanguage } from "@/components/common/language-provider";
 import { AddressForm } from "@/components/shop/address-form";
-import { Edit2, CheckCircle2, ShieldCheck } from "lucide-react";
+import { Edit2, CheckCircle2 } from "lucide-react";
 import type { Language } from "@/lib/i18n/types";
 import { useProducts } from "@/components/shop/product-provider";
 import { useOrders, type Order } from "@/components/shop/order-provider";
@@ -54,6 +64,7 @@ import { getPack, DEFAULT_PACK_ID, PACK_SIZES } from "@/lib/data/products";
 import { apiFetch } from "@/lib/api";
 import { RefundRequestDialog } from "@/components/account/refund-request-dialog";
 import { SITE } from "@/lib/constants";
+import { useGoogleAuth } from "@/lib/hooks/use-google-auth";
 
 // Local notification type — no longer pulled from mock data
 interface AppNotification {
@@ -65,7 +76,6 @@ interface AppNotification {
   read: boolean;
 }
 import { formatINR, cn } from "@/lib/utils";
-import type { Flavor } from "@/lib/types";
 
 /** How often the account page re-pulls orders and notifications. */
 const POLL_MS = 30_000;
@@ -207,55 +217,7 @@ function AccountView() {
    * a signed-out visitor lands on it.
    */
   if (!isLoggedIn) {
-    return (
-      <div className="container-px mx-auto flex max-w-xl flex-col items-center justify-center py-20 text-center">
-        <div className="flex flex-col items-center gap-5 rounded-3xl border border-gray-200/90 bg-white p-8 shadow-[var(--shadow-soft)] sm:p-10">
-          <div className="grid size-16 place-items-center rounded-2xl bg-purple-50 text-[#5B2C83] border border-purple-100 shadow-2xs">
-            <ShieldCheck className="size-8" />
-          </div>
-
-          <div>
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-purple-700 bg-purple-100/70 px-3 py-1 rounded-full border border-purple-200">
-              Customer Account Portal
-            </span>
-            <h1 className="text-2xl font-bold text-gray-900 mt-2.5">Sign in to view your account</h1>
-            <p className="text-xs text-gray-500 mt-1 max-w-md leading-relaxed">
-              Your orders, delivery addresses, discount coupons, and profile settings are protected behind your mobile account verification.
-            </p>
-          </div>
-
-          <div className="w-full grid gap-2.5 text-left border-t border-b border-gray-100 py-4 my-1">
-            <div className="flex items-center gap-3 text-xs font-semibold text-gray-700">
-              <span className="grid size-6 place-items-center rounded-lg bg-emerald-50 text-emerald-600 font-bold">✓</span>
-              <span>Track live order status &amp; shipping updates</span>
-            </div>
-            <div className="flex items-center gap-3 text-xs font-semibold text-gray-700">
-              <span className="grid size-6 place-items-center rounded-lg bg-emerald-50 text-emerald-600 font-bold">✓</span>
-              <span>Manage saved delivery addresses &amp; quick checkout</span>
-            </div>
-            <div className="flex items-center gap-3 text-xs font-semibold text-gray-700">
-              <span className="grid size-6 place-items-center rounded-lg bg-emerald-50 text-emerald-600 font-bold">✓</span>
-              <span>Access exclusive rewards &amp; redeemed promo coupons</span>
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-center gap-3 w-full">
-            <Link
-              href={`${pathname}?login=true`}
-              className="flex-1 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-[#5B2C83] hover:bg-[#4a236c] px-6 py-3 text-xs font-bold text-white shadow-md transition-all cursor-pointer"
-            >
-              <User className="size-4" /> Sign In / Register with Mobile
-            </Link>
-            <Link
-              href="/"
-              className="w-full sm:w-auto inline-flex items-center justify-center rounded-xl bg-gray-100 hover:bg-gray-200 px-5 py-3 text-xs font-bold text-gray-700 transition-all cursor-pointer"
-            >
-              Back to Store
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
+    return <InlineAuthForm />;
   }
 
   const firstName = (user?.name || "Snacker").split(" ")[0];
@@ -692,21 +654,29 @@ function SettingsPanel({ onLogout }: { onLogout: () => void }) {
 function ProfilePanel() {
   const { user, updateProfile } = useAccount();
   const { flavors } = useProducts();
-  const [name, setName] = React.useState(user?.name || "");
-  const [phone, setPhone] = React.useState(user?.phone || "");
+  const addresses = Array.isArray(user?.addresses) ? user.addresses : [];
+  const defaultAddr = addresses.find((a) => a.isDefault) || addresses[0];
+  const initialName = user?.name || defaultAddr?.fullName || "";
+  const initialPhone = user?.phone || defaultAddr?.phone || "";
+
+  const [name, setName] = React.useState(initialName);
+  const [email, setEmail] = React.useState(user?.email || "");
+  const [phone, setPhone] = React.useState(initialPhone);
   const [saved, setSaved] = React.useState(false);
   const [isEditing, setIsEditing] = React.useState(false);
-  const [showNotifs, setShowNotifs] = React.useState(false);
 
-  const [prevUser, setPrevUser] = React.useState(user);
-  if (user !== prevUser) {
-    setPrevUser(user);
-    setName(user?.name || "");
-    setPhone(user?.phone || "");
-  }
+  React.useEffect(() => {
+    if (user) {
+      const userAddrs = Array.isArray(user.addresses) ? user.addresses : [];
+      const addr = userAddrs.find((a) => a.isDefault) || userAddrs[0];
+      setName(user.name || addr?.fullName || "");
+      setEmail(user.email || "");
+      setPhone(user.phone || addr?.phone || "");
+    }
+  }, [user]);
 
-  const handleSave = () => {
-    updateProfile({ name, phone });
+  const handleSave = async () => {
+    await updateProfile({ name, email, phone });
     setSaved(true);
     toast.success("Profile updated");
     setIsEditing(false);
@@ -716,7 +686,7 @@ function ProfilePanel() {
   return (
     <div className="flex flex-col gap-8">
       <Panel
-        title="Profile Details"
+        title="Personal Information"
         action={
           !isEditing ? (
             <Button
@@ -740,9 +710,18 @@ function ProfilePanel() {
             className={cn(!isEditing && "bg-gray-50/30 text-gray-500")}
           />
           <LabeledInput
+            label="Email Address"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={!isEditing}
+            className={cn(!isEditing && "bg-gray-50/30 text-gray-500")}
+          />
+          <LabeledInput
             label="Mobile Number"
             type="tel"
             value={phone}
+            placeholder=""
             onChange={(e) => setPhone(e.target.value)}
             disabled={!isEditing}
             className={cn(!isEditing && "bg-gray-50/30 text-gray-500")}
@@ -758,6 +737,7 @@ function ProfilePanel() {
               variant="outline"
               onClick={() => {
                 setName(user?.name || "");
+                setEmail(user?.email || "");
                 setPhone(user?.phone || "");
                 setIsEditing(false);
               }}
@@ -957,9 +937,12 @@ function OrderStatusStepper({ status }: { status: string }) {
 
 function OrderCard({
   order,
+  defaultExpanded = false,
 }: {
   order: Order;
+  defaultExpanded?: boolean;
 }) {
+  const [isExpanded, setIsExpanded] = React.useState(defaultExpanded);
   const [detailedOrder, setDetailedOrder] = React.useState<any | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [timeLeft, setTimeLeft] = React.useState<number>(0);
@@ -977,23 +960,22 @@ function OrderCard({
       }
     };
     loadDetails();
-    const interval = setInterval(loadDetails, 15000);
     return () => {
       active = false;
-      clearInterval(interval);
     };
   }, [order.id]);
 
   React.useEffect(() => {
     const calculateTimeLeft = () => {
-      const targetTime = new Date(order.createdAt).getTime() + CANCEL_WINDOW_MS;
+      const deadline = (detailedOrder as any)?.cancellationDeadline || (order as any)?.cancellationDeadline;
+      const targetTime = deadline ? new Date(deadline).getTime() : (new Date(order.createdAt).getTime() + CANCEL_WINDOW_MS);
       const seconds = Math.max(0, Math.floor((targetTime - Date.now()) / 1000));
       setTimeLeft(seconds);
     };
     calculateTimeLeft();
     const timer = setInterval(calculateTimeLeft, 1000);
     return () => clearInterval(timer);
-  }, [order.createdAt]);
+  }, [order.createdAt, (order as any)?.cancellationDeadline, (detailedOrder as any)?.cancellationDeadline]);
 
   const [showCancelModal, setShowCancelModal] = React.useState(false);
 
@@ -1023,161 +1005,188 @@ function OrderCard({
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
+  const totalItemsCount = order.items.reduce((sum, i) => sum + i.quantity, 0);
+
   return (
-    <div className="rounded-2xl border border-[var(--color-border)] bg-white p-4 shadow-sm sm:p-5">
-      {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-2 border-b border-gray-100 pb-3 sm:pb-4">
-        <div className="min-w-0">
-          <span className="text-[10px] font-semibold text-gray-400 sm:text-xs">
-            Placed on{" "}
-            {new Date(order.createdAt).toLocaleDateString("en-IN", {
-              day: "numeric",
-              month: "short",
-              year: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </span>
-          <h4 className="mt-0.5 text-base font-bold text-gray-800 sm:text-lg">
-            Order <span className="font-mono text-purple-600">#{order.displayId || order.id}</span>
-          </h4>
+    <div className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white shadow-xs transition-all hover:border-purple-200">
+      {/* COMPACT CLICKABLE HEADER */}
+      <button
+        type="button"
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full flex flex-wrap items-center justify-between gap-2.5 p-3.5 sm:p-4 text-left bg-gradient-to-r from-gray-50/80 via-white to-purple-50/20 hover:bg-purple-50/30 transition-colors cursor-pointer select-none"
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-mono text-xs sm:text-sm font-extrabold text-[#5B2C83]">
+                #{order.displayId || order.id}
+              </span>
+              <span className="text-[10px] font-bold text-gray-400">
+                • {new Date(order.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+              </span>
+            </div>
+            <p className="text-xs text-gray-500 font-medium truncate mt-0.5">
+              {totalItemsCount} {totalItemsCount === 1 ? "item" : "items"} ({order.items.map(i => i.flavorName).join(", ")})
+            </p>
+          </div>
         </div>
-        <Badge variant="soft" className={cn("border font-semibold shrink-0", statusStyle(currentStatus))}>
-          {currentStatus}
-        </Badge>
-      </div>
 
-      {/* Items */}
-      <ul className="mt-3 flex flex-col gap-1.5 sm:mt-4 sm:gap-2">
-        {order.items.map((item) => (
-          <li
-            key={`${item.flavorId}-${item.packId}`}
-            className="flex justify-between gap-3 text-xs sm:text-sm"
+        <div className="flex items-center gap-2.5 shrink-0 ml-auto sm:ml-0">
+          {timeLeft > 0 && ['Pending Confirmation', 'Pending', 'Confirmed', 'Preparing'].includes(currentStatus) && (
+            <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-extrabold text-amber-800 bg-amber-100/80 px-2 py-0.5 rounded-full border border-amber-200">
+              <Clock className="size-2.5 animate-spin" /> {formatTime(timeLeft)}
+            </span>
+          )}
+
+          <Badge variant="soft" className={cn("border font-bold text-[10px] sm:text-xs px-2.5 py-0.5", statusStyle(currentStatus))}>
+            {currentStatus}
+          </Badge>
+
+          <span className="text-xs sm:text-sm font-extrabold text-[#5B2C83]">
+            {formatINR(order.totals?.total || (order as any).totalAmount || 0)}
+          </span>
+
+          <div className="grid size-7 place-items-center rounded-lg bg-gray-100 text-gray-600 hover:bg-purple-100 hover:text-purple-700 transition-all">
+            <ChevronDown className={cn("size-4 transition-transform duration-200", isExpanded && "rotate-180")} />
+          </div>
+        </div>
+      </button>
+
+      {/* EXPANDABLE ANIMATED BODY */}
+      <AnimatePresence initial={false}>
+        {isExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+            className="overflow-hidden border-t border-gray-100"
           >
-            <span className="min-w-0 truncate text-gray-500">
-              {item.quantity}× {item.flavorName} ({item.packLabel})
-            </span>
-            <span className="shrink-0 font-semibold text-gray-800">
-              {formatINR(item.unitPrice * item.quantity)}
-            </span>
-          </li>
-        ))}
-      </ul>
+            <div className="p-4 sm:p-5 space-y-4">
+              {/* Items */}
+              <div>
+                <p className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider mb-2">Item Breakdown</p>
+                <ul className="flex flex-col gap-1.5 divide-y divide-gray-100">
+                  {order.items.map((item) => (
+                    <li
+                      key={`${item.flavorId}-${item.packId}`}
+                      className="pt-1.5 first:pt-0 flex justify-between gap-3 text-xs sm:text-sm"
+                    >
+                      <span className="min-w-0 truncate text-gray-600 font-medium">
+                        {item.quantity}× {item.flavorName} <span className="text-gray-400 text-xs">({item.packLabel})</span>
+                      </span>
+                      <span className="shrink-0 font-bold text-gray-800">
+                        {formatINR(item.unitPrice * item.quantity)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
 
-      {/* Refund Tracker */}
-      {displayRefunds.length > 0 && (
-        <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50/50 p-4">
-          <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-blue-700">
-            <span>Refund Tracker</span>
-            <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-[10px]">{displayRefunds[0].status}</span>
-          </div>
-          <div className="mt-2 space-y-1.5 text-xs text-gray-600">
-            <p>
-              <span className="font-semibold text-gray-700">Refund ID:</span> {displayRefunds[0].refundId}
-            </p>
-            <p>
-              <span className="font-semibold text-gray-700">Amount:</span> {formatINR(displayRefunds[0].requestedAmount)}
-            </p>
-            <p>
-              <span className="font-semibold text-gray-700">Reason:</span> {displayRefunds[0].reason}
-            </p>
-            {displayRefunds[0].failureReason && (
-              <p className="text-red-600">
-                <span className="font-semibold">Failure Reason:</span> {displayRefunds[0].failureReason}
-              </p>
-            )}
-            <div className="mt-3 border-t border-blue-200/50 pt-2.5 space-y-1">
-              <p className="text-[10px] font-bold uppercase text-blue-600">Refund Timeline</p>
-              <ul className="space-y-1 text-[11px]">
-                {displayRefunds[0].timeline?.map((t: any, idx: number) => (
-                  <li key={idx} className="flex justify-between">
-                    <span>{t.note || t.status}</span>
-                    <span className="text-gray-400 font-mono">{new Date(t.at).toLocaleDateString("en-IN")}</span>
-                  </li>
-                ))}
-              </ul>
+              {/* Price Summary Breakdown (Items, Discount, Shipping, Total) */}
+              <div className="pt-3 border-t border-dashed border-gray-200 text-xs space-y-1.5 bg-purple-50/30 p-3 rounded-xl">
+                <div className="flex justify-between text-gray-600">
+                  <span>Items Subtotal</span>
+                  <span className="font-semibold text-gray-800">{formatINR(order.totals?.subtotal || order.items.reduce((s, i) => s + i.unitPrice * i.quantity, 0))}</span>
+                </div>
+
+                {Boolean(order.totals?.discount && order.totals.discount > 0) && (
+                  <div className="flex justify-between text-emerald-700 font-medium">
+                    <span className="flex items-center gap-1 font-bold">
+                      <Tag className="size-3 text-emerald-600" />
+                      Discount Applied
+                    </span>
+                    <span className="font-extrabold text-emerald-700">- {formatINR(order.totals.discount)}</span>
+                  </div>
+                )}
+
+                <div className="flex justify-between text-gray-600">
+                  <span>Delivery Charges</span>
+                  {order.totals?.shipping === 0 || !order.totals?.shipping ? (
+                    <span className="font-bold text-emerald-600">FREE</span>
+                  ) : (
+                    <span className="font-semibold text-gray-800">{formatINR(order.totals.shipping)}</span>
+                  )}
+                </div>
+
+                {Boolean(order.totals?.gst && order.totals.gst > 0) && (
+                  <div className="flex justify-between text-gray-600">
+                    <span>Taxes (GST)</span>
+                    <span className="font-semibold text-gray-800">{formatINR(order.totals.gst)}</span>
+                  </div>
+                )}
+
+                <div className="flex justify-between items-center pt-2 border-t border-purple-200/60 text-xs sm:text-sm font-extrabold text-purple-950">
+                  <span>Total Net Paid Amount</span>
+                  <span className="text-base text-purple-800 font-extrabold">{formatINR(order.totals?.total || (order as any).totalAmount || 0)}</span>
+                </div>
+              </div>
+
+              {/* Refund Tracker */}
+              {displayRefunds.length > 0 && (
+                <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-3 text-xs">
+                  <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-blue-700">
+                    <span>Refund Tracker</span>
+                    <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-[10px]">{displayRefunds[0].status}</span>
+                  </div>
+                  <div className="mt-1.5 space-y-1 text-gray-600 text-xs">
+                    <p><span className="font-semibold text-gray-700">Refund ID:</span> {displayRefunds[0].refundId}</p>
+                    <p><span className="font-semibold text-gray-700">Amount:</span> {formatINR(displayRefunds[0].requestedAmount)}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Tracking Stepper & Progress Pipeline */}
+              <div>
+                <OrderTimeline
+                  orderStatus={currentStatus}
+                  paymentStatus={detailedOrder?.payment?.status || order.payment?.status || "Paid"}
+                  fulfilmentStatus={(detailedOrder as any)?.fulfilmentStatus || (order as any)?.fulfilmentStatus}
+                  cancellationDeadline={(detailedOrder as any)?.cancellationDeadline || (order as any)?.cancellationDeadline || (order as any)?.cancellableUntil}
+                  confirmedAt={(detailedOrder as any)?.confirmedAt}
+                  packedAt={(detailedOrder as any)?.packedAt}
+                  shippedAt={(detailedOrder as any)?.shippedAt}
+                  deliveredAt={(detailedOrder as any)?.deliveredAt}
+                  cancelledAt={(detailedOrder as any)?.cancelledAt}
+                  trackingNumber={order.trackingNumber}
+                  courierName={order.courierName}
+                />
+
+                <p className="mt-2 text-[10px] sm:text-xs leading-relaxed text-gray-500 font-medium">
+                  Delivering to <span className="font-bold text-gray-800">{order.address?.tag || "Delivery Address"}</span> —{" "}
+                  {order.address?.addressLine}, {order.address?.city}
+                </p>
+              </div>
+
+              {/* Footer Actions & Payment Info */}
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 pt-3">
+                <div className="flex flex-col">
+                  <span className="text-[10px] sm:text-xs font-semibold text-gray-400">
+                    Paid via {(detailedOrder?.payment?.method || order.payment?.method || order.method || "").toUpperCase()}
+                  </span>
+                  {timeLeft > 0 && ['Pending Confirmation', 'Pending', 'Confirmed', 'Preparing'].includes(currentStatus) && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 mt-1 w-fit">
+                      <Clock className="size-3 animate-spin" /> 5-Min Cancel Window ({formatTime(timeLeft)})
+                    </span>
+                  )}
+                </div>
+
+                {timeLeft > 0 && ['Pending Confirmation', 'Pending', 'Confirmed', 'Preparing'].includes(currentStatus) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={loading}
+                    onClick={() => setShowCancelModal(true)}
+                    className="border-red-200 bg-red-50/50 text-red-600 hover:bg-red-600 hover:text-white h-8 text-xs font-bold px-3 rounded-xl transition-all shadow-xs"
+                  >
+                    Cancel Order
+                  </Button>
+                )}
+              </div>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Tracking Stepper & Progress Pipeline */}
-      <div className="mt-4 sm:mt-6">
-        <OrderTimeline
-          orderStatus={currentStatus}
-          paymentStatus={detailedOrder?.payment?.status || order.payment?.status || "Paid"}
-          fulfilmentStatus={(detailedOrder as any)?.fulfilmentStatus || (order as any)?.fulfilmentStatus}
-          cancellationDeadline={(detailedOrder as any)?.cancellationDeadline || (order as any)?.cancellationDeadline || (order as any)?.cancellableUntil}
-          confirmedAt={(detailedOrder as any)?.confirmedAt}
-          packedAt={(detailedOrder as any)?.packedAt}
-          shippedAt={(detailedOrder as any)?.shippedAt}
-          deliveredAt={(detailedOrder as any)?.deliveredAt}
-          cancelledAt={(detailedOrder as any)?.cancelledAt}
-          trackingNumber={order.trackingNumber}
-          courierName={order.courierName}
-        />
-
-        <p className="mt-3 text-[10px] leading-relaxed text-gray-500 sm:text-[11px]">
-          Delivering to <span className="font-bold text-gray-800">{order.address.tag}</span> —{" "}
-          {order.address.addressLine}, {order.address.city}
-        </p>
- 
-        {order.trackingNumber ? (
-          <div className="mt-3 flex items-center gap-2.5 rounded-lg border border-purple-100 bg-purple-50/50 p-2.5">
-            <span className="grid size-8 shrink-0 place-items-center rounded-full bg-white text-purple-600 shadow-sm">
-              <Truck className="size-4" />
-            </span>
-            <div className="min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-wide text-purple-700">
-                {order.courierName || "Courier"}
-              </p>
-              <p className="truncate font-mono text-[11px] font-semibold text-gray-700">
-                {order.trackingNumber}
-              </p>
-            </div>
-          </div>
-        ) : (
-          currentStatus !== "Delivered" &&
-          currentStatus !== "Cancelled" &&
-          !currentStatus.startsWith("Refund") &&
-          currentStatus !== "Returned" &&
-          currentStatus !== "Expired" && (
-            <p className="mt-2 text-[10px] italic text-gray-400 sm:text-[11px]">
-              A tracking number will appear here once your order ships.
-            </p>
-          )
+          </motion.div>
         )}
-      </div>
-
-      {/* Footer */}
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 pt-3 sm:mt-4 sm:pt-4">
-        <div className="flex flex-col">
-          <span className="text-[11px] font-medium text-gray-400 sm:text-sm">
-            Paid via {(detailedOrder?.payment?.method || order.payment?.method || order.method || "").toUpperCase()}
-          </span>
-          {timeLeft > 0 && ['Pending', 'Confirmed', 'Preparing'].includes(currentStatus) && (
-            <span className="text-[10px] font-bold text-red-500 mt-0.5 animate-pulse">
-              ⏱ Can cancel for {formatTime(timeLeft)}
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-2.5">
-          {timeLeft > 0 && ['Pending', 'Confirmed', 'Preparing'].includes(currentStatus) && (
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={loading}
-              onClick={() => setShowCancelModal(true)}
-              className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 h-8 text-xs font-semibold px-3 cursor-pointer"
-            >
-              Cancel Order
-            </Button>
-          )}
-          <span className="text-base font-bold text-purple-600 sm:text-xl">
-            {formatINR(order.totals.total)}
-          </span>
-        </div>
-      </div>
+      </AnimatePresence>
 
       <ConfirmModal
         open={showCancelModal}
@@ -1194,23 +1203,35 @@ function OrderCard({
   );
 }
 
+type TimeFilter = "30days" | "6months" | "all";
+
 function OrdersPanel() {
   const { user } = useAccount();
   const { getOrdersByUser, refreshOrders } = useOrders();
   const orders = getOrdersByUser(user?.phone || "");
+  const [timeFilter, setTimeFilter] = React.useState<TimeFilter>("30days");
   const [page, setPage] = React.useState(1);
 
-  const pageCount = Math.max(1, Math.ceil(orders.length / ORDERS_PER_PAGE));
+  const filteredOrders = React.useMemo(() => {
+    if (timeFilter === "all") return orders;
+    const now = Date.now();
+    const days = timeFilter === "30days" ? 30 : 180;
+    const cutoff = now - days * 24 * 60 * 60 * 1000;
+    return orders.filter((o) => new Date(o.createdAt).getTime() >= cutoff);
+  }, [orders, timeFilter]);
+
+  const pageCount = Math.max(1, Math.ceil(filteredOrders.length / ORDERS_PER_PAGE));
   const currentPage = Math.min(page, pageCount);
-  const visibleOrders = orders.slice(
+  const visibleOrders = filteredOrders.slice(
     (currentPage - 1) * ORDERS_PER_PAGE,
     currentPage * ORDERS_PER_PAGE
   );
 
   React.useEffect(() => {
+    refreshOrders();
     const timer = setInterval(() => {
       refreshOrders();
-    }, POLL_MS);
+    }, 3000);
     return () => clearInterval(timer);
   }, [refreshOrders]);
 
@@ -1229,15 +1250,70 @@ function OrdersPanel() {
   }
 
   return (
-    <Panel title={`Your orders (${orders.length})`}>
-      <div className="flex flex-col gap-4 sm:gap-6">
-        {visibleOrders.map((order) => (
-          <OrderCard
-            key={order.id}
-            order={order}
-          />
-        ))}
+    <Panel title={`Your orders (${filteredOrders.length})`}>
+      {/* Time Filter Tabs */}
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-3">
+        <div className="flex flex-wrap gap-1.5 sm:gap-2">
+          <button
+            type="button"
+            onClick={() => { setTimeFilter("30days"); setPage(1); }}
+            className={cn(
+              "px-3 py-1 rounded-xl text-xs font-extrabold transition-all border cursor-pointer",
+              timeFilter === "30days"
+                ? "bg-[#5B2C83] text-white border-[#5B2C83] shadow-2xs"
+                : "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100"
+            )}
+          >
+            Last 30 Days
+          </button>
+          <button
+            type="button"
+            onClick={() => { setTimeFilter("6months"); setPage(1); }}
+            className={cn(
+              "px-3 py-1 rounded-xl text-xs font-extrabold transition-all border cursor-pointer",
+              timeFilter === "6months"
+                ? "bg-[#5B2C83] text-white border-[#5B2C83] shadow-2xs"
+                : "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100"
+            )}
+          >
+            Last 6 Months
+          </button>
+          <button
+            type="button"
+            onClick={() => { setTimeFilter("all"); setPage(1); }}
+            className={cn(
+              "px-3 py-1 rounded-xl text-xs font-extrabold transition-all border cursor-pointer",
+              timeFilter === "all"
+                ? "bg-[#5B2C83] text-white border-[#5B2C83] shadow-2xs"
+                : "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100"
+            )}
+          >
+            All Orders ({orders.length})
+          </button>
+        </div>
+
+        {timeFilter === "30days" && (
+          <span className="text-[10px] font-semibold text-gray-400">
+            Showing orders from past 30 days
+          </span>
+        )}
       </div>
+
+      {filteredOrders.length === 0 ? (
+        <div className="py-12 text-center text-sm font-semibold text-gray-500">
+          No orders found in the last {timeFilter === "30days" ? "30 days" : "6 months"}.
+        </div>
+      ) : (
+        <div className="flex flex-col gap-4 sm:gap-6">
+          {visibleOrders.map((order, idx) => (
+            <OrderCard
+              key={order.id}
+              order={order}
+              defaultExpanded={idx === 0}
+            />
+          ))}
+        </div>
+      )}
 
 
       {pageCount > 1 && (
@@ -1313,8 +1389,8 @@ function AddressesPanel() {
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">
-            {user?.addresses?.map((addr) => {
-              const isActive = user.activeAddressId === addr.id;
+            {(Array.isArray(user?.addresses) ? user.addresses : []).map((addr) => {
+              const isActive = user?.activeAddressId === addr.id || user?.activeAddressId === addr._id;
               return (
                 <div
                   key={addr.id}
@@ -1440,25 +1516,42 @@ function WishlistPanel() {
   const { ids, toggle } = useWishlist();
   const { addItem } = useCart();
   const { getFlavor } = useProducts();
-  const pack = getPack(DEFAULT_PACK_ID)!;
-  const flavors = ids.map((id) => getFlavor(id)).filter(Boolean) as Flavor[];
+  const [combos, setCombos] = React.useState<ShopCombo[]>([]);
 
-  if (flavors.length === 0)
+  React.useEffect(() => {
+    apiFetch<ShopCombo[]>("/combos")
+      .then((list) => setCombos(Array.isArray(list) ? list : []))
+      .catch(() => setCombos([]));
+  }, []);
+
+  const pack = getPack(DEFAULT_PACK_ID)!;
+
+  const flavors = ids.map((id) => getFlavor(id)).filter(Boolean) as Flavor[];
+  const likedCombos = ids
+    .map((id) => combos.find((c: ShopCombo) => c.slug === id || c._id === id || String((c as any).id) === id))
+    .filter(Boolean) as ShopCombo[];
+
+  const totalCount = flavors.length + likedCombos.length;
+
+  if (totalCount === 0)
     return (
       <Panel title="Liked Products">
         <EmptyState
           icon={Heart}
-          title="No liked products yet"
-          description="Tap the heart on any flavour to like it and save it for later."
-          action={<Button asChild><Link href="/shop">Explore flavours</Link></Button>}
+          title="No liked items yet"
+          description="Tap the heart on any flavour or combo deal to like it and save it for later."
+          action={<Button asChild><Link href="/shop">Explore flavours &amp; combos</Link></Button>}
           tone="muted"
         />
       </Panel>
     );
 
   return (
-    <Panel title={`Liked Products (${flavors.length})`}>
+    <Panel title={`Liked Products (${totalCount})`}>
       <div className="grid gap-4 sm:grid-cols-2">
+        {likedCombos.map((c) => (
+          <ComboCard key={`combo-${c._id}`} combo={c} view="grid" />
+        ))}
         {flavors.map((f) => (
           <div key={f.id} className="flex gap-4 rounded-2xl border border-[var(--color-border)] bg-white p-4">
             <div className="size-20 shrink-0 rounded-xl p-2" style={{ background: `radial-gradient(120% 120% at 30% 20%, ${f.gradient.from}22, transparent)` }}>
@@ -1541,3 +1634,111 @@ function LabeledInput({ label, ...props }: { label: string } & React.InputHTMLAt
     </div>
   );
 }
+
+function InlineAuthForm() {
+  const { loginWithGoogle } = useAccount();
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState("");
+
+  const { signIn } = useGoogleAuth({
+    onSuccess: async (googleUser) => {
+      setError("");
+      setLoading(true);
+      const res = await loginWithGoogle({
+        googleId: googleUser.googleId,
+        email: googleUser.email,
+        name: googleUser.name,
+        avatar: googleUser.avatar,
+        idToken: googleUser.idToken,
+      });
+      setLoading(false);
+
+      if (res.success) {
+        toast.success(res.message || "Logged in with Google!");
+      } else {
+        setError(res.message || "Google Sign-In failed.");
+      }
+    },
+    onError: (err) => {
+      setLoading(false);
+      setError(err);
+    },
+  });
+
+  const handleGoogle = () => {
+    setError("");
+    setLoading(true);
+    signIn();
+    // Reset loading after timeout if user cancels popup
+    setTimeout(() => setLoading(false), 30000);
+  };
+
+  return (
+    <div className="container-px mx-auto max-w-5xl py-8 sm:py-14 px-4">
+      <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-center justify-center">
+
+        {/* ── Auth Card (Google OAuth Only) ──────────────────────────────────────── */}
+        <div className="w-full lg:max-w-md mx-auto shrink-0">
+          <div className="w-full rounded-3xl border border-amber-200/50 bg-white p-7 sm:p-10 shadow-xl text-center">
+            {/* Logo & Welcome Header */}
+            <div className="flex flex-col items-center justify-center mb-6">
+              <div className="size-16 rounded-2xl bg-amber-50 flex items-center justify-center mb-4 shadow-sm border border-amber-200/60">
+                <User className="size-8 text-[#4A1942]" />
+              </div>
+              <h1 className="font-serif text-2xl sm:text-3xl font-black text-[#4A1942] tracking-tight">
+                Welcome to Yamora
+              </h1>
+              <p className="mt-2 text-sm text-gray-600 font-medium leading-relaxed">
+                Fresh Ratalu Wafers Delivered.
+              </p>
+            </div>
+
+            {error && (
+              <div className="mb-4 rounded-xl bg-red-50 p-3 text-xs font-semibold text-red-600 border border-red-100">
+                {error}
+              </div>
+            )}
+
+            <div className="space-y-5 pt-2">
+              <button
+                type="button"
+                onClick={handleGoogle}
+                disabled={loading}
+                className="group relative flex w-full items-center justify-center gap-3.5 h-13 rounded-2xl bg-gradient-to-r from-[#4A1942] to-[#5B2C83] hover:from-[#381132] hover:to-[#481f6d] text-sm sm:text-base font-extrabold text-white shadow-lg shadow-purple-900/20 transition-all duration-200 hover:shadow-xl active:scale-[0.99] cursor-pointer disabled:opacity-60 border border-amber-400/30"
+              >
+                {loading ? (
+                  <Loader2 className="size-5 animate-spin text-white" />
+                ) : (
+                  <>
+                    <div className="p-1.5 rounded-full bg-white flex items-center justify-center shadow-sm">
+                      <svg className="size-4 transition-transform duration-200 group-hover:scale-110" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                      </svg>
+                    </div>
+                    <span>Continue with Google</span>
+                  </>
+                )}
+              </button>
+
+              <p className="text-xs text-gray-500 font-medium leading-normal px-2">
+                By continuing you agree to our{" "}
+                <Link href="/policies/terms" className="text-purple-900 font-bold underline hover:text-purple-950">
+                  Terms
+                </Link>{" "}
+                &{" "}
+                <Link href="/policies/privacy" className="text-purple-900 font-bold underline hover:text-purple-950">
+                  Privacy Policy
+                </Link>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+

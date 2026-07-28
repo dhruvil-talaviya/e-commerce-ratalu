@@ -1,11 +1,38 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" width="40" height="40">
-  <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#7a3f9c"/>
-      <stop offset="100%" stop-color="#5b2c6f"/>
-    </linearGradient>
-  </defs>
-  <rect width="40" height="40" rx="10" fill="url(#g)"/>
-  <path d="M20 10c5.5 0 10 4.5 10 10 0 2.8-3.7 2.8-3.7 0a6.3 6.3 0 0 0-12.6 0c0 2.8-3.7 2.8-3.7 0 0-5.5 4.5-10 10-10Z" fill="#f4c542"/>
-  <circle cx="20" cy="22" r="2.8" fill="#e67e22"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Purple Squircle Background -->
+  <rect width="200" height="200" rx="44" fill="#4A1942"/>
+
+  <!-- Outer Double Arc Ring (Gold & White) -->
+  <circle cx="100" cy="100" r="92" stroke="#E8B923" stroke-width="4.5" fill="none"/>
+  <circle cx="100" cy="100" r="85" stroke="#FFFFFF" stroke-width="2" fill="none"/>
+
+  <!-- Chips Bucket -->
+  <path d="M78 68 L82 99 L118 99 L122 68 Z" fill="#FFFFFF"/>
+  <rect x="88" y="68" width="5" height="31" fill="#4A1942" opacity="0.25" rx="1"/>
+  <rect x="97" y="68" width="5" height="31" fill="#4A1942" opacity="0.25" rx="1"/>
+  <rect x="106" y="68" width="5" height="31" fill="#4A1942" opacity="0.25" rx="1"/>
+
+  <!-- Golden Chips -->
+  <ellipse cx="82" cy="66" rx="11" ry="5.5" transform="rotate(-25 82 66)" fill="#F4C542"/>
+  <ellipse cx="100" cy="62" rx="12" ry="5" transform="rotate(5 100 62)" fill="#FFE17D"/>
+  <ellipse cx="118" cy="66" rx="11" ry="5.5" transform="rotate(22 118 66)" fill="#F4C542"/>
+
+  <!-- Wordmark "yamora" -->
+  <text x="100" y="122" text-anchor="middle" font-family="Georgia, 'Palatino Linotype', serif" font-size="30" font-weight="900" fill="#FFFFFF" letter-spacing="-0.5">yamora</text>
+
+  <!-- Sub-label "- WAFERS -" -->
+  <text x="100" y="136" text-anchor="middle" font-family="'Arial', sans-serif" font-size="10.5" font-weight="800" fill="#E8B923" letter-spacing="3.5">- WAFERS -</text>
+
+  <!-- Dual Swoosh -->
+  <path d="M30 145 Q60 137 100 141 Q140 145 170 137" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <path d="M30 150 Q60 142 100 146 Q140 150 170 142" stroke="#E8B923" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+
+  <!-- Twin Green Leaves -->
+  <ellipse cx="150" cy="136" rx="11" ry="6" transform="rotate(-50 150 136)" fill="#7CB342"/>
+  <ellipse cx="157" cy="130" rx="10" ry="5.5" transform="rotate(-65 157 130)" fill="#558B2F"/>
+
+  <!-- Three Stars -->
+  <path d="M74 170 L75.4 174.2 L79.8 174.2 L76.2 176.8 L77.6 181 L74 178.4 L70.4 181 L71.8 176.8 L68.2 174.2 L72.6 174.2 Z" fill="#E8B923"/>
+  <path d="M100 168 L101.7 173.2 L107.2 173.2 L102.8 176.3 L104.5 181.5 L100 178.4 L95.5 181.5 L97.2 176.3 L92.8 173.2 L98.3 173.2 Z" fill="#E8B923"/>
+  <path d="M126 170 L127.4 174.2 L131.8 174.2 L128.2 176.8 L129.6 181 L126 178.4 L122.4 181 L123.8 176.8 L120.2 174.2 L124.6 174.2 Z" fill="#E8B923"/>
 </svg>

@@ -5,104 +5,115 @@
   ------------------------------------------------------------------
   Primary (Purple Yam):      #5B2C83
   Secondary (Royal Purple):  #7B3FA0
-  Accent (Golden Wafer):     #F4B400
-  Fresh Leaf Green:          #4CAF50
-  Background (Warm Cream):   #FFF8EC
-  Footer (Dark Purple):      #2E1148
-  Text Colors: Heading #2D2D2D, Body #555555, Muted #777777
+  Primary Brand:
+    Deep Plum:    #4A1942 — Headers, hero backgrounds, primary brand color
+    Royal Purple: #6B2D5B — Secondary headings, hover states
+    Yam Violet:   #8E4585 — Interactive elements, links, icons
+    Soft Lilac:   #B76DAE — Highlight backgrounds, badges, hover rings
+    Petal Pink:   #E8C8E4 — Light surface fills, section backgrounds, shimmer
+  Accent (Appetite & Action):
+    Golden Crisp: #D4A017 — Primary CTA, "Add to Cart" buttons
+    Wafer Gold:   #E8B923 — Price tags, sale badges, star ratings
+    Light Gold:   #F5D76E — Accent text on dark plum backgrounds
+    Spice Orange: #C75B12 — Urgency signals ("Limited stock"), flash banners
+    Warm Amber:   #E07B3C — Secondary CTA, subscription nudges
+  Neutral Foundation:
+    Cream White:  #FDF8F0 — Warm page background
+    Warm Ivory:   #F5EDE3 — Card backgrounds, alternating sections
+    Cocoa Dark:   #3D2B1F — Body text (earthy, non-harsh)
+    Rich Brown:   #1A0F0A — Headings on light backgrounds
+    Pure White:   #FFFFFF — Product image canvas, modal overlays
 */
 
 @theme {
-  /* ---- Purple Yam Palette ---- */
-  --color-purple-50:  #f5ebfc;
-  --color-purple-100: #e8d3f7;
-  --color-purple-200: #d7c4f5; /* Footer link color */
-  --color-purple-300: #b894e6;
-  --color-purple-400: #9661d4;
-  --color-purple-500: #5b2c83; /* Primary — Deep Purple */
-  --color-purple-600: #7b3fa0; /* Secondary — Royal Purple */
-  --color-purple-700: #4a216e;
-  --color-purple-800: #391757;
-  --color-purple-900: #2e1148; /* Dark Purple — Footer */
+  /* ---- Ratalu Brand Palette ---- */
+  --color-plum-900:   #4a1942; /* Deep Plum */
+  --color-plum-800:   #5a2050;
+  --color-plum-700:   #6b2d5b; /* Royal Purple */
+  --color-purple-50:  #fdf4fd;
+  --color-purple-100: #e8c8e4; /* Petal Pink */
+  --color-purple-200: #d69ed0;
+  --color-purple-300: #b76dae; /* Soft Lilac */
+  --color-purple-400: #8e4585; /* Yam Violet */
+  --color-purple-500: #4a1942; /* Primary — Deep Plum */
+  --color-purple-600: #6b2d5b; /* Royal Purple */
+  --color-purple-700: #4a1942;
+  --color-purple-800: #3a1234;
+  --color-purple-900: #290c24; /* Dark Plum Footer */
 
-  /* ---- Golden Wafer Accent ---- */
-  --color-amber-400:  #f4b400; /* Golden Wafer */
-  --color-amber-500:  #d99f00;
-  --color-orange-50:  #fff8ec;
-  --color-orange-100: #fff3db;
-  --color-orange-200: #ffe4b3;
-  --color-orange-300: #ffd485;
-  --color-orange-400: #f4b400;
-  --color-orange-500: #f4b400; /* Map orange to Golden Wafer */
-  --color-orange-600: #d99f00;
-  --color-orange-700: #b38300;
-  --color-yellow-400: #f4b400;
-  --color-yellow-500: #d99f00;
-  --color-gold-400:   #f4b400;
+  /* ---- Appetite & Action Gold/Amber ---- */
+  --color-gold-300:   #f5d76e; /* Light Gold */
+  --color-gold-400:   #e8b923; /* Wafer Gold */
+  --color-gold-500:   #d4a017; /* Golden Crisp */
+  --color-amber-400:  #e8b923; /* Wafer Gold */
+  --color-amber-500:  #d4a017; /* Golden Crisp */
+  --color-amber-600:  #e07b3c; /* Warm Amber */
+  --color-orange-500: #c75b12; /* Spice Orange */
+  --color-orange-600: #c75b12;
 
   /* ---- Fresh Leaf Green ---- */
   --color-green-50:   #eefbe9;
   --color-green-100:  #dcf7d4;
-  --color-green-500:  #4caf50; /* Fresh Leaf Green */
+  --color-green-500:  #4caf50;
   --color-green-600:  #43a047;
   --color-green-700:  #388e3c;
   --color-success:    #4caf50;
   --color-success-fg: #ffffff;
 
-  /* ---- Neutral / Text ---- */
-  --color-gray-50:  #fff8ec;
-  --color-gray-100: #f7eedf;
-  --color-gray-200: #e8d8c8;
-  --color-gray-300: #d4c0ae;
-  --color-gray-400: #777777; /* Muted Text */
-  --color-gray-500: #555555; /* Body Text */
-  --color-gray-600: #444444;
-  --color-gray-700: #373737;
-  --color-gray-800: #2d2d2d; /* Heading Text */
-  --color-gray-900: #2d2d2d;
+  /* ---- Neutral Foundation ---- */
+  --color-gray-50:  #fdf8f0; /* Cream White */
+  --color-gray-100: #f5ede3; /* Warm Ivory */
+  --color-gray-200: #e8ded4;
+  --color-gray-300: #d4c4b6;
+  --color-gray-400: #8a7b70; /* Muted Text */
+  --color-gray-500: #3d2b1f; /* Body Text — Cocoa Dark */
+  --color-gray-600: #332318;
+  --color-gray-700: #281a11;
+  --color-gray-800: #1a0f0a; /* Heading Text — Rich Brown */
+  --color-gray-900: #1a0f0a;
 
   /* ---- Semantic design tokens ---- */
-  --color-background:          #fff8ec; /* Warm Cream Body Background */
-  --color-section-bg:          #fff8ec;
-  --color-foreground:          #555555; /* Body Text */
-  --color-primary:             #5b2c83; /* Deep Purple */
+  --color-background:          #fdf8f0; /* Cream White */
+  --color-section-bg:          #fdf8f0;
+  --color-foreground:          #3d2b1f; /* Cocoa Dark */
+  --color-primary:             #4a1942; /* Deep Plum */
   --color-primary-foreground:  #ffffff;
-  --color-secondary:           #7b3fa0; /* Royal Purple */
+  --color-secondary:           #6b2d5b; /* Royal Purple */
   --color-secondary-foreground: #ffffff;
-  --color-accent:              #f4b400; /* Golden Wafer */
-  --color-muted:               #777777; /* Muted Text */
-  --color-border:              #e8d9eb;
-  --color-ring:                #5b2c83;
+  --color-accent:              #d4a017; /* Golden Crisp */
+  --color-muted:               #8a7b70; /* Muted Text */
+  --color-border:              #e8ded4;
+  --color-ring:                #8e4585;
 
   /* Semantic state colors */
   --color-danger:     #dc2626;
   --color-danger-fg:  #ffffff;
   --color-info:       #2563eb;
-  --color-warning:    #f4b400;
+  --color-warning:    #e8b923;
 
   /* Neutral utility surfaces */
-  --color-ink:         #2d2d2d;
-  --color-ink-muted:   #555555;
-  --color-line:        #e8d9eb;
+  --color-ink:         #1a0f0a; /* Rich Brown */
+  --color-ink-muted:   #3d2b1f; /* Cocoa Dark */
+  --color-line:        #e8ded4;
   --color-surface:     #ffffff;
-  --color-surface-2:   #fff8ec;
+  --color-surface-2:   #f5ede3; /* Warm Ivory */
 
-  /* Charcoal aliases mapped to brand text colors */
-  --color-charcoal:        #2d2d2d; /* Heading */
-  --color-charcoal-muted:  #555555; /* Body */
-  --color-charcoal-soft:   #777777; /* Muted */
-  --color-cream:           #fff8ec;
-  --color-cream-100:       #fff4e3;
-  --color-cream-200:       #ffeed4;
+  /* Aliases mapped to Ratalu brand tokens */
+  --color-charcoal:        #1a0f0a; /* Rich Brown Heading */
+  --color-charcoal-muted:  #3d2b1f; /* Cocoa Dark Body */
+  --color-charcoal-soft:   #8a7b70; /* Muted */
+  --color-cream:           #fdf8f0; /* Cream White */
+  --color-cream-100:       #f5ede3; /* Warm Ivory */
+  --color-cream-200:       #e8ded4;
 
   /* ---- Typography ---- */
   --font-plus-jakarta: var(--font-plus-jakarta), ui-sans-serif, system-ui, sans-serif;
   --font-manrope:      var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
 
   --font-sans:       var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-serif:      var(--font-plus-jakarta), ui-serif, Georgia, serif;
-  --font-heading:    var(--font-plus-jakarta), ui-sans-serif, system-ui, sans-serif;
-  --font-brand:      var(--font-plus-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-serif:      var(--font-fraunces), var(--font-plus-jakarta), ui-serif, Georgia, serif;
+  --font-heading:    var(--font-fraunces), var(--font-plus-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-brand:      var(--font-fraunces), var(--font-plus-jakarta), ui-sans-serif, system-ui, sans-serif;
   --font-numbers:    var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
   --font-devanagari: var(--font-devanagari), "Noto Sans Devanagari", sans-serif;
   --font-gujarati:   var(--font-gujarati), "Noto Sans Gujarati", sans-serif;
@@ -113,9 +124,9 @@
   --radius-3xl: 1.75rem;
 
   /* ---- Elevation ---- */
-  --shadow-soft: 0 4px 20px -4px rgb(46 17 72 / 0.07);
-  --shadow-lift: 0 12px 36px -8px rgb(46 17 72 / 0.14);
-  --shadow-glow: 0 0 0 2px rgb(244 180 0 / 0.4), 0 12px 40px -12px rgb(91 44 131 / 0.3);
+  --shadow-soft: 0 4px 24px -4px rgb(46 17 72 / 0.06);
+  --shadow-lift: 0 12px 36px -8px rgb(46 17 72 / 0.12);
+  --shadow-glow: 0 0 0 2px rgb(244 180 0 / 0.4), 0 12px 40px -12px rgb(91 44 131 / 0.25);
 
   /* ---- Motion ---- */
   --ease-premium: cubic-bezier(0.22, 1, 0.36, 1);
@@ -134,22 +145,25 @@
   html {
     scroll-behavior: smooth;
     -webkit-text-size-adjust: 100%;
-    overflow-x: hidden;
-    scrollbar-gutter: stable;
+    overflow-x: hidden !important;
+    width: 100vw;
+    max-width: 100%;
   }
 
   body {
-    background-color: #fff8ec !important;
-    color: #555555;
+    background-color: #fdf8f0 !important;
+    color: #3d2b1f;
     font-family: var(--font-sans);
     font-feature-settings: "ss01", "cv01";
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    overflow-x: hidden;
+    overflow-x: hidden !important;
     width: 100%;
     max-width: 100%;
     min-height: 100dvh;
+    margin: 0;
+    padding: 0;
   }
 
   /* Media never overflows its container */
@@ -180,7 +194,7 @@
   h1, h2, h3, h4, h5, h6, .font-serif {
     font-family: var(--font-heading) !important;
     font-weight: 700;
-    color: #2d2d2d;
+    color: #1a0f0a;
     letter-spacing: -0.02em;
     text-wrap: balance;
   }
@@ -191,7 +205,7 @@
     font-size: 34px !important;
     line-height: 1.1 !important;
     letter-spacing: -0.03em !important;
-    color: #2d2d2d !important;
+    color: #f5d76e !important;
   }
   @media (min-width: 640px) {
     .hero-heading, .hero-title {
@@ -208,7 +222,7 @@
     font-family: var(--font-heading) !important;
     font-weight: 700 !important;
     font-size: 28px !important;
-    color: #2d2d2d !important;
+    color: #4a1942 !important;
     letter-spacing: -0.02em !important;
   }
   @media (min-width: 640px) {
@@ -226,7 +240,7 @@
     font-family: var(--font-heading) !important;
     font-weight: 700 !important;
     font-size: 20px !important;
-    color: #5b2c83 !important;
+    color: #4a1942 !important;
     letter-spacing: -0.015em !important;
   }
   @media (min-width: 768px) {

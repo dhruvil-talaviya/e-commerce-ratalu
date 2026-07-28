@@ -99,7 +99,9 @@ const isAdminRequest = (req) => {
   if (header.startsWith('Bearer ')) {
     try {
       const decoded = jwt.verify(header.slice(7), process.env.JWT_SECRET);
-      if (decoded?.role === 'Admin' || decoded?.role === 'Super Admin') return true;
+      // Always normalize to lowercase before comparing
+      const role = decoded?.role?.toLowerCase();
+      if (role === 'admin') return true;
     } catch {
       // Fall through
     }
@@ -132,26 +134,15 @@ const writeLimiter = rateLimit({
 app.use('/api', readLimiter);
 app.use('/api', writeLimiter);
 
-// ─── Strict limits on the endpoints that actually get attacked ──────────────
-const otpSendLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 5, // Max 5 OTP requests per 15 minutes
-  message: limitMessage('Too many OTP requests. Please try again after 15 minutes.'),
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
 const authVerifyLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10, // Max 10 verification attempts per 15 minutes
+  max: 10, // Max 10 login attempts per 15 minutes
   message: limitMessage('Too many login attempts. Please try again after 15 minutes.'),
   standardHeaders: true,
   legacyHeaders: false,
 });
 
-app.use('/api/v1/auth/otp/send', otpSendLimiter);
-app.use('/api/v1/auth/otp/verify', authVerifyLimiter);
-app.use('/api/v1/admin/login/otp', authVerifyLimiter);
+app.use('/api/v1/auth/google', authVerifyLimiter);
 app.use('/api/v1/admin/login', authVerifyLimiter);
 
 // Cloudinary CDN handles all image media delivery directly.

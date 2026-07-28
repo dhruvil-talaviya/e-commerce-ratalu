@@ -1,16 +1,20 @@
 const jwt = require('jsonwebtoken');
 
-const generateAccessToken = (user) => {
+const generateAccessToken = (userOrId, roleParam) => {
+  const id = typeof userOrId === 'object' && userOrId !== null ? userOrId._id || userOrId.id : userOrId;
+  const role = roleParam || (typeof userOrId === 'object' && userOrId !== null ? userOrId.role : 'customer') || 'customer';
   return jwt.sign(
-    { id: user._id, role: user.role || 'Customer', phone: user.phone },
+    { id, role },
     process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRE || '30m' }
   );
 };
 
-const generateRefreshToken = (user) => {
+const generateRefreshToken = (userOrId, roleParam) => {
+  const id = typeof userOrId === 'object' && userOrId !== null ? userOrId._id || userOrId.id : userOrId;
+  const role = roleParam || (typeof userOrId === 'object' && userOrId !== null ? userOrId.role : 'customer') || 'customer';
   return jwt.sign(
-    { id: user._id, role: user.role || 'Customer' },
+    { id, role },
     process.env.JWT_REFRESH_SECRET,
     { expiresIn: process.env.JWT_REFRESH_EXPIRE || '7d' }
   );

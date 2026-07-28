@@ -241,7 +241,7 @@ export default function CustomerDetailPage() {
 
   return (
     <AdminShell
-      title={detail.name || detail.phone}
+      title={detail.name || detail.email || detail.phone || "Customer Account"}
       description={`Customer account since ${formatDate(detail.createdAt)}`}
       actions={
         <div className="flex flex-wrap items-center gap-2">
@@ -256,15 +256,17 @@ export default function CustomerDetailPage() {
             </Button>
           )}
 
-          <a
-            href={`https://wa.me/91${detail.phone.replace(/[^0-9]/g, "")}`}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition-colors shadow-2xs"
-          >
-            <MessageSquare className="size-3.5 text-emerald-600" />
-            WhatsApp
-          </a>
+          {detail.phone ? (
+            <a
+              href={`https://wa.me/91${detail.phone.replace(/[^0-9]/g, "")}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition-colors shadow-2xs"
+            >
+              <MessageSquare className="size-3.5 text-emerald-600" />
+              WhatsApp
+            </a>
+          ) : null}
 
           <Button
             variant={detail.status === "Active" ? "danger" : "secondary"}
@@ -305,7 +307,7 @@ export default function CustomerDetailPage() {
             <div className="flex items-center gap-4">
               <div className="relative">
                 <span className="grid size-14 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-[#5B2C83] to-purple-800 text-2xl font-black text-white shadow-md border border-purple-300/30">
-                  {(detail.name || detail.phone || "?").slice(0, 1).toUpperCase()}
+                  {(detail.name || detail.email || detail.phone || "?").slice(0, 1).toUpperCase()}
                 </span>
                 <span
                   className={cn(
@@ -377,23 +379,25 @@ export default function CustomerDetailPage() {
               </div>
             ) : (
               <div className="mt-5 flex flex-col gap-3 text-xs border-t border-gray-100 pt-4">
-                <div className="flex items-center justify-between group">
-                  <a
-                    href={`tel:${detail.phone}`}
-                    className="flex items-center gap-2.5 font-bold text-gray-800 hover:text-[#5B2C83] transition-colors"
-                  >
-                    <Phone className="size-4 text-purple-600" />
-                    {detail.phone}
-                  </a>
-                  <button
-                    type="button"
-                    onClick={() => copyText(detail.phone, "Phone number")}
-                    className="text-gray-400 hover:text-purple-700 transition-colors p-1"
-                    title="Copy Phone"
-                  >
-                    <Copy className="size-3.5" />
-                  </button>
-                </div>
+                {detail.phone ? (
+                  <div className="flex items-center justify-between group">
+                    <a
+                      href={`tel:${detail.phone}`}
+                      className="flex items-center gap-2.5 font-bold text-gray-800 hover:text-[#5B2C83] transition-colors"
+                    >
+                      <Phone className="size-4 text-purple-600" />
+                      {detail.phone}
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => copyText(detail.phone || "", "Phone number")}
+                      className="text-gray-400 hover:text-purple-700 transition-colors p-1"
+                      title="Copy Phone"
+                    >
+                      <Copy className="size-3.5" />
+                    </button>
+                  </div>
+                ) : null}
 
                 <div className="flex items-center justify-between group">
                   {detail.email ? (
@@ -721,7 +725,7 @@ export default function CustomerDetailPage() {
         onClose={() => setConfirmDelete(false)}
         onConfirm={remove}
         busy={busy}
-        title={`Delete ${detail.name || detail.phone}?`}
+        title={`Delete ${detail.name || detail.email || detail.phone || "Customer Account"}?`}
         description="This removes the customer account. Their orders stay in the system for your records."
         confirmLabel="Delete customer"
       />

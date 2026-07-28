@@ -347,6 +347,57 @@ const HOMEPAGE = [
       privacyLink: '/privacy',
       backgroundImage: ''
     }
+  },
+  {
+    key: 'combos',
+    label: 'Super Value Combos',
+    type: 'combos',
+    sortOrder: 12,
+    content: {
+      enabled: true,
+      eyebrow: '⭐⭐ Combo Deals ⭐⭐',
+      title: 'Super Value',
+      titleHighlight: 'Crunch Packs',
+      description: 'Bundle & save big on irresistible flavour pairings. Handcrafted for maximum crunch.',
+      limit: 8
+    }
+  },
+  {
+    key: 'full_width_carousel',
+    label: 'Full-Width Photo Carousel',
+    type: 'full_width_carousel',
+    sortOrder: 13,
+    content: {
+      enabled: true,
+      autoSlide: true,
+      intervalSeconds: 3.5,
+      slides: [
+        {
+          id: 'photo-1',
+          enabled: true,
+          image: 'https://images.unsplash.com/photo-1621447504864-d8686e12698c?q=80&w=1920&auto=format&fit=crop',
+          badge: 'Handcrafted Batch',
+          title: '100% Heritage Ratalu',
+          subtitle: 'Sourced fresh from local farms in Gujarat, hand-sliced for optimal crunch.'
+        },
+        {
+          id: 'photo-2',
+          enabled: true,
+          image: 'https://images.unsplash.com/photo-1566478989037-eec170784d0b?q=80&w=1920&auto=format&fit=crop',
+          badge: 'Kettle Cooked Gold',
+          title: 'Golden Wafer Perfection',
+          subtitle: 'Slowly kettle-cooked in cold-pressed oil to lock in natural antioxidants.'
+        },
+        {
+          id: 'photo-3',
+          enabled: true,
+          image: 'https://images.unsplash.com/photo-1599490659213-e2b9527bd087?q=80&w=1920&auto=format&fit=crop',
+          badge: 'Vrat & Fasting Pure',
+          title: 'Seasoned with Rock Salt',
+          subtitle: 'Finished with Sendha Namak and authentic spices — 100% vegetarian & fasting friendly.'
+        }
+      ]
+    }
   }
 ];
 

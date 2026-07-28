@@ -16,11 +16,11 @@ const protect = async (req, res, next) => {
   }
 
   try {
-    // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // Always normalize to lowercase — never compare mixed-case strings
+    const userRole = String(decoded.role || '').toLowerCase();
 
-    // If Customer token (case-insensitive: tolerate 'Customer' | 'customer')
-    if (String(decoded.role || '').toLowerCase() === 'customer') {
+    if (userRole === 'customer') {
       const customer = await Customer.findById(decoded.id);
       if (!customer) {
         return next(new ErrorResponse('User account no longer exists', 401));
@@ -29,14 +29,14 @@ const protect = async (req, res, next) => {
         return next(new ErrorResponse('Your account has been suspended. Please contact support.', 403));
       }
       req.user = customer;
-      req.user.role = 'Customer'; // Ensure role is set
+      req.user.role = 'customer';
     } else {
-      // Admin/Manager/Super Admin token
       const admin = await Admin.findById(decoded.id);
       if (!admin) {
         return next(new ErrorResponse('Admin session not found', 401));
       }
-      req.user = admin; // Contains role: 'Super Admin', 'Admin', 'Manager'
+      req.user = admin;
+      req.user.role = 'admin'; // always lowercase — single source of truth
     }
 
     next();
@@ -45,16 +45,6 @@ const protect = async (req, res, next) => {
   }
 };
 
-/**
- * Attach the customer if they're logged in, but let guests through.
- *
- * Needed by routes that are public yet answer differently per account — the
- * coupon list, for instance, must hide a first-order-only code from someone who
- * has already ordered. `protect` would 401 the guest; no auth at all would make
- * the per-account rules unenforceable at the point where we show them.
- *
- * Never throws: a bad or expired token simply means "guest".
- */
 const softAuth = async (req, res, next) => {
   const header = req.headers.authorization || '';
   if (!header.startsWith('Bearer ')) return next();
@@ -66,23 +56,39 @@ const softAuth = async (req, res, next) => {
       const customer = await Customer.findById(decoded.id);
       if (customer && customer.status !== 'Blocked') {
         req.user = customer;
-        req.user.role = 'Customer';
+        req.user.role = 'customer';
       }
     }
   } catch {
-    // Guest. Deliberately silent.
+    // Guest
   }
 
   next();
 };
 
-// Grant access to specific roles (RBAC)
 const authorize = (...roles) => {
+  // Normalize all allowed roles to lowercase once
+  const allowedRoles = roles.map(r => String(r).toLowerCase().trim());
   return (req, res, next) => {
-    if (!req.user || !roles.includes(req.user.role)) {
+    if (!req.user) {
+      return next(new ErrorResponse('Not authorized to access this route', 401));
+    }
+
+    // Normalize current user role to lowercase
+    const currentRole = String(req.user.role || '').toLowerCase().trim();
+
+    // Any admin role passes any admin-targeted route
+    const isAdminUser = currentRole === 'admin';
+    const isAdminRoute = allowedRoles.some(r => r === 'admin' || r === 'super_admin' || r === 'manager');
+
+    if (isAdminUser && isAdminRoute) {
+      return next();
+    }
+
+    if (!allowedRoles.includes(currentRole)) {
       return next(
         new ErrorResponse(
-          `User role ${req.user ? req.user.role : 'Guest'} is not authorized to access this route`,
+          'Access forbidden. Insufficient permissions.',
           403
         )
       );

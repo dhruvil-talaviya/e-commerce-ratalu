@@ -43,7 +43,7 @@ export function AnnouncementBar() {
 
   return (
     <div
-      className="relative overflow-hidden font-sans"
+      className="relative w-full max-w-full overflow-hidden font-sans select-none"
       style={{ backgroundColor: bgColor, color: textColor }}
     >
       <div className="flex w-max animate-marquee items-center gap-0 whitespace-nowrap py-2">

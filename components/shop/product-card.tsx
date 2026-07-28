@@ -41,8 +41,14 @@ export function ProductCard({
   const isList = view === "list";
   const isOutOfStock = flavor.inStock === false;
 
-  const itemKey = `${flavor.id}-${pack.id}`;
-  const cartItem = items.find((i) => i.key === itemKey || (i.flavorId === flavor.id && i.packId === pack.id));
+  const itemKey = `${flavor.id}:${pack.id}`;
+  const cartItem = items.find(
+    (i) =>
+      i.key === itemKey ||
+      i.key === `${flavor.id}-${pack.id}` ||
+      (String(i.flavorId || "").toLowerCase() === String(flavor.id || "").toLowerCase() &&
+        String(i.packId || "").toLowerCase() === String(pack.id || "").toLowerCase())
+  );
   const cartQty = cartItem ? cartItem.quantity : 0;
 
   const handleAdd = () => {
@@ -153,17 +159,17 @@ export function ProductCard({
         <div className="flex flex-1 flex-col justify-between p-4 sm:p-5 lg:p-6 bg-white">
           <div>
             <div className="flex items-start justify-between gap-1.5">
-              <Link href={`/shop/${flavor.slug}`} className="min-w-0 flex-1 transition-colors hover:text-[#7B3FA0]">
-                <h3 className="line-clamp-2 font-serif text-sm font-bold leading-tight text-[#5B2C83] sm:text-lg lg:text-2xl">{flavor.name}</h3>
+              <Link href={`/shop/${flavor.slug}`} className="min-w-0 flex-1 transition-colors hover:text-[#6B2D5B]">
+                <h3 className="line-clamp-2 font-serif text-sm font-bold leading-tight text-[#4A1942] sm:text-lg lg:text-2xl">{flavor.name}</h3>
               </Link>
               <HeatMeter level={flavor.heat} showLabel={false} className="mt-0.5 shrink-0" />
             </div>
 
             {/* Rating Stars */}
-            <div className="mt-1.5 flex items-center gap-1 text-[#F4B400] text-xs font-bold">
-              <Star className="size-3.5 fill-[#F4B400] text-[#F4B400]" />
+            <div className="mt-1.5 flex items-center gap-1 text-[#E8B923] text-xs font-bold">
+              <Star className="size-3.5 fill-[#E8B923] text-[#E8B923]" />
               <span>4.9</span>
-              <span className="text-[11px] text-[#777777] font-normal">(120+ reviews)</span>
+              <span className="text-[11px] text-[#8A7B70] font-normal">(120+ reviews)</span>
             </div>
 
             {/* Mobile pack selector chips */}
@@ -181,8 +187,8 @@ export function ProductCard({
                   className={cn(
                     "rounded-lg px-2 py-0.5 text-[10px] font-bold border transition-all shrink-0",
                     p.id === packId
-                      ? "border-[#5B2C83] bg-[#5B2C83] text-white shadow-xs"
-                      : "border-[#e8d9eb] bg-white text-[#555555] hover:border-[#5B2C83]",
+                      ? "border-[#4A1942] bg-[#4A1942] text-white shadow-xs"
+                      : "border-[#E8DED4] bg-white text-[#3D2B1F] hover:border-[#4A1942]",
                     isOutOfStock && "opacity-40 cursor-not-allowed"
                   )}
                 >
@@ -191,14 +197,14 @@ export function ProductCard({
               ))}
             </div>
 
-            <p className="mt-1 hidden text-sm text-[#777777] md:block">{flavor.tagline}</p>
-            <p className={cn("mt-2.5 hidden text-sm leading-relaxed text-[#555555] md:block", isList ? "line-clamp-2 sm:line-clamp-3" : "line-clamp-2")}>
+            <p className="mt-1 hidden text-sm text-[#8A7B70] md:block">{flavor.tagline}</p>
+            <p className={cn("mt-2.5 hidden text-sm leading-relaxed text-[#3D2B1F] md:block", isList ? "line-clamp-2 sm:line-clamp-3" : "line-clamp-2")}>
               {flavor.description}
             </p>
 
             {/* Pack selector — visible on tablet/desktop */}
             <fieldset className="mt-4 hidden md:block">
-              <legend className="mb-2 text-xs font-bold uppercase tracking-wider text-[#777777]">
+              <legend className="mb-2 text-xs font-bold uppercase tracking-wider text-[#8A7B70]">
                 Select Pack Size
               </legend>
               <div className="grid grid-cols-4 gap-2">
@@ -211,13 +217,13 @@ export function ProductCard({
                     className={cn(
                       "min-w-0 rounded-xl border px-2 py-2 text-center transition-all",
                       p.id === packId
-                        ? "border-[#5B2C83] bg-[#f5ebfc] text-[#5B2C83] font-bold shadow-xs"
-                        : "border-[#e8d9eb] bg-white text-[#555555] hover:border-[#5B2C83]/40",
+                        ? "border-[#4A1942] bg-[#E8C8E4]/30 text-[#4A1942] font-bold shadow-xs"
+                        : "border-[#E8DED4] bg-white text-[#3D2B1F] hover:border-[#4A1942]/40",
                       isOutOfStock && "opacity-40 cursor-not-allowed"
                     )}
                   >
                     <span className="block text-xs font-bold">{p.label}</span>
-                    <span className="block text-[10px] text-[#F4B400] font-extrabold">{formatINR(p.price)}</span>
+                    <span className="block text-[10px] text-[#D4A017] font-extrabold">{formatINR(p.price)}</span>
                   </button>
                 ))}
               </div>
@@ -225,12 +231,12 @@ export function ProductCard({
           </div>
 
           {/* Price & Add to Cart Action */}
-          <div className="mt-4 border-t border-[#e8d9eb] pt-3">
+          <div className="mt-4 border-t border-[#E8DED4] pt-3">
             <div className="flex items-baseline justify-between gap-1">
               <div className="flex items-baseline gap-1.5">
-                <span className="font-serif text-base sm:text-2xl lg:text-3xl font-extrabold text-[#F4B400] whitespace-nowrap">{formatINR(pack.price)}</span>
+                <span className="font-serif text-base sm:text-2xl lg:text-3xl font-extrabold text-[#D4A017] whitespace-nowrap">{formatINR(pack.price)}</span>
                 {pack.compareAt && (
-                  <span className="text-xs sm:text-sm text-[#777777] line-through whitespace-nowrap">{formatINR(pack.compareAt)}</span>
+                  <span className="text-xs sm:text-sm text-[#8A7B70] line-through whitespace-nowrap">{formatINR(pack.compareAt)}</span>
                 )}
               </div>
               {savings > 0 && !isOutOfStock && (
@@ -241,20 +247,20 @@ export function ProductCard({
             </div>
 
             {cartQty > 0 ? (
-              <div className="mt-3 flex h-10 sm:h-12 w-full items-center justify-between rounded-xl border border-[#5B2C83] bg-[#f5ebfc] px-3 font-bold text-[#5B2C83] shadow-xs">
+              <div className="mt-3 flex h-10 sm:h-12 w-full items-center justify-between rounded-xl border border-[#4A1942] bg-[#E8C8E4]/30 px-3 font-bold text-[#4A1942] shadow-xs">
                 <button
                   type="button"
                   onClick={handleDec}
-                  className="grid size-7 place-items-center rounded-lg bg-white text-[#5B2C83] shadow-xs hover:bg-[#5B2C83] hover:text-white transition-all active:scale-90"
+                  className="grid size-7 place-items-center rounded-lg bg-white text-[#4A1942] shadow-xs hover:bg-[#4A1942] hover:text-white transition-all active:scale-90"
                   aria-label="Decrease quantity"
                 >
                   <Minus className="size-3.5" />
                 </button>
-                <span className="text-sm font-extrabold text-[#5B2C83] font-mono">{cartQty}</span>
+                <span className="text-sm font-extrabold text-[#4A1942] font-mono">{cartQty} in cart</span>
                 <button
                   type="button"
                   onClick={handleInc}
-                  className="grid size-7 place-items-center rounded-lg bg-[#5B2C83] text-white shadow-xs hover:bg-[#F4B400] hover:text-[#2D2D2D] transition-all active:scale-90"
+                  className="grid size-7 place-items-center rounded-lg bg-[#4A1942] text-white shadow-xs hover:bg-[#E8B923] hover:text-[#1A0F0A] transition-all active:scale-90"
                   aria-label="Increase quantity"
                 >
                   <Plus className="size-3.5" />
@@ -264,9 +270,12 @@ export function ProductCard({
               <Button
                 disabled={isOutOfStock}
                 onClick={handleAdd}
-                variant={isOutOfStock ? "outline" : "primary"}
-                size="sm"
-                className="mt-3 w-full h-10 sm:h-12 text-xs sm:text-sm font-bold rounded-xl active:scale-95 shadow-xs"
+                className={cn(
+                  "mt-3 w-full h-10 sm:h-12 text-xs sm:text-sm font-bold rounded-xl active:scale-95 shadow-md transition-all",
+                  isOutOfStock
+                    ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                    : "bg-[#D4A017] text-[#1A0F0A] hover:bg-[#E8B923]"
+                )}
               >
                 {isOutOfStock ? (
                   <span className="truncate">Out of Stock</span>

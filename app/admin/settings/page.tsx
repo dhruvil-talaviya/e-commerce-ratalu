@@ -1429,22 +1429,38 @@ function TaxCard() {
 }
 
 function SecurityCard() {
-  const { user } = useAccount();
-  const [passwordEnabled, setPasswordEnabled] = React.useState(false);
+  const [currentPassword, setCurrentPassword] = React.useState("");
+  const [newPassword, setNewPassword] = React.useState("");
+  const [confirmPassword, setConfirmPassword] = React.useState("");
   const [busy, setBusy] = React.useState(false);
 
-  React.useEffect(() => {
-    if (user) setPasswordEnabled(Boolean((user as any).passwordLoginEnabled));
-  }, [user]);
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      toast.error("Please fill in all password fields.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error("New password and confirm password do not match.");
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast.error("New password must be at least 6 characters long.");
+      return;
+    }
 
-  const toggle = async (enabled: boolean) => {
     setBusy(true);
     try {
-      await apiFetch("/admin/security", { method: "PUT", body: { passwordLoginEnabled: enabled } });
-      setPasswordEnabled(enabled);
-      toast.success(enabled ? "Password login enabled" : "OTP login enabled");
+      const res: any = await apiFetch("/admin/change-password", {
+        method: "PUT",
+        body: { currentPassword, newPassword, confirmPassword }
+      });
+      toast.success(res.message || "Admin password updated successfully! Please sign in again.");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
     } catch (err: any) {
-      toast.error("Could not update", { description: err.message });
+      toast.error("Password update failed", { description: err.message });
     } finally {
       setBusy(false);
     }
@@ -1452,21 +1468,56 @@ function SecurityCard() {
 
   return (
     <Card className="p-6">
-      <div className="mb-4 flex items-center gap-3 border-b border-gray-100 pb-3">
+      <div className="mb-6 flex items-center gap-3 border-b border-gray-100 pb-4">
         <span className="grid size-10 place-items-center rounded-xl bg-purple-50 text-[#5B2C83]">
           <ShieldCheck className="size-5" />
         </span>
         <div>
-          <h2 className="text-sm font-bold text-[#111827]">Admin Security &amp; Access Controls</h2>
-          <p className="text-xs text-[#6B7280]">Configure password or OTP login for store administrators.</p>
+          <h2 className="text-sm font-bold text-[#111827]">Admin Password & Security</h2>
+          <p className="text-xs text-[#6B7280]">Update your administrator password to secure access to the console.</p>
         </div>
       </div>
-      <PayToggle
-        title="Password Protected Login"
-        desc="Require password verification for admin mobile login."
-        checked={passwordEnabled}
-        onChange={toggle}
-      />
+
+      <form onSubmit={handlePasswordChange} className="space-y-4 max-w-md">
+        <Labeled label="Current Password">
+          <input
+            type="password"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            placeholder="••••••••"
+            required
+            className={INPUT}
+          />
+        </Labeled>
+
+        <Labeled label="New Password">
+          <input
+            type="password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            placeholder="••••••••"
+            required
+            className={INPUT}
+          />
+        </Labeled>
+
+        <Labeled label="Confirm New Password">
+          <input
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            placeholder="••••••••"
+            required
+            className={INPUT}
+          />
+        </Labeled>
+
+        <div className="pt-2">
+          <Button variant="primary" type="submit" disabled={busy}>
+            {busy ? "Updating Password..." : "Update Admin Password"}
+          </Button>
+        </div>
+      </form>
     </Card>
   );
 }

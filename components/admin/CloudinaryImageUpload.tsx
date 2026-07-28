@@ -40,7 +40,7 @@ export function CloudinaryImageUpload({
   multiple = false,
   maxFiles = 10,
   label = "Upload Image",
-  hint = "JPG, PNG, WEBP, or AVIF up to 5MB",
+  hint = "JPG, PNG, WEBP, AVIF, or SVG up to 50MB",
   disabled = false,
   className
 }: CloudinaryImageUploadProps) {
@@ -76,10 +76,10 @@ export function CloudinaryImageUpload({
   const validateFile = (file: File): string | null => {
     const ext = file.name.split(".").pop()?.toLowerCase() || "";
     if (!ALLOWED_EXTENSIONS.includes(ext)) {
-      return `Format .${ext} is not allowed. Only JPG, PNG, WEBP, and AVIF are supported.`;
+      return `Format .${ext} is not allowed. Only JPG, PNG, WEBP, AVIF, and SVG are supported.`;
     }
     if (file.size > MAX_SIZE_BYTES) {
-      return `File "${file.name}" exceeds the 5MB maximum limit (${(file.size / (1024 * 1024)).toFixed(1)}MB).`;
+      return `File "${file.name}" exceeds the maximum limit (${(file.size / (1024 * 1024)).toFixed(1)}MB).`;
     }
     return null;
   };
@@ -294,24 +294,21 @@ export function CloudinaryImageUpload({
           {imageList.map((url, idx) => (
             <div
               key={`${url}-${idx}`}
-              className="group relative aspect-square rounded-xl overflow-hidden bg-stone-900 border border-stone-800 shadow-md hover:border-amber-500/50 transition-all duration-200"
+              className="group relative aspect-square rounded-xl overflow-hidden border border-stone-200 shadow-xs hover:border-amber-500 transition-all duration-200 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:8px_8px] bg-stone-50 flex items-center justify-center p-1.5"
             >
-              {/* Render SVG as object tag so it displays correctly, images as img */}
-              {url.includes(".svg") || url.includes("image/svg") ? (
-                <object
-                  data={url}
-                  type="image/svg+xml"
-                  className="w-full h-full object-contain p-2 bg-white/5"
-                  aria-label={`Uploaded SVG ${idx + 1}`}
-                />
-              ) : (
-                <img
-                  src={getCloudinaryUrl(url, "thumbnail")}
-                  alt={`Uploaded ${idx + 1}`}
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                />
-              )}
+              <img
+                src={getCloudinaryUrl(url, "thumbnail")}
+                alt={`Uploaded ${idx + 1}`}
+                className="w-full h-full object-contain"
+                loading="lazy"
+                onError={(e) => {
+                  // Fallback to raw URL if transform fails
+                  const target = e.currentTarget;
+                  if (target.src !== url) {
+                    target.src = url;
+                  }
+                }}
+              />
 
               {/* Always-visible delete button (top-right corner) */}
               <button

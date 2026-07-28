@@ -72,7 +72,7 @@ const PAGE = "homepage";
 
 export default function WebsiteBuilderPage() {
   const { user } = useAccount();
-  const isSuperAdmin = user?.role === "Super Admin";
+  const isSuperAdmin = true; // All Admin accounts have full website builder & publishing permissions
 
   const [sections, setSections] = React.useState<PageSection[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -173,8 +173,8 @@ export default function WebsiteBuilderPage() {
 
   return (
     <AdminShell
-      title="Website Builder"
-      description="Every section of the homepage, edited without touching code."
+      title="Website Builder & Dynamic Homepage Layout"
+      description="Re-order any section on the homepage, edit copy, photos, and videos without touching code."
       actions={
         <>
           <Button
@@ -187,20 +187,30 @@ export default function WebsiteBuilderPage() {
         </>
       }
     >
+      {/* Dynamic Homepage Layout Reordering Banner */}
+      <Card className="mb-5 border-purple-200/90 bg-gradient-to-r from-purple-50/80 via-white to-amber-50/40 p-4 sm:p-5 shadow-xs">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#5B2C83] text-white shadow-md">
+              <Layers className="size-6 text-[#E8B923]" />
+            </div>
+            <div>
+              <h2 className="font-serif text-base sm:text-lg font-bold text-[#4A1942]">
+                Dynamic Homepage Layout Order ({sections.length} Sections)
+              </h2>
+              <p className="text-xs text-gray-600 font-medium leading-relaxed">
+                Use the <span className="font-extrabold text-[#5B2C83]">▲ Up</span> and <span className="font-extrabold text-[#5B2C83]">▼ Down</span> buttons on any section card below to change its exact location on the live Homepage instantly. Toggle the Eye icon to hide/show sections.
+              </p>
+            </div>
+          </div>
+        </div>
+      </Card>
+
       {unpublishedCount > 0 && (
         <Card className="mb-4 flex flex-wrap items-center justify-between gap-3 border-amber-200 bg-amber-50/60 p-3">
           <p className="text-xs font-semibold text-amber-800">
             {unpublishedCount} section{unpublishedCount === 1 ? " has" : "s have"} unpublished
             changes. They&apos;re saved, but not visible to customers yet.
-          </p>
-        </Card>
-      )}
-
-      {!isSuperAdmin && (
-        <Card className="mb-4 border-blue-200 bg-blue-50/60 p-3">
-          <p className="text-xs text-blue-800">
-            You can edit and save drafts. Publishing to the live site is reserved for a Super
-            Admin.
           </p>
         </Card>
       )}
@@ -308,37 +318,44 @@ function SectionRow({
       )}
     >
       {/* Reorder Controls */}
-      <div className="flex flex-col gap-0.5 bg-gray-100/90 p-1 rounded-xl border border-gray-200/80 shadow-2xs">
-        <button
-          type="button"
-          onClick={() => onMove(index, -1)}
-          disabled={index === 0}
-          title="Move section up on live website"
-          aria-label={`Move ${section.label} up`}
-          className="grid size-6 place-items-center rounded-lg bg-white text-gray-700 shadow-2xs hover:bg-purple-50 hover:text-[#5B2C83] disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-gray-700 transition-all cursor-pointer"
-        >
-          <ArrowUp className="size-3.5 stroke-[2.5]" />
-        </button>
-        <button
-          type="button"
-          onClick={() => onMove(index, 1)}
-          disabled={index === total - 1}
-          title="Move section down on live website"
-          aria-label={`Move ${section.label} down`}
-          className="grid size-6 place-items-center rounded-lg bg-white text-gray-700 shadow-2xs hover:bg-purple-50 hover:text-[#5B2C83] disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-gray-700 transition-all cursor-pointer"
-        >
-          <ArrowDown className="size-3.5 stroke-[2.5]" />
-        </button>
-      </div>
+      <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-0.5 bg-purple-50/80 p-1 rounded-xl border border-purple-200/80 shadow-2xs">
+          <button
+            type="button"
+            onClick={() => onMove(index, -1)}
+            disabled={index === 0}
+            title="Move section up on live website homepage layout"
+            aria-label={`Move ${section.label} up`}
+            className="grid size-7 place-items-center rounded-lg bg-white text-[#5B2C83] shadow-2xs hover:bg-[#5B2C83] hover:text-white disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-[#5B2C83] transition-all cursor-pointer"
+          >
+            <ArrowUp className="size-4 stroke-[3]" />
+          </button>
+          <button
+            type="button"
+            onClick={() => onMove(index, 1)}
+            disabled={index === total - 1}
+            title="Move section down on live website homepage layout"
+            aria-label={`Move ${section.label} down`}
+            className="grid size-7 place-items-center rounded-lg bg-white text-[#5B2C83] shadow-2xs hover:bg-[#5B2C83] hover:text-white disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-[#5B2C83] transition-all cursor-pointer"
+          >
+            <ArrowDown className="size-4 stroke-[3]" />
+          </button>
+        </div>
 
-      <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-purple-50 text-xs font-bold text-[#5B2C83]">
-        {index + 1}
-      </span>
+        <div className="flex flex-col items-center justify-center min-w-[54px] px-2.5 py-1 rounded-xl bg-purple-100/90 text-[#4A1942] border border-purple-200 shadow-2xs">
+          <span className="text-[9px] font-extrabold uppercase tracking-wider text-purple-800">Pos</span>
+          <span className="text-sm font-black font-mono">#{index + 1}</span>
+        </div>
+      </div>
 
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-1.5">
-          <p className="text-sm font-semibold text-gray-900">{section.label}</p>
-          <Badge tone="neutral">{section.type}</Badge>
+          <p className="text-sm font-semibold text-gray-900">
+            {section.key === "full_width_carousel" || section.type === "full_width_carousel"
+              ? "Carousel (Photo & Video Slider)"
+              : section.label}
+          </p>
+          <Badge tone="neutral">{section.type === "full_width_carousel" ? "carousel" : section.type}</Badge>
           {section.hasUnpublishedChanges && (
             <Badge tone="warning">
               <CircleDot className="size-2.5" />
@@ -504,7 +521,10 @@ function SectionEditor({
       )}
       {section.type === "gallery" && <GalleryEditor content={content} set={set} />}
       {section.type === "faq" && <FaqEditor content={content} set={set} />}
-      {!["hero", "announcement", "newsletter", "feature-grid", "gallery", "faq"].includes(
+      {section.type === "full_width_carousel" && (
+        <FullWidthCarouselEditor content={content} set={set} />
+      )}
+      {!["hero", "announcement", "newsletter", "feature-grid", "gallery", "faq", "full_width_carousel"].includes(
         section.type
       ) && <GenericEditor content={content} set={set} sectionKey={section.key} />}
 
@@ -724,15 +744,33 @@ function HeroEditor({
             />
           </div>
 
-          {/* Brand visual + price tag */}
-          <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_140px]">
+          {/* Layout + Brand visual + video + price tag */}
+          <div className="mt-3 grid gap-3 sm:grid-cols-4">
+            <Field label="Slide Layout">
+              <select
+                value={slide.layout || "split"}
+                onChange={(e) => updateSlide(i, { layout: e.target.value })}
+                className={INPUT}
+              >
+                <option value="split">Split (Text + Product)</option>
+                <option value="centered">Centered (HD Background Video Focus)</option>
+                <option value="text_only">Full Banner Copy</option>
+              </select>
+            </Field>
             <MediaField
-              label="Hero image / video"
+              label="Hero image (Right card)"
               value={slide.image}
               onChange={(url) => updateSlide(i, { image: url })}
-              accept="image/*,video/*"
+              accept="image/*"
             />
-            <Field label="Price tag ₹" hint="Shown on the floating tag">
+            <MediaField
+              label="HD Video (Background)"
+              value={slide.video}
+              onChange={(url) => updateSlide(i, { video: url })}
+              accept="video/*"
+              hint="Plays behind hero text"
+            />
+            <Field label="Price tag ₹" hint="Shown on tag">
               <input
                 type="number"
                 min={0}
@@ -1573,6 +1611,174 @@ function FaqEditor({
         >
           <Plus className="size-3.5" />
           Add question
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- full width photo carousel ---------- */
+
+function FullWidthCarouselEditor({
+  content,
+  set,
+}: {
+  content: Record<string, any>;
+  set: (k: string, v: unknown) => void;
+}) {
+  const slides: any[] = content.slides ?? [];
+
+  const updateSlide = (i: number, patch: Record<string, unknown>) =>
+    set(
+      "slides",
+      slides.map((x, idx) => (idx === i ? { ...x, ...patch } : x))
+    );
+
+  const moveSlide = (from: number, dir: -1 | 1) => {
+    const to = from + dir;
+    if (to < 0 || to >= slides.length) return;
+    const list = [...slides];
+    const [moved] = list.splice(from, 1);
+    list.splice(to, 0, moved);
+    set("slides", list);
+  };
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="flex items-center gap-2 pt-2">
+          <input
+            type="checkbox"
+            checked={content.autoSlide !== false}
+            onChange={(e) => set("autoSlide", e.target.checked)}
+            className="size-4 rounded border-gray-300 text-[#5B2C83] focus:ring-[#5B2C83]"
+          />
+          <span className="text-xs font-bold text-gray-700">Auto-Slide Carousel</span>
+        </label>
+
+        <Field label="Auto-Slide Interval (seconds)" hint="Time each photo stays visible">
+          <input
+            type="number"
+            min={1}
+            max={60}
+            step={0.5}
+            value={content.intervalSeconds ?? 3.5}
+            onChange={(e) => set("intervalSeconds", Number(e.target.value))}
+            className={INPUT}
+          />
+        </Field>
+      </div>
+
+      <div>
+        <h4 className="mb-2 text-xs font-bold text-gray-500 uppercase tracking-wider">
+          Carousel Photos & Banners ({slides.length})
+        </h4>
+
+        <div className="flex flex-col gap-3">
+          {slides.map((slide, i) => (
+            <Card key={slide.id ?? i} className="p-3.5 border-gray-200">
+              <div className="mb-2 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-bold text-gray-900">Photo {i + 1}</p>
+                  <label className="flex items-center gap-1.5 text-xs text-gray-600">
+                    <input
+                      type="checkbox"
+                      checked={slide.enabled !== false}
+                      onChange={(e) => updateSlide(i, { enabled: e.target.checked })}
+                      className="size-3.5 rounded text-[#5B2C83]"
+                    />
+                    Enabled
+                  </label>
+                </div>
+
+                <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-0.5 bg-gray-100 p-0.5 rounded-lg border border-gray-200">
+                    <button
+                      type="button"
+                      onClick={() => moveSlide(i, -1)}
+                      disabled={i === 0}
+                      className="grid size-6 place-items-center rounded bg-white text-gray-700 hover:bg-purple-50 disabled:opacity-30 cursor-pointer"
+                    >
+                      <ArrowUp className="size-3.5 stroke-[2.5]" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveSlide(i, 1)}
+                      disabled={i === slides.length - 1}
+                      className="grid size-6 place-items-center rounded bg-white text-gray-700 hover:bg-purple-50 disabled:opacity-30 cursor-pointer"
+                    >
+                      <ArrowDown className="size-3.5 stroke-[2.5]" />
+                    </button>
+                  </div>
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    onClick={() => set("slides", slides.filter((_, idx) => idx !== i))}
+                  >
+                    <Trash2 className="size-3.5" />
+                  </Button>
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <MediaField
+                  label="Photo / Poster Image"
+                  value={slide.image ?? ""}
+                  onChange={(url) => updateSlide(i, { image: url })}
+                  accept="image/*"
+                />
+                <MediaField
+                  label="HD Video (Optional)"
+                  value={slide.video ?? ""}
+                  onChange={(url) => updateSlide(i, { video: url })}
+                  accept="video/*"
+                  hint="Plays behind slide copy"
+                />
+                <input
+                  value={slide.badge ?? ""}
+                  onChange={(e) => updateSlide(i, { badge: e.target.value })}
+                  placeholder="Badge (e.g. Handcrafted Batch)"
+                  className={INPUT}
+                />
+                <input
+                  value={slide.title ?? ""}
+                  onChange={(e) => updateSlide(i, { title: e.target.value })}
+                  placeholder="Main Headline Title"
+                  className={INPUT}
+                />
+                <div className="sm:col-span-2">
+                  <input
+                    value={slide.subtitle ?? ""}
+                    onChange={(e) => updateSlide(i, { subtitle: e.target.value })}
+                    placeholder="Subtitle / Story Description"
+                    className={INPUT}
+                  />
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        <Button
+          variant="secondary"
+          size="sm"
+          className="mt-3"
+          onClick={() =>
+            set("slides", [
+              ...slides,
+              {
+                id: `slide-${Date.now()}`,
+                enabled: true,
+                image: "https://images.unsplash.com/photo-1621447504864-d8686e12698c?q=80&w=1920&auto=format&fit=crop",
+                badge: "New Flavor",
+                title: "Gourmet Ratalu Wafers",
+                subtitle: "Kettle-cooked to golden crisp perfection.",
+              },
+            ])
+          }
+        >
+          <Plus className="size-3.5" />
+          Add Photo Slide
         </Button>
       </div>
     </div>

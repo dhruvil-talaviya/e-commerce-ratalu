@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 
 const {
-  adminLoginOtp,
   adminLogin,
   getSettings,
   updateSettings,
@@ -44,11 +43,13 @@ const {
   getMediaList,
   updateMedia,
   deleteMedia,
+  deduplicateMedia,
   // Message Templates
   getMessageTemplates,
   updateMessageTemplate,
   // Admin Security
-  updateAdminSecurity
+  updateAdminSecurity,
+  changeAdminPassword
 } = require('../controllers/admin.controller');
 
 const {
@@ -72,7 +73,7 @@ const { getDashboardReports, exportReport, getFinancialReports } = require('../c
 const { getReach } = require('../controllers/analytics.controller');
 const { protect, authorize } = require('../middlewares/auth');
 
-const adminOnly = [protect, authorize('Admin', 'Super Admin')];
+const adminOnly = [protect, authorize('admin')];
 
 // ─── Public Routes ────────────────────────────────────────────────────────────
 router.get('/settings', getSettings);
@@ -83,7 +84,6 @@ router.get('/social-links/public', getPublicSocialLinks);  // distinct path: the
 router.post('/contact/inquiry', submitInquiry);
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
-router.post('/login/otp', adminLoginOtp);
 router.post('/login', adminLogin);
 
 const {
@@ -111,6 +111,7 @@ router.post('/settings/generate-webhook', ...adminOnly, generateRazorpayWebhook)
 
 router.put('/settings', ...adminOnly, updateSettings);
 router.put('/security', ...adminOnly, updateAdminSecurity);
+router.put('/change-password', ...adminOnly, changeAdminPassword);
 
 // ─── Audit Logs ───────────────────────────────────────────────────────────────
 router.get('/audit-logs', ...adminOnly, getAuditLogs);
@@ -175,6 +176,7 @@ router.put('/inquiries/:id', ...adminOnly, updateInquiry);
 router.get('/media', ...adminOnly, getMediaList);
 router.put('/media/:id', ...adminOnly, updateMedia);
 router.delete('/media/:id', ...adminOnly, deleteMedia);
+router.post('/media/deduplicate', ...adminOnly, deduplicateMedia);
 
 router.get('/templates', ...adminOnly, getMessageTemplates);
 router.put('/templates/:id', ...adminOnly, updateMessageTemplate);

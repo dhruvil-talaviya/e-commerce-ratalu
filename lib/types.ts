@@ -100,8 +100,8 @@ export interface Review {
   rating: 1 | 2 | 3 | 4 | 5;
   quote: string;
   flavor: string;
-  initials: string;
-  avatarGradient: { from: string; to: string };
+  initials?: string;
+  avatarGradient?: { from: string; to: string };
   active?: boolean;
   createdAt?: string;
 }

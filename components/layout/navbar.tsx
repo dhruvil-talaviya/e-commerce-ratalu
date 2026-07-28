@@ -74,8 +74,8 @@ export function Navbar() {
         className={cn(
           "transition-all duration-300 border-b",
           scrolled
-            ? "border-[#5B2C83]/20 bg-[#FFF8EC]/95 backdrop-blur-xl shadow-[0_4px_20px_-8px_rgba(91,44,131,0.15)]"
-            : "border-transparent bg-[#FFF8EC]"
+            ? "border-[#4A1942]/15 bg-[#FDF8F0]/95 backdrop-blur-xl shadow-md"
+            : "border-transparent bg-[#FDF8F0]"
         )}
       >
         <nav className="container-px mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 lg:h-20">
@@ -92,15 +92,15 @@ export function Navbar() {
                   className={cn(
                     "relative rounded-full px-4 py-2 text-[15px] font-semibold transition-all duration-200",
                     isActive
-                      ? "text-[#5B2C83] font-bold"
-                      : "text-[#2D2D2D] hover:text-[#5B2C83] hover:bg-[#f5ebfc]"
+                      ? "text-[#4A1942] font-bold"
+                      : "text-[#3D2B1F] hover:text-[#4A1942] hover:bg-[#E8C8E4]/30"
                   )}
                 >
                   {t((NAV_KEY_MAP[link.href] || "nav_shop") as Parameters<typeof t>[0])}
                   {isActive && (
                     <motion.div
                       layoutId="activeNavIndicator"
-                      className="absolute bottom-0 left-4 right-4 h-0.5 rounded-full bg-[#F4B400]"
+                      className="absolute bottom-0 left-4 right-4 h-0.5 rounded-full bg-[#E8B923]"
                       transition={{ type: "spring", stiffness: 380, damping: 30 }}
                     />
                   )}
@@ -114,7 +114,7 @@ export function Navbar() {
             {/* Search shortcut button */}
             <Link
               href="/shop"
-              className="grid size-10 place-items-center rounded-full text-[#5B2C83] transition-colors hover:bg-[#f5ebfc] hover:text-[#F4B400] sm:size-11"
+              className="grid size-10 place-items-center rounded-full text-[#4A1942] transition-colors hover:bg-[#E8C8E4]/30 hover:text-[#E8B923] sm:size-11"
               aria-label="Search Flavours"
               title="Search Flavours"
             >
@@ -125,11 +125,11 @@ export function Navbar() {
             {isAdmin && (
               <Link
                 href="/admin/dashboard"
-                className="grid size-10 place-items-center rounded-full text-[#5B2C83] transition-colors hover:bg-[#f5ebfc] sm:size-11"
+                className="grid size-10 place-items-center rounded-full text-[#4A1942] transition-colors hover:bg-[#E8C8E4]/30 sm:size-11"
                 aria-label="Back to admin dashboard"
                 title="Back to admin dashboard"
               >
-                <ShieldCheck className="size-5.5 text-[#5B2C83]" />
+                <ShieldCheck className="size-5.5 text-[#4A1942]" />
               </Link>
             )}
 
@@ -137,7 +137,7 @@ export function Navbar() {
             {isLoggedIn && (
               <button
                 onClick={() => setNotificationsOpen(true)}
-                className="relative grid size-10 place-items-center rounded-full text-[#555555] transition-colors hover:bg-[#f5ebfc] hover:text-[#5B2C83] sm:size-11"
+                className="relative grid size-10 place-items-center rounded-full text-[#3D2B1F] transition-colors hover:bg-[#E8C8E4]/30 hover:text-[#4A1942] sm:size-11"
                 aria-label={
                   unreadNotifications > 0
                     ? `Notifications, ${unreadNotifications} unread`
@@ -146,7 +146,7 @@ export function Navbar() {
               >
                 <Bell className="size-5.5" />
                 {unreadNotifications > 0 && (
-                  <span className="absolute right-1.5 top-1.5 grid min-w-4 place-items-center rounded-full bg-[#F4B400] px-1 text-[9px] font-extrabold text-[#2D2D2D] shadow-sm">
+                  <span className="absolute right-1.5 top-1.5 grid min-w-4 place-items-center rounded-full bg-[#E8B923] px-1 text-[9px] font-extrabold text-[#1A0F0A] shadow-sm">
                     {unreadNotifications > 9 ? "9+" : unreadNotifications}
                   </span>
                 )}
@@ -156,11 +156,11 @@ export function Navbar() {
             {/* User Account */}
             <Link
               href={isLoggedIn ? "/account" : `${pathname}?login=true`}
-              className="flex size-10 items-center justify-center rounded-full text-[#555555] transition-colors hover:bg-[#f5ebfc] hover:text-[#5B2C83] sm:size-11"
+              className="flex size-10 items-center justify-center rounded-full text-[#3D2B1F] transition-colors hover:bg-[#E8C8E4]/30 hover:text-[#4A1942] sm:size-11"
               aria-label={isLoggedIn && user ? `Account of ${(user.name || "Snacker").split(" ")[0]}` : t("nav_account")}
             >
               {isLoggedIn && user ? (
-                <span className="grid size-7 place-items-center rounded-full bg-[#5B2C83] text-xs font-bold text-white shadow-xs">
+                <span className="grid size-7 place-items-center rounded-full bg-[#4A1942] text-xs font-bold text-white shadow-xs">
                   {(user.name || "S")[0].toUpperCase()}
                 </span>
               ) : (
@@ -171,7 +171,7 @@ export function Navbar() {
             {/* Shopping Cart Trigger Button */}
             <button
               onClick={openCart}
-              className="relative grid size-10 place-items-center rounded-full text-[#5B2C83] transition-colors hover:bg-[#f5ebfc] sm:size-11"
+              className="relative grid size-10 place-items-center rounded-full text-[#4A1942] transition-colors hover:bg-[#E8C8E4]/30 sm:size-11"
               aria-label={`Cart, ${totals.itemCount} items`}
             >
               <ShoppingBag className="size-5" />
@@ -183,7 +183,7 @@ export function Navbar() {
                     animate={{ scale: 1 }}
                     exit={{ scale: 0 }}
                     transition={{ type: "spring", stiffness: 500, damping: 25 }}
-                    className="absolute -right-1 -top-1 grid min-w-5 place-items-center rounded-full bg-[#F4B400] px-1.5 text-[10px] font-black text-[#2D2D2D] shadow-sm"
+                    className="absolute -right-1 -top-1 grid min-w-5 place-items-center rounded-full bg-[#E8B923] px-1.5 text-[10px] font-black text-[#1A0F0A] shadow-sm"
                   >
                     {totals.itemCount}
                   </motion.span>
@@ -192,14 +192,14 @@ export function Navbar() {
             </button>
 
             {/* CTA Button */}
-            <Button asChild size="sm" variant="primary" className="ml-1 hidden md:inline-flex">
+            <Button asChild size="sm" className="ml-1 hidden md:inline-flex bg-[#E8B923] text-[#1A0F0A] hover:bg-[#D4A017] font-bold">
               <Link href="/shop">{t("nav_shop_now")}</Link>
             </Button>
 
             {/* Mobile Menu Hamburger */}
             <button
               onClick={() => setMenuOpen(true)}
-              className="grid size-10 place-items-center rounded-full text-[#5B2C83] transition-colors hover:bg-[#f5ebfc] lg:hidden"
+              className="grid size-10 place-items-center rounded-full text-[#4A1942] transition-colors hover:bg-[#E8C8E4]/30 lg:hidden"
               aria-label={t("nav_open_menu")}
             >
               <Menu className="size-5" />

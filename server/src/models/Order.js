@@ -34,7 +34,7 @@ const OrderSchema = new mongoose.Schema({
 
   customerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Customer' },
   userName: { type: String, required: true },
-  userPhone: { type: String, required: true },
+  userPhone: { type: String, default: '' },
   items: [OrderItemSchema],
   totals: {
     subtotal: { type: Number, required: true },
@@ -86,6 +86,7 @@ const OrderSchema = new mongoose.Schema({
   status: {
     type: String,
     enum: [
+      'Payment Pending',
       'Pending Confirmation',
       'Pending',
       'Confirmed',
@@ -112,6 +113,7 @@ const OrderSchema = new mongoose.Schema({
   orderStatus: {
     type: String,
     enum: [
+      'Payment Pending',
       'Pending Confirmation',
       'Confirmed',
       'Packed',

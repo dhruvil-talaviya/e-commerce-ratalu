@@ -14,11 +14,10 @@ import type { Review } from "@/lib/types";
 import { useStoreSettings } from "@/components/common/settings-provider";
 import { sanitizeMediaUrl } from "@/lib/utils";
 
-/** Heading copy, editable in the Website Builder (was hardcoded). */
 const HEADING_FALLBACK: HeadingContent = {
   eyebrow: "Loved across India",
-  title: "Don't take our word.",
-  titleHighlight: "Take theirs.",
+  title: "What snackers are saying —",
+  titleHighlight: "take their word.",
 };
 
 // Fallback reviews shown while loading or on API error
@@ -187,10 +186,12 @@ function ReviewCard({ review }: { review: Review }) {
         <span
           className="grid size-11 shrink-0 place-items-center rounded-full text-sm font-bold text-white"
           style={{
-            background: `linear-gradient(135deg, ${review.avatarGradient.from}, ${review.avatarGradient.to})`,
+            background: review.avatarGradient
+              ? `linear-gradient(135deg, ${review.avatarGradient.from}, ${review.avatarGradient.to})`
+              : "linear-gradient(135deg, #7a3f9c, #5b2c6f)",
           }}
         >
-          {review.initials}
+          {review.initials || review.name.slice(0, 2).toUpperCase()}
         </span>
         <div className="min-w-0">
           <p className="truncate font-semibold text-charcoal">{review.name}</p>

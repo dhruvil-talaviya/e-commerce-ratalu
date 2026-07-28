@@ -20,7 +20,7 @@ const {
 
 const { protect, softAuth, authorize } = require('../middlewares/auth');
 
-const adminOnly = [protect, authorize('Admin', 'Super Admin', 'Manager')];
+const adminOnly = [protect, authorize('admin')];
 
 // Public/Customer checkout validation
 // Soft-authed so the quoted discount obeys the same per-account coupon rules

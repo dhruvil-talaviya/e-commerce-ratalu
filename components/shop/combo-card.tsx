@@ -3,10 +3,11 @@
 import * as React from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
-import { Check, ShoppingBag, Sparkles, Star, PackageCheck, Minus, Plus } from "lucide-react";
+import { Check, ShoppingBag, Sparkles, Star, PackageCheck, Minus, Plus, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WaferVisual } from "@/components/common/wafer-visual";
 import { useCart } from "@/components/cart/cart-provider";
+import { useWishlist } from "@/components/cart/wishlist-provider";
 import { useProducts } from "@/components/shop/product-provider";
 import { getPackFor } from "@/lib/data/products";
 import { formatINR, cn } from "@/lib/utils";
@@ -22,7 +23,10 @@ export function ComboCard({
   view?: "grid" | "list";
 }) {
   const { addCombo, items, updateQuantity, removeItem } = useCart();
+  const { has, toggle } = useWishlist();
   const { flavors } = useProducts();
+
+  const isLiked = has(combo.slug) || has(String(combo._id || "")) || has(String((combo as any).id || ""));
 
   const isList = view === "list";
 
@@ -42,8 +46,15 @@ export function ComboCard({
 
   const unavailable = lines.some((l) => l.flavor && l.flavor.inStock === false);
 
-  const comboKey = `combo-${combo._id || combo.slug}`;
-  const cartItem = items.find((i) => i.key === comboKey || (i.isCombo && (i.comboId === combo._id || i.key.includes(combo.slug))));
+  const rawId = combo._id || (combo as any).id || combo.slug;
+  const comboFlavorId = `combo-${rawId}`;
+  const cartItem = items.find(
+    (i) =>
+      i.flavorId === comboFlavorId ||
+      i.comboId === combo._id ||
+      i.key === `${comboFlavorId}:combo-pack` ||
+      (i.isCombo && (i.key?.includes(String(combo.slug)) || i.flavorName === combo.name))
+  );
   const cartQty = cartItem ? cartItem.quantity : 0;
 
   const handleAdd = (e: React.MouseEvent) => {
@@ -84,20 +95,21 @@ export function ComboCard({
         visible: { opacity: 1, y: 0, transition: { duration: 0.4, delay: index * 0.04 } },
       }}
       className={cn(
-        "group relative flex h-full flex-col overflow-hidden rounded-xl sm:rounded-3xl border border-purple-200/80 bg-white/95 shadow-[var(--shadow-soft)] transition-all duration-300 hover:shadow-[var(--shadow-lift)] hover:border-purple-300 w-full",
+        "group relative flex h-full flex-col overflow-hidden rounded-xl sm:rounded-3xl border border-[#E8DED4] bg-white shadow-xs transition-all duration-300 hover:shadow-md hover:border-[#B76DAE] w-full",
         isList ? "flex-col sm:flex-row" : "flex-col"
       )}
     >
-      {/* Artwork Header */}
+      {/* Artwork Header on Light Surface Background */}
       <div
         className={cn(
-          "relative shrink-0 overflow-hidden bg-gradient-to-br from-purple-50/90 via-white to-orange-50/90 rounded-t-xl sm:rounded-t-3xl min-h-[110px] sm:min-h-[190px]",
+          "relative shrink-0 overflow-hidden bg-gradient-to-br from-[#F5EDE3] via-[#FDF8F0] to-[#E8C8E4]/30 rounded-t-xl sm:rounded-t-3xl min-h-[110px] sm:min-h-[190px]",
           isList ? "aspect-[16/10] sm:aspect-auto sm:w-56 lg:w-64" : "aspect-[4/3] w-full",
           unavailable && "opacity-50 grayscale"
         )}
       >
         <Link
           href={`/combos/${combo.slug}`}
+          scroll={false}
           className="absolute inset-0 flex items-center justify-center p-1.5 sm:p-4 transition-transform duration-500 group-hover:scale-105"
         >
           {combo.image ? (
@@ -105,7 +117,7 @@ export function ComboCard({
             <img
               src={combo.image}
               alt={combo.name}
-              className="size-full object-cover rounded-lg sm:rounded-2xl"
+              className="size-full object-cover rounded-lg sm:rounded-2xl shadow-xs"
               loading="lazy"
             />
           ) : (
@@ -124,21 +136,38 @@ export function ComboCard({
         {/* Header Overlay Badges */}
         <div className="absolute inset-x-0 top-0 flex items-center justify-between gap-1 p-1.5 sm:p-3 z-10 pointer-events-none bg-gradient-to-b from-black/60 via-black/25 to-transparent">
           <div className="flex items-center gap-1 flex-wrap">
-            <span className="inline-flex items-center gap-0.5 rounded bg-purple-700/90 px-1.5 py-0.5 text-[9px] sm:text-xs font-bold text-white shadow-xs backdrop-blur-sm">
-              <Sparkles className="size-2.5 sm:size-3" /> Combo
+            <span className="inline-flex items-center gap-0.5 rounded bg-[#4A1942]/90 px-1.5 py-0.5 text-[9px] sm:text-xs font-bold text-white shadow-xs backdrop-blur-sm">
+              <Sparkles className="size-2.5 sm:size-3 text-[#E8B923]" /> Combo
             </span>
             {combo.badge && (
-              <span className="hidden sm:inline-flex items-center gap-1 rounded-lg bg-amber-500/90 px-2 py-0.5 text-[10px] sm:text-xs font-bold text-white shadow-xs backdrop-blur-sm">
+              <span className="hidden sm:inline-flex items-center gap-1 rounded-lg bg-[#C75B12]/90 px-2 py-0.5 text-[10px] sm:text-xs font-bold text-white shadow-xs backdrop-blur-sm">
                 ★ {combo.badge}
               </span>
             )}
           </div>
 
-          {combo.discountPercent > 0 && (
-            <span className="rounded-full bg-emerald-600 px-1.5 py-0.5 text-[9px] sm:text-xs font-extrabold text-white shadow-xs shrink-0">
-              {combo.discountPercent}% OFF
-            </span>
-          )}
+          <div className="flex items-center gap-1.5 shrink-0 pointer-events-auto">
+            {combo.discountPercent > 0 && (
+              <span className="rounded-full bg-[#D4A017] px-2 py-0.5 text-[9px] sm:text-xs font-extrabold text-[#1A0F0A] shadow-xs">
+                {combo.discountPercent}% OFF
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                toggle(combo.slug);
+              }}
+              className={cn(
+                "grid size-7 sm:size-8 place-items-center rounded-full bg-white/90 backdrop-blur-sm shadow-md transition-all hover:scale-110 active:scale-95 cursor-pointer",
+                isLiked ? "text-red-500 bg-red-50" : "text-gray-600 hover:text-red-500"
+              )}
+              aria-label={isLiked ? "Remove from wishlist" : "Add to wishlist"}
+            >
+              <Heart className={cn("size-3.5 sm:size-4", isLiked && "fill-current")} />
+            </button>
+          </div>
         </div>
 
         {unavailable && (
@@ -154,8 +183,8 @@ export function ComboCard({
       <div className="flex flex-1 flex-col justify-between p-2.5 sm:p-5">
         <div className="space-y-1.5">
           <div className="flex items-start justify-between gap-1">
-            <Link href={`/combos/${combo.slug}`} className="min-w-0 flex-1 transition-colors hover:text-purple-700">
-              <h3 className="line-clamp-1 font-serif text-xs sm:text-lg font-bold text-gray-900 leading-snug">{combo.name}</h3>
+            <Link href={`/combos/${combo.slug}`} scroll={false} className="min-w-0 flex-1 transition-colors hover:text-[#6B2D5B]">
+              <h3 className="line-clamp-1 font-serif text-xs sm:text-lg font-bold text-[#4A1942] leading-snug">{combo.name}</h3>
             </Link>
             <div className="flex items-center gap-0.5 bg-amber-50 border border-amber-200/80 px-1 py-0.5 rounded shrink-0">
               <Star className="size-2.5 sm:size-3 fill-amber-400 text-amber-500" />
@@ -215,7 +244,9 @@ export function ComboCard({
               >
                 <Minus className="size-3 sm:size-3.5" />
               </button>
-              <span className="text-xs sm:text-sm font-extrabold text-purple-950 font-mono">{cartQty}</span>
+              <span className="text-xs sm:text-sm font-extrabold text-purple-950 font-mono">
+                {cartQty} in cart
+              </span>
               <button
                 type="button"
                 onClick={handleInc}

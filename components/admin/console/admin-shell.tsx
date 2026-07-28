@@ -166,7 +166,7 @@ function AdminShellInner({
   // Route guard — role-based, and only once the stored session has loaded.
   React.useEffect(() => {
     if (!hydrated) return;
-    if (!isLoggedIn || !isAdmin) router.replace("/account");
+    if (!isLoggedIn || !isAdmin) router.replace("/admin/login");
   }, [hydrated, isLoggedIn, isAdmin, router]);
 
   // Unread admin notification count for the topbar bell. The count rides in the

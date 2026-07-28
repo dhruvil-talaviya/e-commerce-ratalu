@@ -10,7 +10,7 @@ import { apiFetch } from "@/lib/api";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ProductCard } from "./product-card";
 import { ComboCard } from "./combo-card";
-import type { ShopCombo } from "@/lib/types";
+import type { ShopCombo, Flavor } from "@/lib/types";
 
 type SortKey = "popular" | "price-asc" | "heat";
 type ViewMode = "grid" | "list";
@@ -23,7 +23,6 @@ const HEAT_FILTERS = [
 
 const SORTS: { key: SortKey; label: string }[] = [
   { key: "popular", label: "Most loved" },
-  { key: "price-asc", label: "Price" },
   { key: "heat", label: "Spiciest" },
 ];
 
@@ -45,6 +44,7 @@ export function ShopGrid() {
   const [view, setView] = React.useState<ViewMode>("grid");
   const [page, setPage] = React.useState(1);
   const [category, setCategory] = React.useState("all");
+  const [itemType, setItemType] = React.useState<"all" | "singles" | "combos">("all");
   const [categories, setCategories] = React.useState<ShopCategory[]>([]);
   const [combos, setCombos] = React.useState<ShopCombo[]>([]);
 
@@ -66,7 +66,7 @@ export function ShopGrid() {
       .catch(() => setCategories([]));
   }, []);
 
-  const filters = `${query}|${heat}|${sort}|${category}`;
+  const filters = `${query}|${heat}|${sort}|${category}|${itemType}`;
   const [prevFilters, setPrevFilters] = React.useState(filters);
   if (filters !== prevFilters) {
     setPrevFilters(filters);
@@ -92,15 +92,12 @@ export function ShopGrid() {
     if (sort === "heat") list.sort((a, b) => b.heat - a.heat);
     if (sort === "popular") list.sort((a, b) => Number(b.bestSeller) - Number(a.bestSeller));
     return list;
-  }, [query, heat, sort, allFlavors]);
+  }, [query, heat, sort, allFlavors, category]);
 
   /**
-   * A combo spans several flavours at once, so a heat or category filter can't
-   * be applied to it honestly — it's hidden while those are narrowed rather
-   * than shown under a filter it doesn't actually match.
+   * Filtered combos list.
    */
   const visibleCombos = React.useMemo(() => {
-    if (category !== "all" || heat !== "all") return [];
     const q = query.trim().toLowerCase();
     if (!q) return combos;
     return combos.filter(
@@ -109,16 +106,27 @@ export function ShopGrid() {
         (c.description ?? "").toLowerCase().includes(q) ||
         c.items.some((i: { flavorName: string }) => i.flavorName.toLowerCase().includes(q))
     );
-  }, [combos, category, heat, query]);
+  }, [combos, query]);
 
-  const totalPages = Math.ceil(flavors.length / ITEMS_PER_PAGE);
-  const paginated = React.useMemo(() => {
+  /**
+   * Combined items (Combos + Flavours) for unified pagination.
+   */
+  const allCombinedItems = React.useMemo(() => {
+    const list: Array<{ type: "combo"; data: ShopCombo } | { type: "flavor"; data: Flavor }> = [];
+    if (itemType === "all" || itemType === "combos") {
+      visibleCombos.forEach((c) => list.push({ type: "combo", data: c }));
+    }
+    if (itemType === "all" || itemType === "singles") {
+      flavors.forEach((f) => list.push({ type: "flavor", data: f }));
+    }
+    return list;
+  }, [itemType, visibleCombos, flavors]);
+
+  const totalPages = Math.max(1, Math.ceil(allCombinedItems.length / ITEMS_PER_PAGE));
+  const paginatedItems = React.useMemo(() => {
     const start = (page - 1) * ITEMS_PER_PAGE;
-    return flavors.slice(start, start + ITEMS_PER_PAGE);
-  }, [flavors, page]);
-
-  // Bundles lead the first page; repeating them on every page would be noise.
-  const combosOnThisPage = page === 1 ? visibleCombos : [];
+    return allCombinedItems.slice(start, start + ITEMS_PER_PAGE);
+  }, [allCombinedItems, page]);
 
   return (
     <div>
@@ -131,7 +139,7 @@ export function ShopGrid() {
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search flavours, ingredients…"
+            placeholder="Search flavours, ingredients, combos…"
             aria-label="Search flavours"
             className="h-10.5 w-full rounded-xl sm:rounded-full border border-gray-200 bg-white pl-10 pr-9 text-xs sm:text-sm text-charcoal shadow-xs transition-all placeholder:text-gray-400 focus-visible:border-purple-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-100"
           />
@@ -144,6 +152,43 @@ export function ShopGrid() {
               <X className="size-3.5" />
             </button>
           )}
+        </div>
+
+        {/* Item Type Filter Tabs (All / Single Flavours / Combos) */}
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pt-1">
+          <button
+            onClick={() => setItemType("all")}
+            className={cn(
+              "px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap",
+              itemType === "all"
+                ? "bg-[#5B2C83] text-white shadow-xs"
+                : "bg-gray-100 text-gray-700 hover:bg-purple-50 hover:text-purple-700"
+            )}
+          >
+            All Items ({allFlavors.length + combos.length})
+          </button>
+          <button
+            onClick={() => setItemType("singles")}
+            className={cn(
+              "px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap",
+              itemType === "singles"
+                ? "bg-[#5B2C83] text-white shadow-xs"
+                : "bg-gray-100 text-gray-700 hover:bg-purple-50 hover:text-purple-700"
+            )}
+          >
+            Single Flavours ({allFlavors.length})
+          </button>
+          <button
+            onClick={() => setItemType("combos")}
+            className={cn(
+              "px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap",
+              itemType === "combos"
+                ? "bg-[#5B2C83] text-white shadow-xs"
+                : "bg-gray-100 text-gray-700 hover:bg-purple-50 hover:text-purple-700"
+            )}
+          >
+            Combo Packages ({combos.length})
+          </button>
         </div>
 
         {/* Row 2: Category Visual Slider */}
@@ -181,48 +226,28 @@ export function ShopGrid() {
                   </span>
                 </button>
 
-                {/* ⭐⭐ Combos ⭐⭐ Chip - Navigates directly to /combos */}
-                <Link
-                  href="/combos"
-                  className="flex flex-col items-center gap-1.5 shrink-0 snap-start select-none group/card focus:outline-none w-20 sm:w-24 cursor-pointer"
-                >
-                  <div className="size-14 sm:size-18 rounded-full flex items-center justify-center border-2 border-amber-300 bg-amber-50 group-hover/card:border-amber-400 group-hover/card:scale-105 transition-all duration-300 shadow-xs">
-                    <span className="font-extrabold text-[10px] sm:text-[11px] text-amber-900 tracking-tight text-center">COMBOS</span>
-                  </div>
-                  <span className="text-[11px] sm:text-xs font-bold text-center text-amber-900 group-hover/card:text-purple-700 truncate max-w-full">
-                    ⭐ Combos ⭐
-                  </span>
-                </Link>
-
                 {/* Database Categories */}
                 {categories.map((c) => {
                   const isSelected = category === c.slug;
                   return (
                     <button
-                      key={c.slug}
+                      key={c.id}
                       onClick={() => setCategory(c.slug)}
                       className="flex flex-col items-center gap-1.5 shrink-0 snap-start select-none group/card focus:outline-none w-20 sm:w-24 cursor-pointer"
                     >
                       <div
                         className={cn(
-                          "size-14 sm:size-18 rounded-full overflow-hidden border-2 transition-all duration-300 shadow-xs flex items-center justify-center bg-white",
+                          "size-14 sm:size-18 rounded-full flex items-center justify-center border-2 transition-all duration-300 shadow-xs overflow-hidden bg-purple-50/50",
                           isSelected
-                            ? "border-purple-600 bg-purple-50 shadow-purple-200 ring-3 ring-purple-100 scale-105"
-                            : "border-gray-200 bg-white group-hover/card:border-purple-300 group-hover/card:scale-105"
+                            ? "border-purple-600 ring-3 ring-purple-100 scale-105"
+                            : "border-gray-200 group-hover/card:border-purple-300 group-hover/card:scale-105"
                         )}
                       >
                         {c.image ? (
-                          <img 
-                            src={c.image} 
-                            alt={c.name} 
-                            className="size-full object-cover transition-transform duration-500 group-hover/card:scale-110"
-                          />
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={c.image} alt={c.name} className="size-full object-cover" />
                         ) : (
-                          <div className="flex flex-col items-center justify-center p-2 bg-gradient-to-tr from-purple-50 to-orange-50 size-full">
-                            <span className="text-lg font-bold text-purple-600 uppercase">
-                              {c.name.charAt(0)}
-                            </span>
-                          </div>
+                          <span className="font-bold text-xs text-purple-700">{c.name.slice(0, 2).toUpperCase()}</span>
                         )}
                       </div>
                       <div className="flex flex-col items-center justify-center max-w-full min-w-0">
@@ -266,23 +291,27 @@ export function ShopGrid() {
         </div>
       </div>
 
-      {/* Result count */}
-      <p className="mb-5 text-sm text-charcoal-muted">
-        Showing <span className="font-semibold text-charcoal">{flavors.length}</span>{" "}
-        {flavors.length === 1 ? "flavour" : "flavours"}
-        {visibleCombos.length > 0 && (
-          <>
-            {" "}and <span className="font-semibold text-charcoal">{visibleCombos.length}</span>{" "}
-            {visibleCombos.length === 1 ? "combo" : "combos"}
-          </>
+      {/* Result count & Page info */}
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-2 text-sm text-charcoal-muted">
+        <p>
+          Showing{" "}
+          <span className="font-bold text-purple-900">
+            {paginatedItems.length}
+          </span>{" "}
+          of <span className="font-bold text-charcoal">{allCombinedItems.length}</span> items
+          {query ? (
+            <span> for &quot;<span className="font-medium text-[#4A1942]">{query}</span>&quot;</span>
+          ) : null}
+        </p>
+        {totalPages > 1 && (
+          <span className="text-xs font-semibold text-purple-700 bg-purple-50 px-2.5 py-1 rounded-full border border-purple-100">
+            Page {page} of {totalPages}
+          </span>
         )}
-        {query && (
-          <> for “<span className="font-medium text-purple-700">{query}</span>”</>
-        )}
-      </p>
+      </div>
 
       {/* Grid / List */}
-      {flavors.length > 0 || combosOnThisPage.length > 0 ? (
+      {paginatedItems.length > 0 ? (
         <motion.div
           key={`${filters}-${view}-${page}`}
           initial="hidden"
@@ -293,22 +322,18 @@ export function ShopGrid() {
             view === "grid" ? "grid-cols-2 md:grid-cols-3 lg:grid-cols-3" : "grid-cols-1"
           )}
         >
-          {combosOnThisPage.map((combo, i) => (
-            <ComboCard key={combo._id} combo={combo} index={i} view={view} />
-          ))}
-          {paginated.map((flavor, i) => (
-            <ProductCard
-              key={flavor.id}
-              flavor={flavor}
-              index={combosOnThisPage.length + i}
-              view={view}
-            />
-          ))}
+          {paginatedItems.map((item, i) =>
+            item.type === "combo" ? (
+              <ComboCard key={`combo-${item.data._id || item.data.slug}`} combo={item.data} index={i} view={view} />
+            ) : (
+              <ProductCard key={`flavor-${item.data.id}`} flavor={item.data} index={i} view={view} />
+            )
+          )}
         </motion.div>
       ) : (
         <EmptyState
           icon={SearchX}
-          title="No flavours found"
+          title="No flavours or combos found"
           description="Try a different search term or clear your filters to see everything."
           className="my-6"
         />

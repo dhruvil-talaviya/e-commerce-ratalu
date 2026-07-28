@@ -311,39 +311,53 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const addCombo = React.useCallback(
     async (combo: any, quantity = 1) => {
-      const key = `combo:${combo._id || combo.id}`;
+      const flavorId = `combo-${combo._id || combo.id || combo.slug}`;
+      const packId = "combo-pack";
+      const key = `${flavorId}:${packId}`;
       const totalPacks = combo.items ? combo.items.reduce((s: number, i: any) => s + (i.quantity || 1), 0) : 0;
       const packLabel = `Combo Pack (${totalPacks} Items)`;
       const unitPrice = combo.comboPrice;
 
-      setItems((prev) => {
-        const existing = prev.find((i) => i.key === key);
-        if (existing) {
-          return prev.map((i) =>
-            i.key === key ? { ...i, quantity: Math.min(i.quantity + quantity, 99) } : i
-          );
+      if (isShopper) {
+        try {
+          const syncedItems = await apiFetch<CartItem[]>("/cart", {
+            method: "POST",
+            body: { flavorId, packId, quantity }
+          });
+          setItems(syncedItems);
+        } catch (err) {
+          toast.warning("Couldn't add combo", { description: describe(err) });
+          return;
         }
-        return [
-          ...prev,
-          {
-            key,
-            flavorId: `combo-${combo._id || combo.id}`,
-            flavorName: combo.name,
-            packId: "combo-pack",
-            packLabel,
-            grams: 0,
-            unitPrice,
-            quantity,
-            isCombo: true,
-            comboId: combo._id || combo.id,
-            gradient: { from: "#7c3aed", via: "#9333ea", to: "#c084fc" },
-          },
-        ];
-      });
-      // Do not open cart drawer automatically on combo add — user will open manually when clicking cart
+      } else {
+        setItems((prev) => {
+          const existing = prev.find((i) => i.key === key || i.flavorId === flavorId);
+          if (existing) {
+            return prev.map((i) =>
+              (i.key === key || i.flavorId === flavorId) ? { ...i, quantity: Math.min(i.quantity + quantity, 99) } : i
+            );
+          }
+          return [
+            ...prev,
+            {
+              key,
+              flavorId,
+              flavorName: combo.name,
+              packId,
+              packLabel,
+              grams: 0,
+              unitPrice,
+              quantity,
+              isCombo: true,
+              comboId: combo._id || combo.id,
+              gradient: { from: "#7c3aed", via: "#9333ea", to: "#c084fc" },
+            },
+          ];
+        });
+      }
       toast.success("Combo added to cart", { description: `${combo.name} added to cart.` });
     },
-    []
+    [isShopper]
   );
 
   const removeItem = React.useCallback(async (key: string) => {

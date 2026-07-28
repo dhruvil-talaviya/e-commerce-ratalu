@@ -1,11 +1,18 @@
 import type { Metadata, Viewport } from "next";
-import { Plus_Jakarta_Sans, Inter, Manrope, Noto_Sans_Devanagari, Noto_Sans_Gujarati } from "next/font/google";
+import { Plus_Jakarta_Sans, Inter, Manrope, Noto_Sans_Devanagari, Noto_Sans_Gujarati, Fraunces } from "next/font/google";
 import "./globals.css";
 import { SITE } from "@/lib/constants";
 import { Providers } from "./providers";
 import { StorefrontLayoutWrapper } from "@/components/layout/storefront-layout-wrapper";
 import { OrganizationJsonLd, WebsiteJsonLd } from "@/components/seo/json-ld";
 import { getPageContent } from "@/lib/cms-server";
+
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
+  subsets: ["latin"],
+  display: "swap",
+  weight: ["500", "600", "700", "800"],
+});
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta",
@@ -58,9 +65,13 @@ export const metadata: Metadata = {
     "masala wafers online",
     "gourmet snacks India",
   ],
-  authors: [{ name: SITE.name }],
   creator: SITE.name,
   applicationName: SITE.name,
+  icons: {
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+    apple: "/icon.svg",
+  },
   alternates: { canonical: "/" },
   openGraph: {
     type: "website",
@@ -85,7 +96,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#5B2C83",
+  themeColor: "#4A1942",
   colorScheme: "light",
   width: "device-width",
   initialScale: 1,
@@ -101,7 +112,7 @@ export default async function RootLayout({
   const cms = await getPageContent("homepage");
 
   return (
-    <html lang="en" className={`${plusJakartaSans.variable} ${inter.variable} ${manrope.variable} ${notoSansDevanagari.variable} ${notoSansGujarati.variable}`}>
+    <html lang="en" className={`${fraunces.variable} ${plusJakartaSans.variable} ${inter.variable} ${manrope.variable} ${notoSansDevanagari.variable} ${notoSansGujarati.variable}`}>
       <body className="bg-background text-foreground">
         <OrganizationJsonLd />
         <WebsiteJsonLd />

@@ -15,16 +15,24 @@ const uploadToCloudinary = (buffer, options = {}) => {
       return reject(new Error('Invalid file buffer provided for Cloudinary upload.'));
     }
 
+    const isSvg =
+      (options.filename && options.filename.toLowerCase().endsWith('.svg')) ||
+      (buffer.toString('utf8', 0, 100).toLowerCase().includes('<svg'));
+
     const folderPath = resolveFolder(options.folder);
+
     const uploadOptions = {
       folder: folderPath,
       resource_type: 'auto',
-      quality: 'auto',
-      fetch_format: 'auto',
       overwrite: true,
       invalidate: true,
       ...options.cloudinaryOptions
     };
+
+    if (!isSvg && !uploadOptions.quality) {
+      uploadOptions.quality = 'auto';
+      uploadOptions.fetch_format = 'auto';
+    }
 
     if (options.publicId) {
       uploadOptions.public_id = options.publicId;

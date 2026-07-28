@@ -3,6 +3,7 @@
 import * as React from "react";
 import { apiFetch } from "@/lib/api";
 import { useLiveRefresh } from "@/lib/hooks/use-live-refresh";
+import { FLAVORS } from "@/lib/data/flavors";
 import type { Flavor } from "@/lib/types";
 
 interface ProductContextValue {
@@ -19,7 +20,7 @@ interface ProductContextValue {
 const ProductContext = React.createContext<ProductContextValue | null>(null);
 
 export function ProductProvider({ children }: { children: React.ReactNode }) {
-  const [flavors, setFlavors] = React.useState<Flavor[]>([]);
+  const [flavors, setFlavors] = React.useState<Flavor[]>(FLAVORS);
   const [hydrated, setHydrated] = React.useState(false);
 
   const CACHE_KEY = "yamora.products.cache.v1";
@@ -47,7 +48,7 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
         const raw = localStorage.getItem(CACHE_KEY);
         if (raw) {
           const parsed = JSON.parse(raw);
-          if (parsed?.version === "1.0.0" && parsed.expiresAt > Date.now() && Array.isArray(parsed.data)) {
+          if (parsed?.version === "1.0.0" && parsed.expiresAt > Date.now() && Array.isArray(parsed.data) && parsed.data.length > 0) {
             setFlavors(parsed.data);
             setHydrated(true);
           }
@@ -59,23 +60,26 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
 
     try {
       const data = await apiFetch<Flavor[]>("/products");
-      const checksum = computeChecksum(data);
-      setFlavors(data);
+      if (Array.isArray(data) && data.length > 0) {
+        const checksum = computeChecksum(data);
+        setFlavors(data);
 
-      if (typeof window !== "undefined") {
-        const cacheObj = {
-          version: "1.0.0",
-          checksum,
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-          expiresAt: Date.now() + CACHE_TTL_MS,
-          etag: checksum,
-          data
-        };
-        localStorage.setItem(CACHE_KEY, JSON.stringify(cacheObj));
+        if (typeof window !== "undefined") {
+          const cacheObj = {
+            version: "1.0.0",
+            checksum,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+            expiresAt: Date.now() + CACHE_TTL_MS,
+            etag: checksum,
+            data
+          };
+          localStorage.setItem(CACHE_KEY, JSON.stringify(cacheObj));
+        }
       }
     } catch (err) {
-      console.error("Failed to load catalog products from backend:", err);
+      console.warn("Failed to load catalog products from backend, using default catalog:", err);
+      setFlavors((prev) => (prev.length > 0 ? prev : FLAVORS));
     } finally {
       setHydrated(true);
     }

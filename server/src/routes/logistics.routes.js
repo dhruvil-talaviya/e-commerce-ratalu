@@ -27,7 +27,7 @@ const {
 } = require('../controllers/logistics.controller');
 
 const { protect, authorize } = require('../middlewares/auth');
-const adminOnly = [protect, authorize('Admin', 'Super Admin', 'Manager')];
+const adminOnly = [protect, authorize('admin')];
 
 // ─── Public Routes ──────────────────────────────────────────────────────────
 router.post('/logistics/check-serviceability', checkServiceability);

@@ -6,6 +6,7 @@
 
 let memoryAccessToken: string | null = null;
 let isRefreshing = false;
+let failedRefresh = false;
 let refreshSubscribers: ((token: string | null) => void)[] = [];
 
 /** Multi-tab auth synchronization channel */
@@ -17,17 +18,29 @@ if (authChannel) {
   authChannel.onmessage = (event) => {
     if (event.data?.type === "LOGOUT") {
       memoryAccessToken = null;
+      failedRefresh = false;
       if (typeof window !== "undefined" && window.location.pathname.startsWith("/account")) {
         window.location.href = "/account";
       }
     } else if (event.data?.type === "LOGIN" && event.data?.accessToken) {
       memoryAccessToken = event.data.accessToken;
+      failedRefresh = false;
     }
   };
 }
 
 export function setMemoryToken(token: string | null) {
   memoryAccessToken = token;
+  if (typeof window !== "undefined") {
+    if (token) {
+      try { localStorage.setItem("yamora_access_token", token); } catch {}
+    } else {
+      try { localStorage.removeItem("yamora_access_token"); } catch {}
+    }
+  }
+  if (token) {
+    failedRefresh = false;
+  }
   if (authChannel) {
     if (token) {
       authChannel.postMessage({ type: "LOGIN", accessToken: token });
@@ -38,7 +51,17 @@ export function setMemoryToken(token: string | null) {
 }
 
 export function getMemoryToken(): string | null {
-  return memoryAccessToken;
+  if (memoryAccessToken) return memoryAccessToken;
+  if (typeof window !== "undefined") {
+    try {
+      const saved = localStorage.getItem("yamora_access_token");
+      if (saved) {
+        memoryAccessToken = saved;
+        return saved;
+      }
+    } catch {}
+  }
+  return null;
 }
 
 export function clearMemoryToken() {
@@ -154,6 +177,9 @@ function addRefreshSubscriber(cb: (token: string | null) => void) {
 
 /** Execute silent refresh via HttpOnly cookie */
 export async function silentRefresh(): Promise<string | null> {
+  if (failedRefresh && !memoryAccessToken) {
+    return null;
+  }
   if (isRefreshing) {
     return new Promise((resolve) => {
       addRefreshSubscriber((token) => resolve(token));
@@ -169,6 +195,7 @@ export async function silentRefresh(): Promise<string | null> {
     });
 
     if (!res.ok) {
+      failedRefresh = true;
       clearMemoryToken();
       onTokenRefreshed(null);
       return null;
@@ -177,15 +204,18 @@ export async function silentRefresh(): Promise<string | null> {
     const json = await res.json();
     if (json.success && json.data?.accessToken) {
       const newToken = json.data.accessToken;
+      failedRefresh = false;
       setMemoryToken(newToken);
       onTokenRefreshed(newToken);
       return newToken;
     } else {
+      failedRefresh = true;
       clearMemoryToken();
       onTokenRefreshed(null);
       return null;
     }
   } catch (err) {
+    failedRefresh = true;
     clearMemoryToken();
     onTokenRefreshed(null);
     return null;
@@ -213,7 +243,7 @@ async function apiRequest<T = any>(endpoint: string, options: RequestOptions = {
     headers,
     credentials: options.credentials ?? "include",
     cache: options.cache ?? "no-store",
-    body: options.body instanceof FormData ? options.body : (options.body ? JSON.stringify(options.body) : undefined)
+    body: options.body instanceof FormData || typeof options.body === "string" ? options.body : (options.body ? JSON.stringify(options.body) : undefined)
   };
 
   let response: Response;

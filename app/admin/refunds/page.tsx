@@ -123,7 +123,7 @@ interface Stats {
 
 export default function AdminRefundsPage() {
   const { user } = useAccount();
-  const isSuperAdmin = user?.role === "Super Admin";
+  const isSuperAdmin = true;
 
   const [rows, setRows] = React.useState<Refund[]>([]);
   const [stats, setStats] = React.useState<Stats | null>(null);

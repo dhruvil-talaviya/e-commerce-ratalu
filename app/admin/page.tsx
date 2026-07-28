@@ -23,7 +23,7 @@ export default function AdminPage() {
     if (isLoggedIn && isAdminSession(user)) {
       router.replace("/admin/dashboard");
     } else {
-      router.replace("/account");
+      router.replace("/admin/login");
     }
   }, [hydrated, isLoggedIn, user, router]);
 

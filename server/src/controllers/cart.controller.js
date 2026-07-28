@@ -27,6 +27,28 @@ exports.getCart = async (req, res, next) => {
     // Hydrate cart items with details (name, price, gradients) matching frontend
     const hydratedItems = await Promise.all(
       cart.items.map(async (item) => {
+        if (item.flavorId && item.flavorId.startsWith('combo-')) {
+          const comboId = item.comboId || item.flavorId.replace('combo-', '');
+          const Combo = require('../models/Combo');
+          const comboDoc = await Combo.findById(comboId);
+          if (!comboDoc) return null;
+
+          const totalPacks = comboDoc.items ? comboDoc.items.reduce((sum, i) => sum + (i.quantity || 1), 0) : 0;
+          return {
+            key: `${item.flavorId}:${item.packId || 'combo-pack'}`,
+            flavorId: item.flavorId,
+            flavorName: comboDoc.name,
+            packId: item.packId || 'combo-pack',
+            packLabel: `Combo Pack (${totalPacks} Items)`,
+            grams: 0,
+            unitPrice: comboDoc.comboPrice,
+            quantity: item.quantity,
+            isCombo: true,
+            comboId: comboDoc._id,
+            gradient: { from: '#7c3aed', via: '#9333ea', to: '#c084fc' }
+          };
+        }
+
         const flavor = await Flavor.findOne({ slug: item.flavorId });
         const product = await Product.findOne({ flavorId: item.flavorId });
         const pack = product ? product.packs.find(p => p.id === item.packId) : null;

@@ -16,6 +16,7 @@ const Settings = require('../models/Settings');
 const Admin = require('../models/Admin');
 const Customer = require('../models/Customer');
 const Inventory = require('../models/Inventory');
+const Combo = require('../models/Combo');
 const { ADMIN_PHONE, ADMIN_USERNAME } = require('../config/admin');
 
 const FLAVORS = [
@@ -244,15 +245,14 @@ const seed = async () => {
     await Inventory.deleteMany();
     console.log('Collections cleared.');
 
-    // Seed the single admin. Auth is OTP-only, so the password is random
-    // filler that satisfies the schema and is never used to sign in.
+    // Seed Super Admin with hashed password
     await Admin.create({
-      username: ADMIN_USERNAME,
-      phone: ADMIN_PHONE,
-      password: process.env.ADMIN_PASSWORD || 'Admin@123',
-      role: 'Super Admin'
+      username: 'SuperAdmin',
+      email: 'talaviyad380@gmail.com',
+      password: 'Dhr@380',
+      role: 'super_admin'
     });
-    console.log(`Single admin seeded (Phone: ${ADMIN_PHONE}, OTP login only).`);
+    console.log('Super Admin seeded (Email: talaviyad380@gmail.com).');
 
     // Seed Settings
     await Settings.create({});
@@ -277,6 +277,94 @@ const seed = async () => {
     await Category.insertMany(CATEGORIES);
     console.log('Categories seeded.');
 
+const COMBOS = [
+  {
+    name: "Trio Crunch Party Pack",
+    slug: "trio-crunch-party-pack",
+    subtitle: "Original + Classic Masala + Peri Peri",
+    description: "The ultimate 3-pack combo featuring our top signature flavours in 200g packs. Save big on gourmet ratalu wafers.",
+    image: "https://images.unsplash.com/photo-1621447504864-d8686e12698c?q=80&w=600&auto=format&fit=crop",
+    comboPrice: 429,
+    originalPrice: 534,
+    discountPercent: 20,
+    savings: 105,
+    badge: "Most Popular",
+    rating: 4.9,
+    reviewCount: 128,
+    featured: true,
+    status: "Active",
+    items: [
+      { flavorId: "original-salted", flavorName: "Original Salted", packId: "200g", packLabel: "200g", quantity: 1 },
+      { flavorId: "classic-masala", flavorName: "Classic Masala", packId: "200g", packLabel: "200g", quantity: 1 },
+      { flavorId: "peri-peri", flavorName: "Peri Peri", packId: "200g", packLabel: "200g", quantity: 1 },
+    ],
+  },
+  {
+    name: "Mild & Tangy Saver Bundle",
+    slug: "mild-tangy-saver-bundle",
+    subtitle: "Original Salted + Classic Masala + Cheese",
+    description: "Family favorite non-spicy crunch bundle. 3 packs of 200g crafted with Sendha Namak & aged cheddar seasoning.",
+    image: "https://images.unsplash.com/photo-1566478989037-eec170784d0b?q=80&w=600&auto=format&fit=crop",
+    comboPrice: 419,
+    originalPrice: 534,
+    discountPercent: 22,
+    savings: 115,
+    badge: "Best Value",
+    rating: 4.8,
+    reviewCount: 94,
+    featured: true,
+    status: "Active",
+    items: [
+      { flavorId: "original-salted", flavorName: "Original Salted", packId: "200g", packLabel: "200g", quantity: 1 },
+      { flavorId: "classic-masala", flavorName: "Classic Masala", packId: "200g", packLabel: "200g", quantity: 1 },
+      { flavorId: "cheese", flavorName: "Cheese", packId: "200g", packLabel: "200g", quantity: 1 },
+    ],
+  },
+  {
+    name: "Fiery Heat Lovers Pack",
+    slug: "fiery-heat-lovers-pack",
+    subtitle: "Peri Peri + Green Chilli + Black Pepper",
+    description: "For true spice enthusiasts! Bold chilli, cracked pepper and zesty spice combinations.",
+    image: "https://images.unsplash.com/photo-1599490659213-e2b9527bd087?q=80&w=600&auto=format&fit=crop",
+    comboPrice: 439,
+    originalPrice: 537,
+    discountPercent: 18,
+    savings: 98,
+    badge: "Hot Deal",
+    rating: 4.9,
+    reviewCount: 86,
+    featured: true,
+    status: "Active",
+    items: [
+      { flavorId: "peri-peri", flavorName: "Peri Peri", packId: "200g", packLabel: "200g", quantity: 1 },
+      { flavorId: "green-chilli", flavorName: "Green Chilli", packId: "200g", packLabel: "200g", quantity: 1 },
+      { flavorId: "black-pepper", flavorName: "Black Pepper", packId: "200g", packLabel: "200g", quantity: 1 },
+    ],
+  },
+  {
+    name: "Family Mega Crunch Box",
+    slug: "family-mega-crunch-box",
+    subtitle: "4 Packs of 500g Mega Family Size",
+    description: "Stock up for festivities and gatherings with our 500g jumbo pouches.",
+    image: "https://images.unsplash.com/photo-1621447504864-d8686e12698c?q=80&w=600&auto=format&fit=crop",
+    comboPrice: 1199,
+    originalPrice: 1596,
+    discountPercent: 25,
+    savings: 397,
+    badge: "Mega Pack",
+    rating: 5.0,
+    reviewCount: 164,
+    featured: true,
+    status: "Active",
+    items: [
+      { flavorId: "original-salted", flavorName: "Original Salted", packId: "500g", packLabel: "500g", quantity: 1 },
+      { flavorId: "classic-masala", flavorName: "Classic Masala", packId: "500g", packLabel: "500g", quantity: 1 },
+      { flavorId: "peri-peri", flavorName: "Peri Peri", packId: "500g", packLabel: "500g", quantity: 1 },
+      { flavorId: "cheese", flavorName: "Cheese", packId: "500g", packLabel: "500g", quantity: 1 },
+    ],
+  },
+];
+
     // Seed FAQs
     await FAQ.insertMany(FAQS);
     console.log('FAQs seeded.');
@@ -288,6 +376,10 @@ const seed = async () => {
     // Seed Coupons
     await Coupon.insertMany(COUPONS);
     console.log('Coupons seeded.');
+
+    // Seed Combos
+    await Combo.insertMany(COMBOS);
+    console.log('Combos seeded.');
 
     // Seed Flavors & Products & Inventory
     for (const f of FLAVORS) {

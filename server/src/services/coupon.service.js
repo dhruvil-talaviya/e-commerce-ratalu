@@ -17,7 +17,7 @@ const ErrorResponse = require('../utils/errorResponse');
  */
 
 /** Orders that count as "used" — cancelled ones give the coupon back. */
-const REDEEMED_STATUSES = { $nin: ['Cancelled', 'Payment Failed', 'Expired'] };
+const REDEEMED_STATUSES = { $nin: ['Cancelled', 'Payment Failed', 'Expired', 'Payment Pending'] };
 
 /**
  * Can this customer use this code right now?

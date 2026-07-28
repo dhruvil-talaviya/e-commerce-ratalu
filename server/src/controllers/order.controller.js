@@ -428,7 +428,12 @@ exports.placeOrder = async ({ user, items, couponCode, address, method, paymentM
   if (!items || items.length === 0) {
     throw new ErrorResponse('Cannot place an order with empty cart', 400);
   }
-  if (!address || !address.addressLine || !address.city || !address.state || !address.pincode) {
+  const normalizedAddressLine = address ? (address.addressLine || [address.houseNo, address.building, address.street, address.area, address.landmark].filter(Boolean).join(', ') || address.address || '') : '';
+  const normalizedPincode = address ? (address.pincode || address.pinCode || '') : '';
+  const normalizedCity = address ? (address.city || '') : '';
+  const normalizedState = address ? (address.state || '') : '';
+
+  if (!address || !normalizedAddressLine || !normalizedCity || !normalizedState || !normalizedPincode) {
     throw new ErrorResponse('A complete delivery address is required', 400);
   }
 
@@ -683,6 +688,22 @@ exports.placeOrder = async ({ user, items, couponCode, address, method, paymentM
   }
   const invoiceNumber = `${settings.invoicePrefix || 'INV-'}${nextInvSeq}/${settings.financialYear || '2026-27'}`;
 
+  // Auto-sync customer name & phone from delivery address if missing on customer profile
+  if (user && address) {
+    let userChanged = false;
+    if (address.phone && (!user.phone || user.phone !== address.phone)) {
+      user.phone = address.phone;
+      userChanged = true;
+    }
+    if (address.fullName && (!user.name || user.name === 'Customer' || user.name !== address.fullName)) {
+      user.name = address.fullName;
+      userChanged = true;
+    }
+    if (userChanged) {
+      await user.save();
+    }
+  }
+
   const orderId = 'RW' + Math.random().toString(36).slice(2, 8).toUpperCase();
   const orderNumber = await Counter.next('orderNumber');
 
@@ -693,7 +714,7 @@ exports.placeOrder = async ({ user, items, couponCode, address, method, paymentM
     // Recorded so per-account redemption limits have something exact to count.
     couponCode: couponRecord ? couponRecord.code : '',
     userName: user.name || 'Customer',
-    userPhone: user.phone,
+    userPhone: (address && address.phone) || user.phone || '',
     items: orderItems,
     totals: {
       subtotal,
@@ -712,11 +733,17 @@ exports.placeOrder = async ({ user, items, couponCode, address, method, paymentM
       state: settings.businessState || ''
     },
     address: {
-      tag: address.tag || 'Home',
-      addressLine: address.addressLine,
-      city: address.city,
-      state: address.state,
-      pincode: address.pincode
+      fullName: address.fullName || user.name || 'Customer',
+      phone: address.phone || user.phone || '',
+      tag: address.addressType || address.tag || 'Home',
+      addressLine: normalizedAddressLine,
+      city: normalizedCity,
+      state: normalizedState,
+      pincode: normalizedPincode,
+      houseNo: address.houseNo || '',
+      street: address.street || '',
+      area: address.area || '',
+      landmark: address.landmark || ''
     },
     method: method || payMethod,
     payment: { method: payMethod, status: payMethod === 'COD' ? 'Paid' : 'Pending' },
@@ -761,19 +788,20 @@ exports.placeOrder = async ({ user, items, couponCode, address, method, paymentM
     await cart.save();
   }
 
-  // 7. Tell the customer we have it.
-  await notify(user._id, {
-    title: `Order ${order.displayId} placed`,
-    message: `We've received your order ${order.displayId} for ₹${Math.round(total).toLocaleString('en-IN')}. You can cancel it within ${Order.CANCEL_WINDOW_MINUTES} minutes.`,
-    type: 'OrderStatus'
-  });
+  // 7. Tell the customer & admin (only for COD / immediate orders; online payments notify upon verification).
+  if (payMethod === 'COD') {
+    await notify(user._id, {
+      title: `Order ${order.displayId || order.id} placed`,
+      message: `We've received your order ${order.displayId || order.id} for ₹${Math.round(total).toLocaleString('en-IN')}. You can cancel it within ${Order.CANCEL_WINDOW_MINUTES} minutes.`,
+      type: 'OrderStatus'
+    });
 
-  // Notify Admin
-  await notifyAdmin({
-    title: 'New Order Received',
-    message: `Order ${order.displayId || order.id} has been placed by ${order.userName} for ₹${Math.round(total).toLocaleString('en-IN')}.`,
-    type: 'OrderStatus'
-  });
+    await notifyAdmin({
+      title: 'New Order Received',
+      message: `Order ${order.displayId || order.id} has been placed by ${order.userName} for ₹${Math.round(total).toLocaleString('en-IN')}.`,
+      type: 'OrderStatus'
+    });
+  }
 
   return order;
 };
@@ -809,7 +837,10 @@ exports.createOrder = async (req, res, next) => {
 // @access  Private
 exports.getMyOrders = async (req, res, next) => {
   try {
-    const orders = await Order.find({ customerId: req.user._id }).sort({ createdAt: -1 });
+    const orders = await Order.find({
+      customerId: req.user._id,
+      status: { $nin: ['Payment Pending', 'Payment Failed'] }
+    }).sort({ createdAt: -1 });
     sendResponse(res, 200, {
       success: true,
       data: orders
@@ -906,6 +937,7 @@ exports.cancelOrder = async (req, res, next) => {
 
     const previousStatus = order.status;
     order.status = 'Cancelled';
+    order.orderStatus = 'Cancelled';
     order.cancelledBy = isCustomer ? 'customer' : 'admin';
     order.cancelledAt = new Date();
     order.cancelReason = isCustomer ? 'Customer self-cancellation' : (req.body.reason || 'Admin cancellation');
@@ -1157,6 +1189,7 @@ exports.updateOrderStatus = async (req, res, next) => {
       }
 
       order.status = status;
+      order.orderStatus = status;
       order.timeline.push({
         status,
         time: new Date(),

@@ -55,36 +55,46 @@ AddressSchema.pre('validate', function (next) {
 AddressSchema.set('toJSON', { virtuals: true });
 AddressSchema.set('toObject', { virtuals: true });
 
+const bcrypt = require('bcryptjs');
+
 const CustomerSchema = new mongoose.Schema({
-  /**
-   * Passwordless auth: the customer is auto-created the moment their mobile
-   * number is OTP-verified — before we know their name. `name` is therefore
-   * optional here and captured later on the "Complete Profile" step.
-   * (Previously `required: true`, which made auto-create impossible.)
-   */
   name: { type: String, trim: true, default: '' },
-  phone: { type: String, required: true, unique: true, trim: true },
   email: {
     type: String,
+    required: true,
+    unique: true,
     trim: true,
     lowercase: true,
-    // sparse => many customers may have no email, but emails stay unique
-    index: { unique: true, sparse: true }
+    index: true
   },
-  /**
-   * Must stay capitalised: `generateAccessToken` embeds this value and the
-   * `protect` middleware routes 'Customer' tokens to this collection.
-   */
+  provider: {
+    type: String,
+    enum: ['google'],
+    default: 'google'
+  },
+  googleId: { type: String, default: null },
+  avatar: { type: String, default: '' },
+  phone: { type: String, trim: true, default: null },
   role: {
     type: String,
-    enum: ['Customer'],
-    default: 'Customer'
+    enum: ['customer'],
+    default: 'customer'
   },
   status: {
     type: String,
     enum: ['Active', 'Blocked'],
     default: 'Active'
   },
+
+  isEmailVerified: { type: Boolean, default: false },
+  profileCompleted: { type: Boolean, default: false },
+  emailVerificationToken: { type: String, default: null },
+  emailVerificationExpires: { type: Date, default: null },
+
+  resetPasswordToken: { type: String, default: null },
+  resetPasswordExpires: { type: Date, default: null },
+
+  lastLogin: { type: Date, default: null },
 
   addresses: [AddressSchema],
   activeAddressId: { type: String, default: null },
@@ -98,41 +108,39 @@ const CustomerSchema = new mongoose.Schema({
   refreshTokens: [String]
 }, { timestamps: true });
 
-// Performance indexes for frequent admin queries
+// Performance indexes
 CustomerSchema.index({ status: 1, createdAt: -1 });
 CustomerSchema.index({ name: 'text', phone: 'text', email: 'text' });
 
-/**
- * Self-heal legacy/incorrectly-cased roles (e.g. 'customer') so older
- * documents keep saving cleanly instead of failing enum validation.
- */
+// Hash password before saving
+CustomerSchema.pre('save', async function (next) {
+  if (!this.isModified('password') || !this.password) return next();
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+  next();
+});
+
+CustomerSchema.methods.comparePassword = async function (enteredPassword) {
+  if (!this.password) return false;
+  return await bcrypt.compare(enteredPassword, this.password);
+};
+
+/** Self-heal legacy/incorrectly-cased roles */
 CustomerSchema.pre('validate', function (next) {
-  if (typeof this.role === 'string' && this.role.toLowerCase() === 'customer') {
-    this.role = 'Customer';
+  if (typeof this.role === 'string') {
+    this.role = this.role.toLowerCase();
+  }
+  // Check profileCompleted
+  const hasDefault = this.addresses && this.addresses.some(a => a.isDefault);
+  if (this.name && this.phone && (hasDefault || (this.addresses && this.addresses.length > 0))) {
+    this.profileCompleted = true;
   }
   next();
 });
 
-/**
- * The store owner's number can never also be a customer.
- *
- * Enforced on the model rather than at each call site: the customer OTP verify
- * auto-registers any number it validates, and `register` / `updateProfile` can
- * both set a phone too. Guarding here means no current or future code path can
- * create a shadow customer for the admin number.
- */
-CustomerSchema.pre('validate', function (next) {
-  if (isAdminPhone(this.phone)) {
-    return next(new Error(
-      'This number belongs to the store admin and cannot be used for a customer account.'
-    ));
-  }
-  next();
-});
-
-/** True once we have enough detail to actually ship this customer an order. */
 CustomerSchema.virtual('profileComplete').get(function () {
-  return Boolean(this.name && this.name.trim().length > 0);
+  const hasDefault = this.addresses && this.addresses.some(a => a.isDefault);
+  return Boolean(this.name && this.name.trim().length > 0 && this.phone && (hasDefault || (this.addresses && this.addresses.length > 0)));
 });
 
 CustomerSchema.set('toJSON', { virtuals: true });

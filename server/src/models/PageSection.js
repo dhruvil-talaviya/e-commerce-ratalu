@@ -44,6 +44,8 @@ const PageSectionSchema = new mongoose.Schema({
       'faq',
       'offers',
       'gallery',
+      'combos',
+      'full_width_carousel',
       'contact',
       'footer',
       'custom'

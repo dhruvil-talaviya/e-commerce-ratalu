@@ -15,11 +15,13 @@ import {
   Tag,
   Truck,
   ArrowRight,
+  Heart,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { WaferVisual } from "@/components/common/wafer-visual";
 import { useCart } from "@/components/cart/cart-provider";
+import { useWishlist } from "@/components/cart/wishlist-provider";
 import { useProducts } from "@/components/shop/product-provider";
 import { ComboCard } from "@/components/shop/combo-card";
 import { ProductCard } from "@/components/shop/product-card";
@@ -29,7 +31,10 @@ import type { ShopCombo } from "@/lib/types";
 
 export function ComboDetailClient({ combo }: { combo: ShopCombo }) {
   const { addCombo } = useCart();
+  const { has, toggle } = useWishlist();
   const { flavors } = useProducts();
+
+  const isLiked = has(combo.slug) || has(String(combo._id || ""));
 
   const [selectedImage, setSelectedImage] = React.useState(0);
   const [qty, setQty] = React.useState(1);
@@ -214,6 +219,18 @@ export function ComboDetailClient({ combo }: { combo: ShopCombo }) {
                     </>
                   )}
                 </Button>
+
+                <button
+                  type="button"
+                  onClick={() => toggle(combo.slug)}
+                  className={cn(
+                    "grid size-12 shrink-0 place-items-center rounded-2xl border transition-all cursor-pointer shadow-xs active:scale-95",
+                    isLiked ? "border-red-200 bg-red-50 text-red-500" : "border-gray-200 bg-white text-gray-600 hover:border-red-200 hover:text-red-500"
+                  )}
+                  aria-label={isLiked ? "Remove from wishlist" : "Add to wishlist"}
+                >
+                  <Heart className={cn("size-5", isLiked && "fill-current")} />
+                </button>
             </div>
           </div>
         </div>

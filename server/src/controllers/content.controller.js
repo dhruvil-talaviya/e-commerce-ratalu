@@ -7,12 +7,6 @@ const sendResponse = require('../utils/response');
 /** Who performed the action, for the audit trail. */
 const actor = (req) => req.user?.username || req.user?.name || 'Admin';
 
-/**
- * Publishing, restoring and deleting change what the public sees, so they are
- * reserved for the owner. Editing a draft is safe for anyone with admin access.
- */
-const requireSuperAdmin = (req) => req.user?.role === 'Super Admin';
-
 // ─────────────────────────────────────────────────────────────────────────────
 // PUBLIC — what the storefront renders
 // ─────────────────────────────────────────────────────────────────────────────
@@ -149,10 +143,6 @@ exports.saveDraft = async (req, res, next) => {
 // @access  Private (Super Admin)
 exports.publishSection = async (req, res, next) => {
   try {
-    if (!requireSuperAdmin(req)) {
-      return next(new ErrorResponse('Only a Super Admin can publish to the live site', 403));
-    }
-
     const { page, key } = req.params;
     const section = await PageSection.findOne({ page, key });
     if (!section) return next(new ErrorResponse('Section not found', 404));
@@ -242,10 +232,6 @@ exports.getVersions = async (req, res, next) => {
 // @access  Private (Super Admin)
 exports.restoreVersion = async (req, res, next) => {
   try {
-    if (!requireSuperAdmin(req)) {
-      return next(new ErrorResponse('Only a Super Admin can restore a version', 403));
-    }
-
     const { page, key, versionId } = req.params;
 
     const snapshot = await ContentVersion.findOne({ _id: versionId, page, key });

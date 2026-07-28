@@ -4,7 +4,7 @@ const { getDashboardReports, exportReport } = require('../controllers/report.con
 const { protect, authorize } = require('../middlewares/auth');
 
 // Static /export segment must be before any dynamic routes
-router.get('/admin/reports/export', protect, authorize('Admin', 'Super Admin'), exportReport);
-router.get('/admin/reports', protect, authorize('Admin', 'Super Admin'), getDashboardReports);
+router.get('/admin/reports/export', protect, authorize('admin'), exportReport);
+router.get('/admin/reports', protect, authorize('admin'), getDashboardReports);
 
 module.exports = router;

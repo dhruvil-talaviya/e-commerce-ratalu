@@ -103,6 +103,15 @@ function ContactView() {
                 <p className="text-sm text-charcoal-muted">{supportHours}</p>
               </div>
             </div>
+
+            {/* Customer Support Representative Illustration */}
+            <div className="mt-2 flex justify-center overflow-hidden rounded-3xl border border-purple-100 bg-gradient-to-b from-purple-50/60 to-white p-6 shadow-sm">
+              <img
+                src="/images/contact-illustration.png"
+                alt="Customer Support Representative"
+                className="w-full max-w-[240px] sm:max-w-[280px] h-auto object-contain drop-shadow-md transition-transform duration-300 hover:scale-105"
+              />
+            </div>
           </div>
 
           {/* Form */}

@@ -283,3 +283,40 @@ exports.patchAddress = async (req, res, next) => {
     next(error);
   }
 };
+
+// @desc    Get current user profile
+// @route   GET /api/v1/auth/profile
+// @access  Private
+exports.getProfile = async (req, res, next) => {
+  try {
+    sendResponse(res, 200, {
+      success: true,
+      data: req.user
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Update current user profile
+// @route   PUT /api/v1/auth/profile
+// @access  Private
+exports.updateProfile = async (req, res, next) => {
+  try {
+    const { name, email, phone, avatar } = req.body;
+    if (name) req.user.name = name.trim();
+    if (email) req.user.email = email.trim().toLowerCase();
+    if (phone) req.user.phone = phone.trim();
+    if (avatar) req.user.avatar = avatar.trim();
+
+    await req.user.save();
+
+    sendResponse(res, 200, {
+      success: true,
+      message: 'Profile updated successfully',
+      data: req.user
+    });
+  } catch (error) {
+    next(error);
+  }
+};

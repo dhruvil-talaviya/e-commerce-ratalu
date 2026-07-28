@@ -29,33 +29,61 @@ export function slugify(value: string) {
     .replace(/-+/g, "-");
 }
 
+/**
+ * Sanitize a media URL from any Cloudinary form into a clean delivery URL.
+ *
+ * Handles:
+ *  - res-console.cloudinary.com (admin preview)  → res.cloudinary.com delivery
+ *  - res.cloudinary.com (already correct)         → pass through
+ *  - Any other URL                                → pass through
+ */
 export function sanitizeMediaUrl(url: string): string {
   if (!url) return "";
   const trimmed = url.trim();
+
+  // ── 1. Cloudinary *console* preview URL ─────────────────────────────────
   if (trimmed.includes("res-console.cloudinary.com")) {
     try {
-      const parts = trimmed.split("/");
-      const cloudName = parts[3];
-      const isVideo = trimmed.includes("/video/");
-      const v1Index = parts.lastIndexOf("v1");
-      if (v1Index !== -1 && parts[v1Index + 1]) {
-        const base64Segment = parts[v1Index + 1];
-        const decode = (str: string) => {
-          if (typeof window !== "undefined" && typeof window.atob === "function") {
-            return window.atob(str);
+      const urlObj = new URL(trimmed);
+      const pathParts = urlObj.pathname.split("/").filter(Boolean);
+      // pathname: /<cloudName>/assets/...
+      const cloudName = pathParts[0];
+      const isVideo = trimmed.includes("/video/") || trimmed.includes("resource_type=video");
+
+      // Try to find the base64-encoded public_id after /v1/
+      const v1Idx = pathParts.indexOf("v1");
+      if (v1Idx !== -1 && pathParts[v1Idx + 1]) {
+        const b64 = pathParts[v1Idx + 1].replace(/-/g, "+").replace(/_/g, "/");
+        let publicId = "";
+        try {
+          if (typeof atob === "function") {
+            publicId = atob(b64);
+          } else if (typeof Buffer !== "undefined") {
+            publicId = Buffer.from(b64, "base64").toString("utf-8");
           }
-          return Buffer.from(str, "base64").toString("utf-8");
-        };
-        const publicId = decode(base64Segment);
+        } catch {
+          // ignore decode error
+        }
         if (publicId) {
           const type = isVideo ? "video" : "image";
-          const ext = isVideo ? "mp4" : "jpg";
-          return `https://res.cloudinary.com/${cloudName}/${type}/upload/${publicId}.${ext}`;
+          // Don't add extension if publicId already contains one
+          const hasExt = /\.\w{2,4}$/.test(publicId);
+          const suffix = hasExt ? "" : isVideo ? ".mp4" : ".jpg";
+          return `https://res.cloudinary.com/${cloudName}/${type}/upload/${publicId}${suffix}`;
         }
       }
-    } catch (e) {
-      console.error("Failed to parse Cloudinary Console URL:", e);
+
+      // Fallback: try to extract public_id from query params
+      const assetId = urlObj.searchParams.get("public_id") || urlObj.searchParams.get("asset_id");
+      if (assetId && cloudName) {
+        const type = isVideo ? "video" : "image";
+        return `https://res.cloudinary.com/${cloudName}/${type}/upload/${assetId}`;
+      }
+    } catch {
+      // ignore parse errors — fall through and return trimmed
     }
   }
+
   return trimmed;
 }
+

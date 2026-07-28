@@ -18,10 +18,8 @@ async function processExpiredHoldOrders() {
     const now = new Date();
     // Query orders that are in Pending Confirmation state and whose 5-min countdown has passed
     const expiredOrders = await Order.find({
-      $or: [
-        { status: 'Pending Confirmation' },
-        { orderStatus: 'Pending Confirmation' }
-      ],
+      status: 'Pending Confirmation',
+      orderStatus: { $nin: ['Cancelled', 'Refunded', 'Returned', 'Failed'] },
       cancellationDeadline: { $lte: now }
     });
 
@@ -34,6 +32,11 @@ async function processExpiredHoldOrders() {
 
     for (const order of expiredOrders) {
       try {
+        if (order.status === 'Cancelled' || order.orderStatus === 'Cancelled' || order.payment?.status === 'Refunded') {
+          logger.info(`[OrderConfirmationJob] Order #${order.displayId || order.id} is already cancelled/refunded. Skipping auto-confirmation.`);
+          continue;
+        }
+
         order.status = 'Confirmed';
         order.orderStatus = 'Confirmed';
         order.fulfilmentStatus = 'Ready to Pack';

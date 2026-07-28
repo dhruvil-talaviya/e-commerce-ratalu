@@ -34,7 +34,7 @@ const {
 
 const { protect, authorize } = require('../middlewares/auth');
 
-const adminOnly = [protect, authorize('Admin', 'Super Admin', 'Manager')];
+const adminOnly = [protect, authorize('admin')];
 
 // ─── Admin: draft → preview → publish ────────────────────────────────────────
 // Declared before the public '/products/:slugOrId' so "admin" isn't swallowed
@@ -56,12 +56,12 @@ router.get('/reviews', getReviews);
 router.post('/reviews', createReview);
 
 // Private Admin gates
-router.post('/products', protect, authorize('Admin', 'Super Admin'), createProduct);
-router.put('/products/:id', protect, authorize('Admin', 'Super Admin'), updateProduct);
-router.delete('/products/:id', protect, authorize('Admin', 'Super Admin'), deleteProduct);
-router.post('/products/:id/duplicate', protect, authorize('Admin', 'Super Admin'), duplicateProduct);
+router.post('/products', ...adminOnly, createProduct);
+router.put('/products/:id', ...adminOnly, updateProduct);
+router.delete('/products/:id', ...adminOnly, deleteProduct);
+router.post('/products/:id/duplicate', ...adminOnly, duplicateProduct);
 
-router.post('/categories', protect, authorize('Admin', 'Super Admin'), createCategory);
-router.delete('/categories/:id', protect, authorize('Admin', 'Super Admin'), deleteCategory);
+router.post('/categories', ...adminOnly, createCategory);
+router.delete('/categories/:id', ...adminOnly, deleteCategory);
 
 module.exports = router;

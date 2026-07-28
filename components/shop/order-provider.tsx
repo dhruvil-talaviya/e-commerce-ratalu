@@ -193,14 +193,17 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
         }
       });
 
-      const res = await apiFetchEnvelope<Order[]>(`/admin/orders?${queryParams.toString()}`);
-      setOrders(res.data || []);
-      setOrdersPagination(res.pagination || null);
-      setOrdersLastSyncedAt(Date.now());
-    } catch (err: any) {
-      if (err?.status !== 401 && err?.status !== 403) {
-        console.error("Failed to load admin queue orders from backend:", err);
+      try {
+        const res = await apiFetchEnvelope<Order[]>(`/admin/orders?${queryParams.toString()}`);
+        setOrders(res.data || []);
+        setOrdersPagination(res.pagination || null);
+        setOrdersLastSyncedAt(Date.now());
+      } catch (err: any) {
+        setOrders([]);
+        setOrdersPagination(null);
       }
+    } catch (err: any) {
+      setOrders([]);
     } finally {
       setOrdersLoading(false);
     }
@@ -217,10 +220,15 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
         cities: options?.cities || [],
         states: options?.states || [],
       });
-    } catch (err: any) {
-      if (err?.status !== 401 && err?.status !== 403) {
-        console.error("Failed to load order filter options:", err);
-      }
+    } catch {
+      setOrderFilterOptions({
+        statuses: ["Pending", "Processing", "Shipped", "Delivered", "Cancelled"],
+        paymentStatuses: ["Pending", "Paid", "Failed", "Refunded"],
+        paymentMethods: ["COD", "Razorpay", "UPI", "Card"],
+        partners: [],
+        cities: [],
+        states: [],
+      });
     }
   }, []);
 
@@ -260,7 +268,7 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
     }
   }, [isLoggedIn, isAdmin, fetchMyOrders, loadAdminOrders, loadOrderFilterOptions]);
 
-  useLiveRefresh(refreshOrders, { enabled: isLoggedIn, minIntervalMs: 15000 });
+  useLiveRefresh(refreshOrders, { enabled: isLoggedIn, minIntervalMs: 3000 });
 
   const placeOrder = React.useCallback(
     async (
@@ -335,9 +343,10 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
   }, [refreshOrders]);
 
   const getOrdersByUser = React.useCallback(
-    (phone: string) => {
-      // For backwards compatibility or local sorting: filter the loaded orders list
-      return orders.filter((o) => o.userPhone === phone);
+    (phone?: string) => {
+      if (!phone) return orders;
+      const matched = orders.filter((o) => o.userPhone === phone);
+      return matched.length > 0 ? matched : orders;
     },
     [orders]
   );

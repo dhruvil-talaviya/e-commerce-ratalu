@@ -62,8 +62,8 @@ export function Faq() {
   const defaultOpen = "";
 
   return (
-    <section id="faqs" className="relative scroll-mt-24 py-8 sm:py-16 lg:py-24">
-      <div className="container-px mx-auto grid max-w-6xl gap-12 lg:grid-cols-[0.85fr_1.15fr]">
+    <section id="faqs" className="relative scroll-mt-24 py-5 sm:py-10 lg:py-14">
+      <div className="container-px mx-auto grid max-w-6xl gap-5 lg:grid-cols-[0.8fr_1.2fr] lg:gap-8">
         {/* Left: heading + help card */}
         <div className="lg:sticky lg:top-28 lg:self-start">
           <SectionHeading
@@ -74,8 +74,8 @@ export function Faq() {
                 {content.title || FALLBACK_CONTENT.title}
                 {content.titleHighlight && (
                   <>
-                    <br />
-                    <span className="text-gradient-warm">{content.titleHighlight}</span>
+                    {" "}
+                    <span className="text-[#4A1942] block sm:inline">{content.titleHighlight}</span>
                   </>
                 )}
               </>
@@ -84,15 +84,15 @@ export function Faq() {
           />
 
           <Reveal delay={0.15}>
-            <div className="mt-8 flex items-center gap-4 rounded-3xl border border-[var(--color-border)] bg-white/70 p-5 shadow-[var(--shadow-soft)]">
-              <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-purple-50 text-purple-600">
-                <MessageCircleQuestion className="size-6" />
+            <div className="mt-4 sm:mt-6 flex items-center gap-3 rounded-2xl border border-[#E8DED4] bg-white/80 p-3.5 sm:p-4 shadow-sm">
+              <span className="grid size-9 sm:size-10 shrink-0 place-items-center rounded-xl bg-[#E8C8E4]/40 text-[#4A1942]">
+                <MessageCircleQuestion className="size-5" />
               </span>
-              <div className="flex-1">
-                <p className="font-semibold text-charcoal">{content.helpTitle || FALLBACK_CONTENT.helpTitle}</p>
-                <p className="text-sm text-charcoal-muted">{content.helpText || FALLBACK_CONTENT.helpText}</p>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs sm:text-sm font-bold text-[#1A0F0A]">{content.helpTitle || FALLBACK_CONTENT.helpTitle}</p>
+                <p className="text-[11px] sm:text-xs text-[#8A7B70] truncate">{content.helpText || FALLBACK_CONTENT.helpText}</p>
               </div>
-              <Button asChild variant="outline" size="sm">
+              <Button asChild variant="outline" size="sm" className="h-8 text-xs px-3 border-[#4A1942] text-[#4A1942] hover:bg-[#4A1942] hover:text-white shrink-0">
                 <Link href="/contact">Contact</Link>
               </Button>
             </div>
@@ -101,19 +101,19 @@ export function Faq() {
 
         {/* Right: accordion */}
         <Reveal direction="up" delay={0.1}>
-          <Accordion type="single" collapsible defaultValue={String(defaultOpen)} className="flex flex-col gap-3">
+          <Accordion type="single" collapsible defaultValue={String(defaultOpen)} className="flex flex-col gap-2.5 sm:gap-3">
             {faqs.map((faq, idx) => {
                 const key = String(faq.id || faq._id || `faq-${idx}`);
                 return (
                   <AccordionItem key={key} value={key}>
                     <AccordionTrigger>
-                      <span className="flex flex-col items-start gap-1.5">
+                      <span className="flex flex-col items-start gap-1">
                         {faq.category && (
-                          <Badge variant="cream" size="sm">
+                          <Badge size="sm" className="text-[9px] sm:text-[10px] bg-[#E8C8E4]/50 text-[#4A1942] border border-[#B76DAE]/30 font-semibold py-0 px-2">
                             {faq.category}
                           </Badge>
                         )}
-                        {faq.question}
+                        <span>{faq.question}</span>
                       </span>
                     </AccordionTrigger>
                     <AccordionContent>{faq.answer}</AccordionContent>

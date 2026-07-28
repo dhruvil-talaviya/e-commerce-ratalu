@@ -1,13 +1,9 @@
 import { Hero } from "@/components/sections/hero";
-import { BestSellers } from "@/components/sections/best-sellers";
-import { OffersStrip } from "@/components/sections/offers-strip";
-import { ComboSection } from "@/components/sections/combo-section";
 import { FlavorShowcase } from "@/components/sections/flavor-showcase";
-import { FarmFresh } from "@/components/sections/farm-fresh";
-import { About } from "@/components/sections/about";
-import { HowItsMade } from "@/components/sections/how-its-made";
+import { ComboSection } from "@/components/sections/combo-section";
+import { FullWidthCarousel } from "@/components/sections/full-width-carousel";
+import { BestSellers } from "@/components/sections/best-sellers";
 import { Reviews } from "@/components/sections/reviews";
-import { InstagramGallery } from "@/components/sections/instagram-gallery";
 import { Faq } from "@/components/sections/faq";
 import { ProductJsonLd, FaqJsonLd } from "@/components/seo/json-ld";
 
@@ -17,30 +13,26 @@ export default function HomePage() {
       <ProductJsonLd />
       <FaqJsonLd />
 
-      {/* Hero & Hook */}
+      {/* 1. Hero Banner */}
       <Hero />
-      <BestSellers />
-      <OffersStrip />
 
-      {/* ⭐⭐ Combo Deals ⭐⭐ */}
-      <ComboSection />
-
-      {/* Featured Products / Explore */}
+      {/* 2. Shop Products (Flavours Showcase) */}
       <FlavorShowcase />
 
-      {/* Trust & story */}
-      <FarmFresh />
-      <About />
-      <HowItsMade />
+      {/* 3. Super Value Combos */}
+      <ComboSection />
 
-      {/* Social proof */}
+      {/* 4. Photo & Video Slider Carousel */}
+      <FullWidthCarousel />
+
+      {/* 5. Best Sellers */}
+      <BestSellers />
+
+      {/* 6. Customer Reviews */}
       <Reviews />
-      <InstagramGallery />
 
-      {/* Convert */}
-      <div className="pb-24">
-        <Faq />
-      </div>
+      {/* 7. FAQ (Last) */}
+      <Faq />
     </>
   );
 }

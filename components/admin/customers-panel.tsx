@@ -162,7 +162,7 @@ export function CustomersPanel() {
     try {
       await apiFetch(`/admin/customers/${c._id}/status`, { method: "PATCH", body: { status: next } });
       toast.success(next === "Blocked" ? "Customer blocked" : "Customer activated", {
-        description: next === "Blocked" ? "Their active sessions were revoked." : `${c.name || c.phone} can sign in again.`,
+        description: next === "Blocked" ? "Their active sessions were revoked." : `${c.name || c.email || c.phone || "Customer"} can sign in again.`,
       });
       refresh();
     } catch (err) {
@@ -173,7 +173,7 @@ export function CustomersPanel() {
   };
 
   const remove = async (c: AdminCustomer) => {
-    if (!confirm(`Delete ${c.name || c.phone}? This cannot be undone.`)) return;
+    if (!confirm(`Delete ${c.name || c.email || c.phone || "Customer"}? This cannot be undone.`)) return;
     setBusyId(c._id);
     try {
       await apiFetch(`/admin/customers/${c._id}`, { method: "DELETE" });
@@ -308,7 +308,7 @@ export function CustomersPanel() {
                 <td className="px-4 py-3 cursor-pointer group" onClick={() => setViewing(c._id)}>
                   <div className="flex items-center gap-3">
                     <span className="grid size-9 shrink-0 place-items-center rounded-full bg-purple-100 text-xs font-bold text-purple-700 group-hover:bg-purple-600 group-hover:text-white transition-all">
-                      {(c.name || "?").trim().charAt(0).toUpperCase() || "?"}
+                      {(c.name || c.email || c.phone || "?").trim().charAt(0).toUpperCase() || "?"}
                     </span>
                     <div className="min-w-0">
                       <p className="truncate font-bold text-gray-900 group-hover:text-purple-700 transition-colors">
@@ -319,7 +319,7 @@ export function CustomersPanel() {
                   </div>
                 </td>
                 <td className="px-4 py-3 cursor-pointer" onClick={() => setViewing(c._id)}>
-                  <p className="font-semibold text-gray-700">{c.phone}</p>
+                  <p className="font-semibold text-gray-700">{c.phone || "No phone"}</p>
                   <p className="truncate text-[11px] text-gray-400">{c.email || "—"}</p>
                 </td>
                 <td className="px-4 py-3 cursor-pointer" onClick={() => setViewing(c._id)}><StatusPill status={c.status} /></td>

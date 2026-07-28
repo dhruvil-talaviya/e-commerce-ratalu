@@ -400,7 +400,7 @@ export function StoreSettingsProvider({ children }: { children: React.ReactNode 
         setSettings({ ...DEFAULT_SETTINGS, ...data });
       }
     } catch (err) {
-      console.error("Failed to load store settings from server:", err);
+      console.warn("Failed to load store settings from server, using default settings:", err);
     } finally {
       setHydrated(true);
     }

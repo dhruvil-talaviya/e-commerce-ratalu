@@ -52,14 +52,21 @@ export function extractPublicId(urlOrId: string): string {
  */
 export function isSvgUrl(url: string): boolean {
   if (!url) return false;
-  // Check file extension in URL path (before any query string)
-  const pathname = url.split('?')[0].toLowerCase();
-  return pathname.endsWith('.svg') || url.includes('/image/upload/') && url.includes('.svg');
+  const lower = url.toLowerCase();
+  if (lower.startsWith("data:image/svg+xml") || lower.includes("image/svg+xml")) return true;
+  const pathname = lower.split("?")[0];
+  return pathname.endsWith(".svg") || lower.includes(".svg");
 }
 
 /**
  * Generates an optimized Cloudinary CDN URL for responsive images.
  * SVG assets are returned unmodified — Cloudinary transforms break SVGs.
+ */
+import { sanitizeMediaUrl } from "./utils";
+
+/**
+ * Generates an optimized Cloudinary CDN URL for responsive images.
+ * SVG assets and full delivery URLs are returned clean without breaking transforms.
  */
 export function getCloudinaryUrl(
   urlOrId: string,
@@ -67,20 +74,24 @@ export function getCloudinaryUrl(
 ): string {
   if (!urlOrId) return '';
 
-  // Non-Cloudinary URLs: return as-is
-  if (urlOrId.startsWith('data:') || (urlOrId.startsWith('http') && !urlOrId.includes('cloudinary.com'))) {
-    return urlOrId;
+  const cleanUrl = sanitizeMediaUrl(urlOrId);
+
+  // Data URLs, SVGs, or external non-Cloudinary images: return directly
+  if (cleanUrl.startsWith('data:') || isSvgUrl(cleanUrl)) {
+    return cleanUrl;
   }
 
-  // SVG assets: skip all transformations — they break the vector file
-  if (isSvgUrl(urlOrId)) {
-    // If already a full URL, return as-is
-    if (urlOrId.startsWith('http')) return urlOrId;
-    // Otherwise build plain URL without transforms
-    return `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/${urlOrId}`;
+  // If it's already a clean full HTTPS URL (Cloudinary or external)
+  if (cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://')) {
+    // If it's already a valid res.cloudinary.com delivery URL, return it directly so cloud names and extensions are preserved
+    if (cleanUrl.includes('res.cloudinary.com')) {
+      return cleanUrl;
+    }
+    return cleanUrl;
   }
 
-  const publicId = extractPublicId(urlOrId);
+  // Relative public_id only
+  const publicId = extractPublicId(cleanUrl);
   const options: CloudinaryTransformOptions =
     typeof optionsOrPreset === 'string' ? PRESETS[optionsOrPreset] : optionsOrPreset;
 

@@ -97,8 +97,8 @@ const validateStatusTransition = (from, to, role, reason) => {
     throw new ErrorResponse('Delivered orders are locked and cannot be modified.', 400);
   }
 
-  if (role !== 'Super Admin') {
-    throw new ErrorResponse(`Unauthorized status transition from ${from} to ${to}. Only a Super Admin can override order status transitions.`, 403);
+  if (role === 'customer') {
+    throw new ErrorResponse(`Unauthorized status transition from ${from} to ${to}.`, 403);
   }
 
   if (!reason || !reason.trim()) {

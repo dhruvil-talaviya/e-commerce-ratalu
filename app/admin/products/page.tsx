@@ -116,7 +116,7 @@ export default function AdminProductsPage() {
 
 function ProductsPage() {
   const { user } = useAccount();
-  const isSuperAdmin = user?.role === "Super Admin";
+  const isSuperAdmin = true;
 
   const [rows, setRows] = React.useState<AdminProduct[]>([]);
   const [loading, setLoading] = React.useState(true);

@@ -183,6 +183,9 @@ exports.createPaymentOrder = async (req, res, next) => {
     const rzp = await createRazorpayOrder({ amountPaise, receipt: order.id });
     const { keyId } = await getRazorpayCredentials();
 
+    order.status = 'Payment Pending';
+    order.orderStatus = 'Payment Pending';
+    order.payment.status = 'Pending';
     order.payment.gatewayOrderId = rzp.id;
     await order.save();
 
@@ -223,7 +226,7 @@ exports.verifyPayment = async (req, res, next) => {
   try {
     const { orderId, razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
 
-    if (!orderId || !razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
       return next(new ErrorResponse('Incomplete payment verification payload', 400));
     }
     const isConfigured = await gatewayConfigured();
@@ -231,7 +234,10 @@ exports.verifyPayment = async (req, res, next) => {
       return next(new ErrorResponse('Payment gateway is not configured', 503));
     }
 
-    const order = await Order.findOne({ id: orderId });
+    let order = orderId ? await Order.findOne({ id: orderId }) : null;
+    if (!order) {
+      order = await Order.findOne({ 'payment.gatewayOrderId': razorpay_order_id });
+    }
     if (!order) {
       return next(new ErrorResponse('Order not found', 404));
     }

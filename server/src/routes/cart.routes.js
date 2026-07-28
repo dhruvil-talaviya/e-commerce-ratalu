@@ -42,10 +42,10 @@ router.post('/wishlist/toggle', protect, toggleWishlist);
 router.post('/wishlist/sync', protect, syncWishlist);
 
 // Admin coupons CRUD
-router.get('/admin/coupons', protect, authorize('Admin', 'Super Admin'), getAdminCoupons);
-router.get('/admin/coupons/:id/redemptions', protect, authorize('Admin', 'Super Admin'), getCouponRedemptions);
-router.post('/admin/coupons', protect, authorize('Admin', 'Super Admin'), createCoupon);
-router.put('/admin/coupons/:id', protect, authorize('Admin', 'Super Admin'), updateCoupon);
-router.delete('/admin/coupons/:id', protect, authorize('Admin', 'Super Admin'), deleteCoupon);
+router.get('/admin/coupons', protect, authorize('admin'), getAdminCoupons);
+router.get('/admin/coupons/:id/redemptions', protect, authorize('admin'), getCouponRedemptions);
+router.post('/admin/coupons', protect, authorize('admin'), createCoupon);
+router.put('/admin/coupons/:id', protect, authorize('admin'), updateCoupon);
+router.delete('/admin/coupons/:id', protect, authorize('admin'), deleteCoupon);
 
 module.exports = router;

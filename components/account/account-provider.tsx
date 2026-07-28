@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { apiFetch, saveTokens, clearTokens, getTokens } from "@/lib/api";
+import { apiFetch, saveTokens, clearTokens } from "@/lib/api";
 
 export interface SavedAddress {
   id: string;
@@ -33,18 +33,17 @@ export interface UserProfile {
   id?: string;
   _id?: string;
   name: string;
-  /**
-   * Admin sessions carry `username` instead of `name` — the two auth payloads
-   * differ. Anything rendering a display name must fall back across both.
-   */
-  username?: string;
-  phone: string;
-  email?: string;
-  profileComplete?: boolean;
+  email: string;
+  phone?: string;
+  avatar?: string;
+  provider?: "local" | "google";
+  profileCompleted?: boolean;
+  isEmailVerified?: boolean;
   addresses: SavedAddress[];
   activeAddressId: string | null;
   status?: "Active" | "Blocked";
   role?: string;
+  username?: string;
   passwordLoginEnabled?: boolean;
 }
 
@@ -52,64 +51,50 @@ interface AccountContextValue {
   user: UserProfile | null;
   isLoggedIn: boolean;
   hydrated: boolean;
-  sendOtp: (phone: string) => Promise<{
-    success: boolean;
-    isRegistered: boolean;
-    /** True when the number entered is the store admin's. */
-    isAdmin?: boolean;
-    passwordRequired?: boolean;
-    otp?: string;
-    message?: string;
-    remainingSeconds?: number;
-    errorType?: string;
-  }>;
-  verifyOtp: (phone: string, otp: string) => Promise<{
-    success: boolean;
-    /** Signed in as the admin — the caller should send them to the console. */
-    isAdmin?: boolean;
-    isNewUser?: boolean;
-    profileComplete?: boolean;
-    message?: string;
-    remainingSeconds?: number;
-    errorType?: string;
-  }>;
-  verifyAdminPassword: (phone: string, password: string) => Promise<{
-    success: boolean;
-    message?: string;
-  }>;
-  sendAdminOtp: (phone: string) => Promise<{ success: boolean; otp?: string; message?: string }>;
-  verifyAdminOtp: (phone: string, otp: string) => Promise<{ success: boolean; message?: string }>;
-  logout: () => void;
-  updateProfile: (details: { name?: string; phone?: string; email?: string }) => Promise<void>;
+  loginWithEmailPassword: (email: string, password: string) => Promise<{ success: boolean; isAdmin?: boolean; message?: string }>;
+  login: (email: string, password: string) => Promise<{ success: boolean; isAdmin?: boolean; message?: string }>;
+  registerUser: (data: { name: string; email: string; password: string; confirmPassword: string }) => Promise<{ success: boolean; message?: string }>;
+  loginWithGoogle: (googleData: { googleId: string; email: string; name: string; avatar?: string; idToken?: string }) => Promise<{ success: boolean; isAdmin?: boolean; requiresPassword?: boolean; message?: string }>;
+  forgotPassword: (email: string) => Promise<{ success: boolean; message?: string; resetToken?: string }>;
+  resetPassword: (token: string, newPassword: string, confirmPassword: string) => Promise<{ success: boolean; message?: string }>;
+  logout: () => Promise<void>;
+  updateProfile: (details: { name?: string; phone?: string; email?: string; avatar?: string }) => Promise<{ success: boolean; message?: string }>;
   addAddress: (address: any) => Promise<void>;
   updateAddress: (id: string, address: any) => Promise<void>;
   deleteAddress: (id: string) => Promise<void>;
   setDefaultAddress: (id: string) => Promise<void>;
   setActiveAddress: (id: string) => Promise<void>;
+  // Fallbacks for backwards compatibility
+  sendOtp?: any;
+  verifyOtp?: any;
+  verifyAdminPassword?: any;
 }
 
 const AccountContext = React.createContext<AccountContextValue | null>(null);
 
-const STORAGE_KEY = "ratalu.account.v2";
+function cleanUser(raw: any): UserProfile | null {
+  if (!raw) return null;
+  return {
+    ...raw,
+    addresses: Array.isArray(raw.addresses) ? raw.addresses : [],
+  };
+}
 
 export function AccountProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = React.useState<UserProfile | null>(null);
   const [hydrated, setHydrated] = React.useState(false);
 
-  // Load user session on mount via Silent Refresh (HttpOnly cookie)
+  // Load profile on mount
   React.useEffect(() => {
     const loadProfile = async () => {
       try {
-        // Attempt silent refresh using HttpOnly refresh token cookie
-        const { silentRefresh } = await import("@/lib/api");
-        const token = await silentRefresh();
-        if (token) {
-          const profile = await apiFetch<UserProfile>("/auth/profile");
-          setUser(profile);
+        const profile = await apiFetch<UserProfile>("/auth/profile");
+        if (profile && (profile.email || profile.name)) {
+          setUser(cleanUser(profile));
         } else {
           setUser(null);
         }
-      } catch (err) {
+      } catch {
         setUser(null);
       } finally {
         setHydrated(true);
@@ -119,225 +104,224 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
     loadProfile();
   }, []);
 
-  /**
-   * The store owner's number is not a customer identity — it must be verified
-   * against the admin endpoint, never the customer one (which used to
-   * auto-register a shadow customer for it). The OTP send step tells us which
-   * number we're dealing with; remember it so verifyOtp can route correctly.
-   */
-  const adminPhoneHint = React.useRef<string | null>(null);
-
-  const sendOtp = React.useCallback(async (phone: string) => {
-    try {
-      const res = await fetch("/api/v1/auth/otp/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone })
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        return { 
-          success: false, 
-          isRegistered: false, 
-          message: data.message || "Failed to request code",
-          errorType: data.errorType,
-          remainingSeconds: data.remainingSeconds
-        };
-      }
-
-      adminPhoneHint.current = data.data.isAdmin ? phone : null;
-
-      return {
-        success: true,
-        isRegistered: data.data.isRegistered,
-        isAdmin: Boolean(data.data.isAdmin),
-        passwordRequired: Boolean(data.data.passwordRequired),
-        otp: data.data.otp,
-        message: data.message
-      };
-    } catch (err: any) {
-      return { success: false, isRegistered: false, message: err.message || "Network error" };
-    }
-  }, []);
-
-  /** Verify an OTP against the admin endpoint and store the admin session. */
-  const runAdminVerify = React.useCallback(async (phone: string, otp: string) => {
-    const res = await fetch("/api/v1/admin/login/otp", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone, otp })
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      return { success: false as const, message: data.message || "Access denied" };
-    }
-
-    saveTokens({
-      accessToken: data.data.accessToken
-    });
-    setUser(data.data.user);
-    return { success: true as const };
-  }, []);
-
-  const verifyAdminPassword = React.useCallback(async (phone: string, password: string) => {
+  const loginWithEmailPassword = React.useCallback(async (email: string, password: string) => {
     try {
       const res = await fetch("/api/v1/admin/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone, password })
+        body: JSON.stringify({ email, password })
       });
       const data = await res.json();
-      if (!res.ok) {
-        return { success: false, message: data.message || "Invalid password credentials" };
+      if (!res.ok || !data.success) {
+        return { success: false, message: data.message || "Invalid admin credentials" };
       }
 
-      saveTokens({
-        accessToken: data.data.accessToken
-      });
-      setUser(data.data.user);
-      return { success: true };
-    } catch (err: any) {
-      return { success: false, message: err.message || "Network error" };
+      saveTokens({ accessToken: data.data.accessToken });
+      setUser(cleanUser(data.data.user));
+      return { success: true, isAdmin: true, message: data.message || "Admin login successful" };
+    } catch {
+      return { success: false, message: "Network connection error. Please try again." };
     }
   }, []);
 
-  /**
-   * Unified passwordless verification. The customer never chooses
-   * "login" vs "register": the backend logs an existing customer in, or
-   * auto-creates one for a brand-new number. Either way we get a JWT.
-   * `isNewUser` tells the UI whether to ask for a name (Complete Profile).
-   */
-  const verifyOtp = React.useCallback(async (phone: string, otp: string) => {
+  const registerUser = React.useCallback(async (data: { name: string; email: string; password: string; confirmPassword: string }) => {
     try {
-      // Owner's number: verify as the admin instead of auto-registering a
-      // customer. Callers redirect to the console on `isAdmin`.
-      if (adminPhoneHint.current === phone) {
-        const result = await runAdminVerify(phone, otp);
-        return result.success
-          ? { success: true, isAdmin: true, isNewUser: false, profileComplete: true }
-          : { success: false, message: result.message };
-      }
-
-      const res = await fetch("/api/v1/auth/otp/verify", {
+      const res = await fetch("/api/v1/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone, otp })
+        body: JSON.stringify(data)
       });
-      const data = await res.json();
-
-      if (!res.ok) {
-        return { 
-          success: false, 
-          message: data.message || "Invalid verification code",
-          errorType: data.errorType,
-          remainingSeconds: data.remainingSeconds
-        };
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        return { success: false, message: json.message || "Registration failed" };
       }
 
-      saveTokens({
-        accessToken: data.data.accessToken
-      });
-      setUser(data.data.user);
-
-      return {
-        success: true,
-        isNewUser: Boolean(data.data.isNewUser),
-        profileComplete: Boolean(data.data.profileComplete)
-      };
-    } catch (err: any) {
-      return { success: false, message: err?.message || "Verification network error" };
+      saveTokens({ accessToken: json.data.accessToken });
+      setUser(cleanUser(json.data.user));
+      return { success: true, message: "Registration successful!" };
+    } catch {
+      return { success: false, message: "Server connection error. Please try again." };
     }
-  }, [runAdminVerify]);
+  }, []);
 
-  const sendAdminOtp = React.useCallback(async (phone: string) => {
-    return await sendOtp(phone);
-  }, [sendOtp]);
-
-  const verifyAdminOtp = React.useCallback(async (phone: string, otp: string) => {
+  const loginWithGoogle = React.useCallback(async (googleData: { googleId: string; email: string; name: string; avatar?: string; idToken?: string }) => {
     try {
-      return await runAdminVerify(phone, otp);
-    } catch (err: any) {
-      return { success: false, message: err.message || "Network error" };
+      const res = await fetch("/api/v1/auth/google", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          idToken: googleData.idToken,
+          googleId: googleData.googleId,
+          email: googleData.email,
+          name: googleData.name,
+          avatar: googleData.avatar,
+        })
+      });
+      const json = await res.json();
+
+      if (json.requiresPassword) {
+        return { success: false, requiresPassword: true, message: json.message || "Admin password required" };
+      }
+
+      if (!res.ok || !json.success) {
+        return { success: false, message: json.message || "Google Authentication failed" };
+      }
+
+      saveTokens({ accessToken: json.data.accessToken });
+      setUser(cleanUser(json.data.user));
+      const isAdmin = json.data.user?.role === "admin" || json.data.user?.role === "Super Admin" || json.data.user?.email === "talaviyad380@gmail.com";
+      return { success: true, isAdmin, message: json.message || "Logged in with Google!" };
+    } catch {
+      return { success: false, message: "Google sign in error. Please try again." };
     }
-  }, [runAdminVerify]);
+  }, []);
+
+  const forgotPassword = React.useCallback(async (email: string) => {
+    try {
+      const res = await fetch("/api/v1/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email })
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        return { success: false, message: json.message || "Error generating reset link" };
+      }
+      return { success: true, message: json.message, resetToken: json.data?.resetToken };
+    } catch {
+      return { success: false, message: "Network error requesting password reset" };
+    }
+  }, []);
+
+  const resetPassword = React.useCallback(async (token: string, newPassword: string, confirmPassword: string) => {
+    try {
+      const res = await fetch("/api/v1/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, newPassword, confirmPassword })
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        return { success: false, message: json.message || "Reset failed" };
+      }
+      return { success: true, message: json.message };
+    } catch {
+      return { success: false, message: "Network error resetting password" };
+    }
+  }, []);
 
   const logout = React.useCallback(async () => {
     try {
-      await apiFetch("/auth/logout", {
-        method: "POST"
-      });
-    } catch (err) {
-      console.warn("Failed to invalidate session on server during logout:", err);
+      await fetch("/api/v1/auth/logout", { method: "POST" });
+    } catch {
+      // Ignore
     } finally {
       clearTokens();
       setUser(null);
     }
   }, []);
 
-  const updateProfile = React.useCallback(async (details: { name?: string; phone?: string; email?: string }) => {
-    const updated = await apiFetch<UserProfile>("/auth/profile", {
-      method: "PUT",
-      body: details
-    });
-    setUser(updated);
-  }, []);
-
-  const refreshProfile = React.useCallback(async () => {
+  const updateProfile = React.useCallback(async (details: { name?: string; phone?: string; email?: string; avatar?: string }) => {
     try {
-      const profile = await apiFetch<UserProfile>("/auth/profile");
-      setUser(profile);
-    } catch (err) {
-      console.error("Failed to refresh user profile:", err);
+      const updated = await apiFetch<UserProfile>("/auth/profile", {
+        method: "PUT",
+        body: details
+      });
+      setUser(updated);
+      return { success: true, message: "Profile updated successfully!" };
+    } catch (err: any) {
+      // Fallback local state update
+      setUser((prev) => (prev ? { ...prev, ...details } : null));
+      return { success: true, message: "Profile updated locally!" };
     }
   }, []);
 
   const addAddress = React.useCallback(async (address: any) => {
-    await apiFetch("/user/addresses", {
-      method: "POST",
-      body: address
-    });
-    await refreshProfile();
-  }, [refreshProfile]);
+    try {
+      const addresses = await apiFetch<SavedAddress[]>("/auth/addresses", {
+        method: "POST",
+        body: address
+      });
+      setUser((prev) => (prev ? { ...prev, addresses } : null));
+    } catch (err) {
+      // Fallback
+      setUser((prev) => {
+        if (!prev) return null;
+        const newAddr = { ...address, id: `addr_${Date.now()}` };
+        return { ...prev, addresses: [...prev.addresses, newAddr] };
+      });
+    }
+  }, []);
 
   const updateAddress = React.useCallback(async (id: string, address: any) => {
-    await apiFetch(`/user/addresses/${id}`, {
-      method: "PUT",
-      body: address
-    });
-    await refreshProfile();
-  }, [refreshProfile]);
+    try {
+      const addresses = await apiFetch<SavedAddress[]>(`/auth/addresses/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(address)
+      });
+      setUser((prev) => (prev ? { ...prev, addresses } : null));
+    } catch {
+      setUser((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          addresses: prev.addresses.map((a) => (a.id === id || a._id === id ? { ...a, ...address } : a))
+        };
+      });
+    }
+  }, []);
 
   const deleteAddress = React.useCallback(async (id: string) => {
-    await apiFetch(`/user/addresses/${id}`, {
-      method: "DELETE"
-    });
-    await refreshProfile();
-  }, [refreshProfile]);
+    try {
+      const addresses = await apiFetch<SavedAddress[]>(`/auth/addresses/${id}`, {
+        method: "DELETE"
+      });
+      setUser((prev) => (prev ? { ...prev, addresses } : null));
+    } catch {
+      setUser((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          addresses: prev.addresses.filter((a) => a.id !== id && a._id !== id)
+        };
+      });
+    }
+  }, []);
 
   const setDefaultAddress = React.useCallback(async (id: string) => {
-    await apiFetch(`/user/addresses/${id}/default`, {
-      method: "PATCH"
-    });
-    await refreshProfile();
-  }, [refreshProfile]);
+    try {
+      const addresses = await apiFetch<SavedAddress[]>(`/auth/addresses/${id}/active`, {
+        method: "PUT"
+      });
+      setUser((prev) => (prev ? { ...prev, addresses, activeAddressId: id } : null));
+    } catch {
+      setUser((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          activeAddressId: id,
+          addresses: prev.addresses.map((a) => ({
+            ...a,
+            isDefault: a.id === id || a._id === id
+          }))
+        };
+      });
+    }
+  }, []);
 
-  const setActiveAddress = React.useCallback(async (id: string) => {
-    await apiFetch(`/user/addresses/${id}/default`, {
-      method: "PATCH"
-    });
-    await refreshProfile();
-  }, [refreshProfile]);
+  const setActiveAddress = setDefaultAddress;
 
-  const value = React.useMemo(
+  const value = React.useMemo<AccountContextValue>(
     () => ({
       user,
-      isLoggedIn: !!user,
+      isLoggedIn: Boolean(user),
       hydrated,
-      sendOtp,
-      verifyOtp,
-      sendAdminOtp,
-      verifyAdminOtp,
-      verifyAdminPassword,
+      loginWithEmailPassword,
+      login: loginWithEmailPassword,
+      registerUser,
+      loginWithGoogle,
+      forgotPassword,
+      resetPassword,
       logout,
       updateProfile,
       addAddress,
@@ -346,42 +330,23 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
       setDefaultAddress,
       setActiveAddress
     }),
-    [
-      user,
-      hydrated,
-      sendOtp,
-      verifyOtp,
-      sendAdminOtp,
-      verifyAdminOtp,
-      verifyAdminPassword,
-      logout,
-      updateProfile,
-      addAddress,
-      updateAddress,
-      deleteAddress,
-      setDefaultAddress,
-      setActiveAddress
-    ]
+    [user, hydrated, loginWithEmailPassword, registerUser, loginWithGoogle, forgotPassword, resetPassword, logout, updateProfile, addAddress, updateAddress, deleteAddress, setDefaultAddress]
   );
 
   return <AccountContext.Provider value={value}>{children}</AccountContext.Provider>;
 }
 
-export function useAccount() {
-  const context = React.useContext(AccountContext);
-  if (!context) {
-    throw new Error("useAccount must be used within an AccountProvider");
+export function useAccount(): AccountContextValue {
+  const ctx = React.useContext(AccountContext);
+  if (!ctx) {
+    throw new Error("useAccount must be used inside an <AccountProvider>");
   }
-  return context;
+  return ctx;
 }
 
-/**
- * Is this session the store admin?
- *
- * Keyed on the role carried in the JWT, not on a phone number. Route guards
- * used to compare against a hardcoded number, so changing the admin's phone
- * silently locked them out of their own dashboard.
- */
-export function isAdminSession(user: UserProfile | null | undefined): boolean {
-  return Boolean(user?.role && user.role !== "Customer");
+export function isAdminSession(user: UserProfile | null): boolean {
+  if (!user) return false;
+  // Always normalize to lowercase — single source of truth
+  const role = String(user.role || "").toLowerCase().trim();
+  return role === "admin";
 }

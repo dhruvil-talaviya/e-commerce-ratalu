@@ -313,11 +313,20 @@ export function ProductDetailClient({ flavor }: { flavor: Flavor }) {
             <DeliveryEstimate />
           </div>
 
-          {/* Promos */}
-          <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[var(--color-border)] pt-5 text-xs text-charcoal-muted">
-            <span className="flex items-center gap-1.5"><Truck className="size-4 text-purple-600" /> Free shipping above ₹599</span>
-            <span className="flex items-center gap-1.5"><ShieldCheck className="size-4 text-purple-600" /> Freshness guaranteed</span>
-            <span className="flex items-center gap-1.5"><RotateCcw className="size-4 text-purple-600" /> 7-day easy returns</span>
+          {/* Promos & Vrat Transparency Block */}
+          <div className="mt-6 rounded-2xl bg-[#4A1942] p-4 text-white shadow-md">
+            <div className="flex items-center gap-2 text-sm font-bold text-[#F5D76E]">
+              <ShieldCheck className="size-4 text-[#E8B923]" /> 100% Vrat & Fasting Friendly Guaranteed
+            </div>
+            <p className="mt-1 text-xs text-[#E8C8E4] leading-relaxed">
+              Made with pure rock salt (Sendha Namak), cold-pressed groundnut oil, and fresh Gujarat Ratalu (Purple Yam). Zero artificial preservatives.
+            </p>
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[#E8DED4] pt-4 text-xs text-[#8A7B70]">
+            <span className="flex items-center gap-1.5"><Truck className="size-4 text-[#4A1942]" /> Free shipping above ₹599</span>
+            <span className="flex items-center gap-1.5"><ShieldCheck className="size-4 text-[#4A1942]" /> Freshness guaranteed</span>
+            <span className="flex items-center gap-1.5"><RotateCcw className="size-4 text-[#4A1942]" /> 7-day easy returns</span>
           </div>
         </div>
       </div>
@@ -333,7 +342,7 @@ export function ProductDetailClient({ flavor }: { flavor: Flavor }) {
               aria-selected={activeTab === t.key}
               className={cn(
                 "-mb-[14px] shrink-0 whitespace-nowrap border-b-2 pb-2 text-sm font-bold uppercase tracking-wider transition-all",
-                activeTab === t.key ? "border-purple-600 text-purple-700" : "border-transparent text-charcoal-muted hover:text-purple-600"
+                activeTab === t.key ? "border-[#4A1942] text-[#4A1942]" : "border-transparent text-charcoal-muted hover:text-[#6B2D5B]"
               )}
             >
               {t.label}
@@ -344,10 +353,10 @@ export function ProductDetailClient({ flavor }: { flavor: Flavor }) {
         <div className="mt-8 min-h-[140px]">
           {activeTab === "ingredients" && (
             <div className="max-w-2xl">
-              <h3 className="mb-4 font-serif text-xl font-bold text-charcoal">What goes inside</h3>
+              <h3 className="mb-4 font-serif text-xl font-bold text-[#1A0F0A]">What goes inside</h3>
               <div className="flex flex-wrap gap-2">
                 {flavor.ingredients.map((ing) => (
-                  <span key={ing} className="rounded-full border border-purple-100 bg-cream-100 px-4 py-1.5 text-sm font-semibold text-purple-800">{ing}</span>
+                  <span key={ing} className="rounded-full border border-[#B76DAE]/30 bg-[#E8C8E4]/30 px-4 py-1.5 text-sm font-semibold text-[#4A1942]">{ing}</span>
                 ))}
               </div>
               <p className="mt-5 text-sm italic text-charcoal-muted">{NUTRITION_NOTE}</p>
@@ -438,9 +447,13 @@ export function ProductDetailClient({ flavor }: { flavor: Flavor }) {
                   <div className="flex items-center gap-3">
                     <span
                       className="grid size-10 place-items-center rounded-full text-sm font-bold text-white"
-                      style={{ background: `linear-gradient(135deg, ${rev.avatarGradient.from}, ${rev.avatarGradient.to})` }}
+                      style={{
+                        background: rev.avatarGradient
+                          ? `linear-gradient(135deg, ${rev.avatarGradient.from}, ${rev.avatarGradient.to})`
+                          : "linear-gradient(135deg, #7a3f9c, #5b2c6f)",
+                      }}
                     >
-                      {rev.initials}
+                      {rev.initials || rev.name.slice(0, 2).toUpperCase()}
                     </span>
                     <div>
                       <p className="text-sm font-bold text-charcoal">{rev.name}</p>
@@ -449,7 +462,7 @@ export function ProductDetailClient({ flavor }: { flavor: Flavor }) {
                   </div>
                   <span className="flex items-center gap-0.5 text-xs font-semibold text-gold-500">
                     {Array.from({ length: rev.rating }).map((_, idx) => (
-                      <Star key={idx} className="size-3.5 fill-gold-400 text-gold-400" />
+                      <Star key={idx} className="size-3.5 fill-[#E8B923] text-[#E8B923]" />
                     ))}
                   </span>
                 </div>
@@ -480,24 +493,24 @@ export function ProductDetailClient({ flavor }: { flavor: Flavor }) {
             animate={{ y: 0 }}
             exit={{ y: 100 }}
             transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-            className="fixed inset-x-0 bottom-0 z-30 border-t border-[var(--color-border)] bg-cream/95 px-4 pt-3 pb-safe backdrop-blur-xl lg:hidden"
+            className="fixed inset-x-0 bottom-0 z-30 border-t border-[#E8DED4] bg-[#FDF8F0]/95 px-4 pt-3 pb-safe backdrop-blur-xl lg:hidden shadow-2xl"
           >
             <div className="mx-auto flex max-w-2xl items-center gap-3">
               <div className="shrink-0">
-                <p className="text-[11px] leading-none text-charcoal-muted">{pack.label} pack</p>
-                <p className="font-serif text-lg font-bold leading-tight text-purple-700">{formatINR(pack.price * qty)}</p>
+                <p className="text-[11px] leading-none text-[#8A7B70]">{pack.label} pack</p>
+                <p className="font-serif text-lg font-bold leading-tight text-[#4A1942]">{formatINR(pack.price * qty)}</p>
               </div>
-              <div className="flex shrink-0 items-center rounded-full border border-[var(--color-border)] bg-white">
-                <button onClick={() => setQty((q) => Math.max(1, q - 1))} className="grid size-10 place-items-center rounded-full text-charcoal-muted hover:text-purple-700" aria-label="Decrease quantity">
+              <div className="flex shrink-0 items-center rounded-full border border-[#E8DED4] bg-white">
+                <button onClick={() => setQty((q) => Math.max(1, q - 1))} className="grid size-10 place-items-center rounded-full text-charcoal-muted hover:text-[#4A1942]" aria-label="Decrease quantity">
                   <Minus className="size-4" />
                 </button>
                 <span className="w-6 text-center text-sm font-bold tabular-nums">{qty}</span>
-                <button onClick={() => setQty((q) => Math.min(99, q + 1))} className="grid size-10 place-items-center rounded-full text-charcoal-muted hover:text-purple-700" aria-label="Increase quantity">
+                <button onClick={() => setQty((q) => Math.min(99, q + 1))} className="grid size-10 place-items-center rounded-full text-charcoal-muted hover:text-[#4A1942]" aria-label="Increase quantity">
                   <Plus className="size-4" />
                 </button>
               </div>
-              <Button onClick={handleAdd} variant={added ? "accent" : "primary"} size="lg" className="min-w-0 flex-1">
-                {added ? <Check className="size-5" /> : <ShoppingBag className="size-5" />}
+              <Button onClick={handleAdd} className="min-w-0 flex-1 bg-[#E8B923] text-[#1A0F0A] hover:bg-[#D4A017] font-bold h-11" size="lg">
+                {added ? <Check className="size-5 mr-1" /> : <ShoppingBag className="size-5 mr-1" />}
                 <span className="truncate">{added ? "Added" : "Add to Cart"}</span>
               </Button>
             </div>

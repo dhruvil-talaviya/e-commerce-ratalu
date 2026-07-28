@@ -459,8 +459,8 @@ exports.approve = async (req, res, next) => {
   const executeApprove = async (session) => {
     const options = session ? { session } : {};
     
-    if (req.user.role !== 'Super Admin') {
-      throw new ErrorResponse('Only a Super Admin can approve refunds.', 403);
+    if (!req.user || req.user.role === 'customer') {
+      throw new ErrorResponse('Not authorized to access this route', 403);
     }
 
     const { amount, note } = req.body;
@@ -587,8 +587,8 @@ exports.approve = async (req, res, next) => {
 // @access  Private (Super Admin)
 exports.reject = async (req, res, next) => {
   try {
-    if (req.user.role !== 'Super Admin') {
-      return next(new ErrorResponse('Only a Super Admin can reject refunds.', 403));
+    if (!req.user || req.user.role === 'customer') {
+      return next(new ErrorResponse('Not authorized to access this route', 403));
     }
 
     const { reason } = req.body;
@@ -682,8 +682,8 @@ exports.markItemReceived = async (req, res, next) => {
 // @access  Private (Super Admin)
 exports.processRefund = async (req, res, next) => {
   try {
-    if (req.user.role !== 'Super Admin') {
-      return next(new ErrorResponse('Only a Super Admin can release a refund.', 403));
+    if (!req.user || req.user.role === 'customer') {
+      return next(new ErrorResponse('Not authorized to access this route', 403));
     }
 
     const refund = await loadRefund(req.params.refundId);
