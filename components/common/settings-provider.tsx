@@ -354,18 +354,20 @@ const DEFAULT_SETTINGS: StoreSettings = {
 const SETTINGS_CACHE_KEY = "ratalu_store_settings_v1";
 
 export function StoreSettingsProvider({ children }: { children: React.ReactNode }) {
-  const [settings, setSettings] = React.useState<StoreSettings>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const cached = localStorage.getItem(SETTINGS_CACHE_KEY);
-        if (cached) return { ...DEFAULT_SETTINGS, ...JSON.parse(cached) };
-      } catch (e) {
-        // ignore cache parse errors
-      }
-    }
-    return DEFAULT_SETTINGS;
-  });
+  const [settings, setSettings] = React.useState<StoreSettings>(DEFAULT_SETTINGS);
   const [hydrated, setHydrated] = React.useState(false);
+
+  // Read local cache immediately after mount to avoid SSR hydration mismatch
+  React.useEffect(() => {
+    try {
+      const cached = localStorage.getItem(SETTINGS_CACHE_KEY);
+      if (cached) {
+        setSettings((prev) => ({ ...prev, ...JSON.parse(cached) }));
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, []);
 
   const fetchSettings = React.useCallback(async () => {
     try {
