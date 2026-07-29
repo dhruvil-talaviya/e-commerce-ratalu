@@ -7,7 +7,12 @@ const sendResponse = require('../utils/response');
 const jwt = require('jsonwebtoken');
 const { OAuth2Client } = require('google-auth-library');
 
-const googleClient = new OAuth2Client(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID);
+const GOOGLE_CLIENT_ID =
+  process.env.GOOGLE_CLIENT_ID ||
+  process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||
+  '298921708703-77b3962ci5p0bkul4fntq8urmma2f2m9.apps.googleusercontent.com';
+
+const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 // @desc    Google OAuth Authentication (Customers Only)
 // @route   POST /api/v1/auth/google
@@ -24,7 +29,7 @@ exports.googleAuth = async (req, res, next) => {
       try {
         const ticket = await googleClient.verifyIdToken({
           idToken,
-          audience: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID,
+          audience: GOOGLE_CLIENT_ID,
         });
         const payload = ticket.getPayload();
         if (!payload || !payload.email) {
