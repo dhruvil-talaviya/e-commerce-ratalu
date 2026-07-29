@@ -47,12 +47,7 @@ exports.googleAuth = async (req, res, next) => {
       return next(new ErrorResponse('Google account email or ID token is required', 400));
     }
 
-    // Admin accounts cannot sign in through customer Google OAuth gate
-    const admin = await Admin.findOne({ email });
-    if (admin || email === 'talaviyad380@gmail.com') {
-      return next(new ErrorResponse('Admin accounts must authenticate via /admin/login.', 403));
-    }
-
+    // Check if customer exists or create new account
     let isCreated = false;
     let customer = await Customer.findOne({ email });
 
