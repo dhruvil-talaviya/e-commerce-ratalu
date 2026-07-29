@@ -18,8 +18,9 @@ function YamoraSymbol({
   onDark?: boolean;
   className?: string;
 }) {
-  const mainColor = onDark ? "#FFFFFF" : "#3D2663";
-  const accentColor = onDark ? "#FACC15" : "#C9921A";
+  const bgFill = onDark ? "#4A1942" : "#5B2C83";
+  const mainColor = "#FFFFFF";
+  const accentColor = "#F4C542";
 
   return (
     <svg
@@ -31,28 +32,31 @@ function YamoraSymbol({
       className={className}
       aria-hidden
     >
-      {/* Outer double arc ring (gold & purple) */}
-      <circle cx="100" cy="100" r="94" stroke={accentColor} strokeWidth="3" fill="none" />
-      <circle cx="100" cy="100" r="88" stroke={mainColor} strokeWidth="1.8" fill="none" />
+      {/* Background squircle card */}
+      <rect x="4" y="4" width="192" height="192" rx="44" fill={bgFill} />
+
+      {/* Outer double arc ring (gold & white) */}
+      <circle cx="100" cy="100" r="90" stroke={accentColor} strokeWidth="4.5" fill="none" />
+      <circle cx="100" cy="100" r="83" stroke="#FFFFFF" strokeWidth="2" fill="none" />
 
       {/* Chips bucket */}
-      <path d="M78 70 L82 101 L118 101 L122 70 Z" fill={mainColor} />
-      <rect x="88"  y="70" width="5"  height="31" fill="white" opacity="0.2" rx="1" />
-      <rect x="97"  y="70" width="5"  height="31" fill="white" opacity="0.2" rx="1" />
-      <rect x="106" y="70" width="5"  height="31" fill="white" opacity="0.2" rx="1" />
+      <path d="M78 67 L82 98 L118 98 L122 67 Z" fill="#FFFFFF" />
+      <rect x="88" y="67" width="5" height="31" fill="#4A1942" opacity="0.25" rx="1" />
+      <rect x="97" y="67" width="5" height="31" fill="#4A1942" opacity="0.25" rx="1" />
+      <rect x="106" y="67" width="5" height="31" fill="#4A1942" opacity="0.25" rx="1" />
 
       {/* Golden chips */}
-      <ellipse cx="82" cy="68" rx="11" ry="5.5" transform="rotate(-25 82 68)" fill="#D4A017" />
-      <ellipse cx="100" cy="64" rx="12" ry="5" transform="rotate(5 100 64)" fill="#E0B020" />
-      <ellipse cx="118" cy="68" rx="11" ry="5.5" transform="rotate(22 118 68)" fill="#D4A017" />
+      <ellipse cx="82" cy="65" rx="11" ry="5.5" transform="rotate(-25 82 65)" fill="#F4C542" />
+      <ellipse cx="100" cy="61" rx="12" ry="5" transform="rotate(5 100 61)" fill="#FFE17D" />
+      <ellipse cx="118" cy="65" rx="11" ry="5.5" transform="rotate(22 118 65)" fill="#F4C542" />
 
       {/* Wordmark "yamora" */}
       <text
         x="100"
-        y="124"
+        y="121"
         textAnchor="middle"
         fontFamily="Georgia, 'Palatino Linotype', serif"
-        fontSize="29"
+        fontSize="30"
         fontWeight="900"
         fill={mainColor}
         letterSpacing="-0.5"
@@ -63,11 +67,11 @@ function YamoraSymbol({
       {/* Sub-label "- WAFERS -" */}
       <text
         x="100"
-        y="138"
+        y="135"
         textAnchor="middle"
         fontFamily="'Arial', sans-serif"
-        fontSize="10"
-        fontWeight="700"
+        fontSize="10.5"
+        fontWeight="800"
         fill={accentColor}
         letterSpacing="3.5"
       >
@@ -75,31 +79,17 @@ function YamoraSymbol({
       </text>
 
       {/* Swoosh */}
-      <path d="M30 147 Q60 139 100 143 Q140 147 170 139" stroke={mainColor} strokeWidth="3" strokeLinecap="round" fill="none" />
-      <path d="M30 152 Q60 144 100 148 Q140 152 170 144" stroke={accentColor} strokeWidth="1.5" strokeLinecap="round" fill="none" />
+      <path d="M30 144 Q60 136 100 140 Q140 144 170 136" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" fill="none" />
+      <path d="M30 149 Q60 141 100 145 Q140 149 170 141" stroke={accentColor} strokeWidth="1.5" strokeLinecap="round" fill="none" />
 
       {/* Twin green leaves */}
-      <ellipse cx="150" cy="138" rx="11" ry="6" transform="rotate(-50 150 138)" fill="#5A8A3C" />
-      <ellipse cx="157" cy="132" rx="10" ry="5.5" transform="rotate(-65 157 132)" fill="#4A7A2C" />
-
-      {/* Tagline */}
-      <text
-        x="100"
-        y="163"
-        textAnchor="middle"
-        fontFamily="Georgia, serif"
-        fontSize="8.5"
-        fontStyle="italic"
-        fill={mainColor}
-        opacity="0.85"
-      >
-        Crispy. Tasty. Naturally Yours.
-      </text>
+      <ellipse cx="150" cy="135" rx="11" ry="6" transform="rotate(-50 150 135)" fill="#7CB342" />
+      <ellipse cx="157" cy="129" rx="10" ry="5.5" transform="rotate(-65 157 129)" fill="#558B2F" />
 
       {/* Three stars */}
-      <path d="M74 177 L75.4 181.2 L79.8 181.2 L76.2 183.8 L77.6 188 L74 185.4 L70.4 188 L71.8 183.8 L68.2 181.2 L72.6 181.2 Z" fill={mainColor} />
-      <path d="M100 175 L101.7 180.2 L107.2 180.2 L102.8 183.3 L104.5 188.5 L100 185.4 L95.5 188.5 L97.2 183.3 L92.8 180.2 L98.3 180.2 Z" fill={mainColor} />
-      <path d="M126 177 L127.4 181.2 L131.8 181.2 L128.2 183.8 L129.6 188 L126 185.4 L122.4 188 L123.8 183.8 L120.2 181.2 L124.6 181.2 Z" fill={mainColor} />
+      <path d="M74 168 L75.4 172.2 L79.8 172.2 L76.2 174.8 L77.6 179 L74 176.4 L70.4 179 L71.8 174.8 L68.2 172.2 L72.6 172.2 Z" fill={accentColor} />
+      <path d="M100 166 L101.7 171.2 L107.2 171.2 L102.8 174.3 L104.5 179.5 L100 176.4 L95.5 178.4 L97.2 174.3 L92.8 171.2 L98.3 171.2 Z" fill={accentColor} />
+      <path d="M126 168 L127.4 172.2 L131.8 172.2 L128.2 174.8 L129.6 179 L126 176.4 L122.4 179 L123.8 174.8 L120.2 172.2 L124.6 172.2 Z" fill={accentColor} />
     </svg>
   );
 }
