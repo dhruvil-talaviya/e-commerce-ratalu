@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/components/ui/toast";
+import { Input } from "@/components/ui/input";
 import { apiFetchEnvelope, apiFetch, getTokens } from "@/lib/api";
 import { useAccount } from "@/components/account/account-provider";
 import { AdminShell } from "@/components/admin/console/admin-shell";
@@ -666,7 +667,7 @@ function OrdersView() {
         >
           <span className="text-[10px] font-semibold text-amber-700">Expired / Failed</span>
           <span className="mt-1 text-lg font-extrabold text-amber-950">
-            {orders.filter((o) => o.status === "Expired" || o.status === "Payment Failed" || o.status === "Payment Pending").length}
+            {orders.filter((o) => (o.status as string) === "Expired" || (o.status as string) === "Payment Failed" || (o.status as string) === "Payment Pending" || o.status === "Pending").length}
           </span>
         </button>
       </div>

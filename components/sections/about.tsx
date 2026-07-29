@@ -53,7 +53,7 @@ export function About() {
     .map((p) => p.trim())
     .filter(Boolean);
 
-  const effectiveHideVisual = hideVisual || (!media && (!cms.storyBlocks || cms.storyBlocks.length === 0));
+  const effectiveHideVisual = hideVisual || (!media && (!Array.isArray((cms as any).storyBlocks) || (cms as any).storyBlocks.length === 0));
 
   return (
     <section id="about" className="relative scroll-mt-24 py-8 sm:py-16 lg:py-24">

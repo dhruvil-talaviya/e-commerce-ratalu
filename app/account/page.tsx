@@ -938,9 +938,11 @@ function OrderStatusStepper({ status }: { status: string }) {
 function OrderCard({
   order,
   defaultExpanded = false,
+  onRefreshOrders,
 }: {
   order: Order;
   defaultExpanded?: boolean;
+  onRefreshOrders?: () => void;
 }) {
   const [isExpanded, setIsExpanded] = React.useState(defaultExpanded);
   const [detailedOrder, setDetailedOrder] = React.useState<any | null>(null);
@@ -990,7 +992,9 @@ function OrderCard({
       if (res?.data) {
         setDetailedOrder(res.data);
       }
-      refreshOrders();
+      if (onRefreshOrders) {
+        onRefreshOrders();
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to cancel order");
     } finally {
@@ -1216,7 +1220,9 @@ function OrderCard({
                               })
                                 .then(() => {
                                   toast.success("Payment successful! Order updated.");
-                                  refreshOrders();
+                                  if (onRefreshOrders) {
+                                    onRefreshOrders();
+                                  }
                                 })
                                 .catch((err: any) => {
                                   toast.error(err.message || "Payment verification failed.");
@@ -1377,6 +1383,7 @@ function OrdersPanel() {
               key={order.id}
               order={order}
               defaultExpanded={idx === 0}
+              onRefreshOrders={refreshOrders}
             />
           ))}
         </div>

@@ -893,7 +893,14 @@ function DashboardTab({
         <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm flex flex-col justify-between">
           <div>
             <h4 className="text-xs font-bold text-gray-700 mb-3">Daily Orders Trend</h4>
-            <DailyOrdersBarChart data={charts?.orderTrend || []} />
+            <DailyOrdersBarChart
+              data={(charts?.orderTrend || []).map((pt) => ({
+                date: String(pt.label || pt.date || ""),
+                orders: Number(pt.value || pt.orders || 0),
+                cancelled: pt.cancelled !== undefined ? Number(pt.cancelled) : undefined,
+                delivered: pt.delivered !== undefined ? Number(pt.delivered) : undefined,
+              }))}
+            />
           </div>
         </div>
       </div>
