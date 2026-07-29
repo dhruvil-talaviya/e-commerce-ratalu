@@ -25,7 +25,9 @@ interface UseGoogleAuthOptions {
   onError?: (error: string) => void;
 }
 
-const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!;
+const GOOGLE_CLIENT_ID =
+  process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||
+  "298921708703-77b3962ci5p0bkul4fntq8urmma2f2m9.apps.googleusercontent.com";
 
 /**
  * Decodes a JWT token payload without verification (client-side only).
