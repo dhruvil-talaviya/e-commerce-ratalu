@@ -13,7 +13,8 @@ const {
   reject,
   markItemReceived,
   processRefund,
-  addNote
+  addNote,
+  syncRazorpayRefund
 } = require('../controllers/refund.controller');
 
 const { protect, authorize } = require('../middlewares/auth');
@@ -38,5 +39,6 @@ router.post('/admin/refunds/:refundId/reject', ...adminOnly, reject);
 router.post('/admin/refunds/:refundId/received', ...adminOnly, markItemReceived);
 router.post('/admin/refunds/:refundId/process', ...adminOnly, processRefund);
 router.post('/admin/refunds/:refundId/notes', ...adminOnly, addNote);
+router.post('/admin/refunds/:refundId/sync-razorpay', ...adminOnly, syncRazorpayRefund);
 
 module.exports = router;

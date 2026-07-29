@@ -15,6 +15,9 @@ import {
   Clock,
   CheckCircle2,
   Printer,
+  Edit2,
+  AlertCircle,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/components/ui/toast";
@@ -22,6 +25,7 @@ import { apiFetchEnvelope, apiFetch, getTokens } from "@/lib/api";
 import { useAccount } from "@/components/account/account-provider";
 import { AdminShell } from "@/components/admin/console/admin-shell";
 import { LiveCountdown } from "@/components/common/live-countdown";
+import { useLiveRefresh } from "@/lib/hooks/use-live-refresh";
 import { OrderTimeline } from "@/components/common/order-timeline";
 import { DataTable, type Column } from "@/components/admin/ui/data-table";
 import {
@@ -145,8 +149,8 @@ function OrdersView() {
     return p.toString();
   }, [page, pageSize, sortBy, sortOrder, debouncedSearch, filters]);
 
-  const load = React.useCallback(async () => {
-    setLoading(true);
+  const load = React.useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     setError(null);
     try {
       const env = await apiFetchEnvelope<Order[]>(`/admin/orders?${query}`);
@@ -154,14 +158,26 @@ function OrdersView() {
       setTotalPages(env.pagination?.totalPages ?? 1);
       setTotalRecords(env.pagination?.totalRecords ?? 0);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load orders");
+      if (!silent) {
+        setError(err instanceof Error ? err.message : "Failed to load orders");
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [query]);
 
   React.useEffect(() => {
     load();
+  }, [load]);
+
+  // Live real-time polling every 5 seconds — updates order status without manual refresh
+  useLiveRefresh(() => load(true), { minIntervalMs: 2000 });
+
+  React.useEffect(() => {
+    const timer = setInterval(() => {
+      load(true);
+    }, 5000);
+    return () => clearInterval(timer);
   }, [load]);
 
   // Filter dropdown options come from the real data, not a hardcoded list.
@@ -390,15 +406,18 @@ function OrdersView() {
       key: "userName",
       header: "Customer",
       sortable: true,
-      cell: (o) => (
-        <div className="min-w-0">
-          <p className="truncate font-semibold">{o.userName}</p>
-          <p className="mt-0.5 flex items-center gap-1 text-[10px] text-[#6B7280]">
-            <Phone className="size-2.5" />
-            {o.userPhone}
-          </p>
-        </div>
-      ),
+      cell: (o) => {
+        const phoneNum = o.userPhone || o.address?.phone;
+        return (
+          <div className="min-w-0">
+            <p className="truncate font-semibold">{o.userName}</p>
+            <p className="mt-0.5 flex items-center gap-1 text-[10px] text-[#6B7280]">
+              <Phone className="size-2.5" />
+              {phoneNum || "—"}
+            </p>
+          </div>
+        );
+      },
     },
     {
       key: "city",
@@ -527,7 +546,22 @@ function OrdersView() {
         >
           <span className="text-[10px] font-semibold text-emerald-700">Confirmed</span>
           <span className="mt-1 text-lg font-extrabold text-emerald-950">
-            {orders.filter((o) => o.status === "Confirmed" || o.status === "Preparing").length}
+            {orders.filter((o) => o.status === "Confirmed").length}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setFilter("status", "Preparing")}
+          className={cn(
+            "flex flex-col items-start justify-between rounded-xl border p-3 text-left transition-all cursor-pointer",
+            filters.status === "Preparing"
+              ? "border-amber-400 bg-amber-50/80 ring-2 ring-amber-400/20 shadow-xs"
+              : "border-gray-200 bg-white hover:border-amber-200 hover:bg-amber-50/40"
+          )}
+        >
+          <span className="text-[10px] font-semibold text-amber-700">Preparing</span>
+          <span className="mt-1 text-lg font-extrabold text-amber-950">
+            {orders.filter((o) => o.status === "Preparing").length}
           </span>
         </button>
 
@@ -542,7 +576,22 @@ function OrdersView() {
         >
           <span className="text-[10px] font-semibold text-blue-700">Packed</span>
           <span className="mt-1 text-lg font-extrabold text-blue-950">
-            {orders.filter((o) => o.status === "Packed" || o.status === "Ready to Ship").length}
+            {orders.filter((o) => o.status === "Packed").length}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setFilter("status", "Ready to Ship")}
+          className={cn(
+            "flex flex-col items-start justify-between rounded-xl border p-3 text-left transition-all cursor-pointer",
+            filters.status === "Ready to Ship"
+              ? "border-indigo-400 bg-indigo-50/80 ring-2 ring-indigo-400/20 shadow-xs"
+              : "border-gray-200 bg-white hover:border-indigo-200 hover:bg-indigo-50/40"
+          )}
+        >
+          <span className="text-[10px] font-semibold text-indigo-700">Ready To Ship</span>
+          <span className="mt-1 text-lg font-extrabold text-indigo-950">
+            {orders.filter((o) => o.status === "Ready to Ship").length}
           </span>
         </button>
 
@@ -603,6 +652,21 @@ function OrdersView() {
           <span className="text-[10px] font-semibold text-slate-600">Refunded</span>
           <span className="mt-1 text-lg font-extrabold text-slate-900">
             {orders.filter((o) => ["Refunded", "Refund Completed", "Refund Processing"].includes(o.status)).length}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setFilter("status", "Expired")}
+          className={cn(
+            "flex flex-col items-start justify-between rounded-xl border p-3 text-left transition-all cursor-pointer",
+            filters.status === "Expired"
+              ? "border-amber-400 bg-amber-50/80 ring-2 ring-amber-400/20 shadow-xs"
+              : "border-gray-200 bg-white hover:border-amber-200 hover:bg-amber-50/40"
+          )}
+        >
+          <span className="text-[10px] font-semibold text-amber-700">Expired / Failed</span>
+          <span className="mt-1 text-lg font-extrabold text-amber-950">
+            {orders.filter((o) => o.status === "Expired" || o.status === "Payment Failed" || o.status === "Payment Pending").length}
           </span>
         </button>
       </div>
@@ -1074,6 +1138,9 @@ function OrderDetail({
   const [overrideReason, setOverrideReason] = React.useState("");
   const [showOverrideModal, setShowOverrideModal] = React.useState(false);
   const [dispatching, setDispatching] = React.useState(false);
+  const [editingPhone, setEditingPhone] = React.useState(false);
+  const [newPhone, setNewPhone] = React.useState("");
+  const [savingPhone, setSavingPhone] = React.useState(false);
 
   if (!order) return null;
 
@@ -1206,24 +1273,11 @@ function OrderDetail({
           </Badge>
 
           {((order.status as string) === "Pending Confirmation" || (order.status as string) === "Pending") && (
-            <div className="flex items-center gap-1.5 ml-auto sm:ml-0">
-              <Button
-                variant="primary"
-                size="sm"
-                disabled={busy}
-                onClick={async () => {
-                  try {
-                    const res = await apiFetch<any>(`/admin/orders/${order.id}/confirm-now`, { method: "POST" });
-                    toast.success("Order confirmed immediately & sent for fulfillment!");
-                    onUpdated(res.data?.order || res.order || order);
-                  } catch (err: any) {
-                    toast.error(err.message || "Confirmation failed");
-                  }
-                }}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white border-none text-xs font-bold"
-              >
-                Confirm Now
-              </Button>
+            <div className="flex items-center gap-2 ml-auto sm:ml-0 flex-wrap">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold">
+                <Clock className="size-3.5 text-amber-600 animate-pulse" />
+                Auto-confirms in 5 mins (Cancellation Window)
+              </span>
               <Button
                 variant="secondary"
                 size="sm"
@@ -1332,15 +1386,83 @@ function OrderDetail({
       {/* Customer + address */}
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         <Card className="p-3">
-          <p className="text-[10px] font-bold text-[#6B7280]">Customer</p>
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-bold text-[#6B7280]">Customer</p>
+            {!editingPhone && (
+              <button
+                type="button"
+                onClick={() => {
+                  setNewPhone(order.userPhone || order.address?.phone || "");
+                  setEditingPhone(true);
+                }}
+                className="text-[10px] font-bold text-purple-700 hover:underline flex items-center gap-0.5"
+              >
+                <Edit2 className="size-2.5" />
+                {order.userPhone || order.address?.phone ? "Edit" : "Add Phone"}
+              </button>
+            )}
+          </div>
           <p className="mt-1 text-xs font-bold text-[#111827]">{order.userName}</p>
-          <a
-            href={`tel:${order.userPhone}`}
-            className="mt-0.5 flex items-center gap-1 text-[11px] text-[#3B82F6] hover:underline"
-          >
-            <Phone className="size-3" />
-            {order.userPhone}
-          </a>
+
+          {editingPhone ? (
+            <div className="mt-2 flex items-center gap-1.5">
+              <Input
+                type="tel"
+                maxLength={10}
+                placeholder="10-digit mobile"
+                value={newPhone}
+                onChange={(e) => setNewPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                className="h-7 text-xs font-numbers rounded-lg border-purple-200"
+              />
+              <Button
+                size="sm"
+                disabled={savingPhone}
+                onClick={async () => {
+                  if (!/^\d{10}$/.test(newPhone.trim())) {
+                    toast.error("Please enter a valid 10-digit mobile number");
+                    return;
+                  }
+                  setSavingPhone(true);
+                  try {
+                    const res = await apiFetch<Order>(`/admin/orders/${order.id}`, {
+                      method: "PATCH",
+                      body: { userPhone: newPhone.trim() },
+                    });
+                    toast.success("Customer mobile number updated!");
+                    setEditingPhone(false);
+                    onUpdated(res);
+                  } catch (err: any) {
+                    toast.error(err.message || "Failed to update mobile number");
+                  } finally {
+                    setSavingPhone(false);
+                  }
+                }}
+                className="h-7 px-2 bg-purple-700 hover:bg-purple-800 text-[11px] font-bold rounded-lg shrink-0"
+              >
+                {savingPhone ? <Loader2 className="size-3 animate-spin" /> : "Save"}
+              </Button>
+              <button
+                type="button"
+                onClick={() => setEditingPhone(false)}
+                className="text-[10px] font-bold text-gray-500 hover:text-gray-700 px-1"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : order.userPhone || order.address?.phone ? (
+            <a
+              href={`tel:${order.userPhone || order.address?.phone}`}
+              className="mt-0.5 flex items-center gap-1 text-[11px] font-semibold text-[#3B82F6] hover:underline"
+            >
+              <Phone className="size-3" />
+              {order.userPhone || order.address?.phone}
+            </a>
+          ) : (
+            <p className="mt-0.5 text-[11px] text-red-500 font-semibold flex items-center gap-1">
+              <AlertCircle className="size-3" />
+              Missing phone number
+            </p>
+          )}
         </Card>
         <Card className="p-3">
           <p className="flex items-center gap-1 text-[10px] font-bold text-[#6B7280]">

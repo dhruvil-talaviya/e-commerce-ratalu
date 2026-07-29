@@ -3,6 +3,7 @@ const router = express.Router();
 
 const {
   createPaymentOrder,
+  retryPaymentOrder,
   verifyPayment,
   paymentWebhook
 } = require('../controllers/payment.controller');
@@ -11,6 +12,7 @@ const { protect } = require('../middlewares/auth');
 
 // Customer-initiated payment flow
 router.post('/payment/create-order', protect, createPaymentOrder);
+router.post('/payment/retry-order/:orderId', protect, retryPaymentOrder);
 router.post('/payment/verify', protect, verifyPayment);
 
 // Gateway server-to-server callback — authenticated by HMAC signature,

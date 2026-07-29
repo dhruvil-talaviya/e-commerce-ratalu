@@ -274,7 +274,7 @@ export default function AdminLogisticsPage() {
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
                   className={cn(
-                    "flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all whitespace-nowrap",
+                    "flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-colors whitespace-nowrap",
                     active
                       ? "bg-[#5B2C83] text-white shadow-sm"
                       : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"

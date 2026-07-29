@@ -9,33 +9,44 @@ let syncIntervalTimer = null;
  */
 async function syncActiveShipments() {
   try {
-    const activeStatuses = ['Packed', 'Pickup Scheduled', 'Picked Up', 'In Transit', 'Out For Delivery'];
-    
-    const activeShipments = await Shipment.find({
+    const activeStatuses = ['Packed', 'Pickup Scheduled', 'Picked Up', 'In Transit', 'Out For Delivery', 'Shipment Created', 'AWB Assigned'];
+    const batchSize = 50;
+    let skip = 0;
+    let totalProcessed = 0;
+    let totalSuccess = 0;
+    let totalFailures = 0;
+
+    let activeShipments = await Shipment.find({
       status: { $in: activeStatuses },
       awbCode: { $exists: true, $ne: '' }
-    }).limit(50); // Process batch of up to 50 active shipments
+    }).skip(skip).limit(batchSize);
 
     if (activeShipments.length === 0) {
       return;
     }
 
-    logger.info(`[Logistics Sync Job] Starting automated tracking sync for ${activeShipments.length} active shipments...`);
+    logger.info(`[Logistics Sync Job] Starting automated tracking sync for active shipments...`);
 
-    let successCount = 0;
-    let failCount = 0;
-
-    for (const shipment of activeShipments) {
-      try {
-        await LogisticsService.syncTrackingInfo(shipment._id);
-        successCount++;
-      } catch (err) {
-        failCount++;
-        logger.error(`[Logistics Sync Job] Failed syncing shipment ${shipment.orderId}: ${err.message}`);
+    while (activeShipments.length > 0) {
+      for (const shipment of activeShipments) {
+        totalProcessed++;
+        try {
+          await LogisticsService.syncTrackingInfo(shipment._id);
+          totalSuccess++;
+        } catch (err) {
+          totalFailures++;
+          logger.error(`[Logistics Sync Job] Failed syncing shipment ${shipment.orderId}: ${err.message}`);
+        }
       }
+
+      skip += batchSize;
+      activeShipments = await Shipment.find({
+        status: { $in: activeStatuses },
+        awbCode: { $exists: true, $ne: '' }
+      }).skip(skip).limit(batchSize);
     }
 
-    logger.info(`[Logistics Sync Job] Completed tracking sync. Success: ${successCount}, Failures: ${failCount}`);
+    logger.info(`[Logistics Sync Job] Completed batch tracking sync. Total Processed: ${totalProcessed}, Success: ${totalSuccess}, Failures: ${totalFailures}`);
   } catch (error) {
     logger.error(`[Logistics Sync Job Error] ${error.message}`);
   }

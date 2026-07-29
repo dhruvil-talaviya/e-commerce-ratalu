@@ -44,8 +44,8 @@ export function OrderTimeline({
           <XCircle className="size-5 text-rose-600" />
           <h4 className="text-sm font-extrabold text-rose-950">Order Cancelled</h4>
         </div>
-        <p className="mt-1 text-xs text-rose-700">
-          This order was cancelled on {cancelledAt ? new Date(cancelledAt).toLocaleString("en-IN") : "request"}. Reserved items were released back to stock.
+        <p className="mt-1 text-xs text-rose-700 font-medium">
+          This order was cancelled {cancelledAt ? `on ${new Date(cancelledAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}` : ""}. Any paid amount will be automatically refunded to your original payment method within 3 to 5 business days.
         </p>
       </div>
     );

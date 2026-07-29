@@ -107,21 +107,34 @@ const Customer = require('../models/Customer');
 const listUsable = async ({ customer } = {}) => {
   const now = new Date();
 
-  const coupons = await Coupon.find({
-    status: 'Active',
-    $and: [
-      { $or: [{ expiryDate: null }, { expiryDate: { $exists: false } }, { expiryDate: { $gt: now } }] },
-      { $or: [{ usageLimit: 0 }, { usageLimit: null }, { $expr: { $lt: ['$usageCount', '$usageLimit'] } }] }
-    ]
-  }).sort({ createdAt: -1 });
+  // Find all active coupons that are not expired
+  const allActiveCoupons = await Coupon.find({ status: 'Active' }).sort({ createdAt: -1 });
+
+  const unexpiredCoupons = allActiveCoupons.filter((c) => {
+    if (c.expiryDate && !isNaN(new Date(c.expiryDate).getTime()) && new Date(c.expiryDate) <= now) {
+      return false;
+    }
+    const usageCount = c.usageCount || 0;
+    const usageLimit = c.usageLimit || 0;
+    if (usageLimit > 0 && usageCount >= usageLimit) {
+      return false;
+    }
+    return true;
+  });
 
   if (!customer) {
     // A guest is a first-time buyer until proven otherwise, so welcome offers stay visible.
-    return coupons;
+    return unexpiredCoupons;
+  }
+
+  // Find orders placed by this customer (matching by customerId OR phone)
+  const orderConditions = [{ customerId: customer._id }];
+  if (customer.phone) {
+    orderConditions.push({ userPhone: customer.phone });
   }
 
   const [orders, customerDoc] = await Promise.all([
-    Order.find({ customerId: customer._id, status: REDEEMED_STATUSES }).select('couponCode').lean(),
+    Order.find({ $or: orderConditions, status: REDEEMED_STATUSES }).select('couponCode').lean(),
     Customer.findById(customer._id).select('couponsUsed').lean()
   ]);
 
@@ -133,9 +146,11 @@ const listUsable = async ({ customer } = {}) => {
 
   const customerUsedSet = new Set(customerDoc?.couponsUsed || []);
 
-  return coupons.filter((c) => {
+  return unexpiredCoupons.filter((c) => {
     // 1. Exclude if max global usage reached
-    if (c.usageLimit > 0 && c.usageCount >= c.usageLimit) return false;
+    const usageCount = c.usageCount || 0;
+    const usageLimit = c.usageLimit || 0;
+    if (usageLimit > 0 && usageCount >= usageLimit) return false;
 
     // 2. Exclude first-order-only if customer has 1+ orders
     if (c.firstOrderOnly && ordersPlaced > 0) return false;

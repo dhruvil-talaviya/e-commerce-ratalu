@@ -16,10 +16,11 @@ async function processExpiredHoldOrders() {
 
   try {
     const now = new Date();
-    // Query orders that are in Pending Confirmation state and whose 5-min countdown has passed
+    // Query orders that are in Pending Confirmation state, paid (or COD), and whose 5-min countdown has passed
     const expiredOrders = await Order.find({
       status: 'Pending Confirmation',
       orderStatus: { $nin: ['Cancelled', 'Refunded', 'Returned', 'Failed'] },
+      'payment.status': { $in: ['Paid', 'Captured'] },
       cancellationDeadline: { $lte: now }
     });
 

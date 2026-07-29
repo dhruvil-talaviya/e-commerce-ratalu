@@ -45,7 +45,10 @@ router.get('/admin/orders', ...adminOnly, getAdminOrders);
 router.get('/admin/orders/:id/invoice', ...adminOnly, getOrderInvoice);
 router.put('/admin/orders/:id/status', ...adminOnly, updateOrderStatus);
 router.put('/admin/orders/:id/courier', ...adminOnly, assignCourier);
+const { expireOrderManually } = require('../controllers/payment.controller');
+
 router.post('/admin/orders/:id/confirm-now', ...adminOnly, confirmOrderNow);
 router.post('/admin/orders/:id/extend-timer', ...adminOnly, extendOrderTimer);
+router.post('/admin/orders/:id/expire', ...adminOnly, expireOrderManually);
 
 module.exports = router;

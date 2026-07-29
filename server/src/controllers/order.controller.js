@@ -437,6 +437,17 @@ exports.placeOrder = async ({ user, items, couponCode, address, method, paymentM
     throw new ErrorResponse('A complete delivery address is required', 400);
   }
 
+  const phoneNum = (address && address.phone) || (user && user.phone) || '';
+  const customerName = (address && address.fullName) || (user && user.name) || '';
+
+  if (!customerName || customerName.trim() === '' || customerName.trim() === 'Customer') {
+    throw new ErrorResponse('Customer full name is required to place an order', 400);
+  }
+
+  if (!phoneNum || !/^\d{10}$/.test(phoneNum.trim())) {
+    throw new ErrorResponse('A valid 10-digit mobile number is required to place an order', 400);
+  }
+
   const ALLOWED_METHODS = ['COD', 'Razorpay', 'UPI', 'Card', 'Wallet'];
   const payMethod = ALLOWED_METHODS.includes(paymentMethod) ? paymentMethod : 'COD';
 
@@ -1202,6 +1213,23 @@ exports.updateOrderStatus = async (req, res, next) => {
       }
     }
 
+    const { userPhone, phone } = req.body;
+    const newPhone = (userPhone || phone || '').trim();
+    if (newPhone) {
+      if (!/^\d{10}$/.test(newPhone)) {
+        throw new ErrorResponse('Mobile number must be a valid 10-digit number', 400);
+      }
+      order.userPhone = newPhone;
+      if (order.address) {
+        order.address.phone = newPhone;
+      }
+      // Also update linked customer account if available
+      if (order.customerId) {
+        const Customer = require('../models/Customer');
+        await Customer.findByIdAndUpdate(order.customerId, { phone: newPhone }, options);
+      }
+    }
+
     if (internalNotes !== undefined) {
       order.internalNotes = internalNotes;
     }
@@ -1872,6 +1900,25 @@ exports.confirmOrderNow = async (req, res, next) => {
     if (!order) return next(new ErrorResponse('Order not found', 404));
 
     const now = new Date();
+    if (order.payment && !['Paid', 'Captured'].includes(order.payment.status) && order.payment.method !== 'COD') {
+      return next(
+        new ErrorResponse(
+          `Cannot confirm Order #${order.displayId || order.id}: Payment status is '${order.payment?.status || 'Pending'}'. Unpaid orders cannot be confirmed.`,
+          400
+        )
+      );
+    }
+
+    if (order.cancellationDeadline && new Date(order.cancellationDeadline).getTime() > now.getTime()) {
+      const remainingSecs = Math.ceil((new Date(order.cancellationDeadline).getTime() - now.getTime()) / 1000);
+      return next(
+        new ErrorResponse(
+          `Order #${order.displayId || order.id} is in the 5-minute customer hold window. Admin cannot manually confirm until the window expires (${remainingSecs}s remaining).`,
+          400
+        )
+      );
+    }
+
     order.status = 'Confirmed';
     order.orderStatus = 'Confirmed';
     order.fulfilmentStatus = 'Ready to Pack';

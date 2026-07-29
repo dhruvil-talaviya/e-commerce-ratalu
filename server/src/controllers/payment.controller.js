@@ -20,14 +20,21 @@ const { decrypt } = require('../utils/crypto');
 const getRazorpayCredentials = async () => {
   try {
     const settings = await Settings.findOne();
-    let keyId = settings?.razorpayKeyId || process.env.RAZORPAY_KEY_ID || '';
-    let keySecret = '';
+    const isTestMode = settings?.razorpayTestMode ?? settings?.testMode ?? (process.env.NODE_ENV !== 'production');
 
-    if (settings?.encryptedRazorpayKeySecret) {
-      keySecret = decrypt(settings.encryptedRazorpayKeySecret);
-    }
-    if (!keySecret) {
-      keySecret = process.env.RAZORPAY_KEY_SECRET || '';
+    let keyId = settings?.razorpayKeyId || '';
+    let keySecret = settings?.encryptedRazorpayKeySecret ? decrypt(settings.encryptedRazorpayKeySecret) : '';
+
+    if (isTestMode) {
+      // Test Mode is ACTIVE — force test keys (rzp_test_...)
+      if (!keyId || !keyId.startsWith('rzp_test_')) {
+        keyId = process.env.RAZORPAY_KEY_ID || 'rzp_test_T5WdwhRhXWtpsG';
+        keySecret = process.env.RAZORPAY_KEY_SECRET || 'Pe33SD68Ogs57BeSQ3TWxN0C';
+      }
+    } else {
+      // Live Mode
+      if (!keyId) keyId = process.env.RAZORPAY_KEY_ID || '';
+      if (!keySecret) keySecret = process.env.RAZORPAY_KEY_SECRET || '';
     }
 
     let webhookSecret = '';
@@ -38,12 +45,13 @@ const getRazorpayCredentials = async () => {
       webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET || '';
     }
 
-    return { keyId, keySecret, webhookSecret };
+    return { keyId, keySecret, webhookSecret, isTestMode };
   } catch {
     return {
-      keyId: process.env.RAZORPAY_KEY_ID || '',
-      keySecret: process.env.RAZORPAY_KEY_SECRET || '',
-      webhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET || ''
+      keyId: process.env.RAZORPAY_KEY_ID || 'rzp_test_T5WdwhRhXWtpsG',
+      keySecret: process.env.RAZORPAY_KEY_SECRET || 'Pe33SD68Ogs57BeSQ3TWxN0C',
+      webhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET || '',
+      isTestMode: true
     };
   }
 };
@@ -140,6 +148,76 @@ exports.createPaymentOrder = async (req, res, next) => {
       ));
     }
 
+    // ── IDEMPOTENCY GUARD ────────────────────────────────────────────────────
+    // If this customer already has an active "Payment Pending" online order
+    // (created within the last 30 minutes), do NOT create a new one.
+    // Instead, generate a fresh Razorpay gateway order against the existing
+    // MongoDB order and return it — identical to what retry-order does.
+    //
+    // This is the primary server-side guard against duplicate orders.
+    // It fires when:
+    //   – Frontend state is lost (page refresh, browser back)
+    //   – User clicks Place Order twice quickly
+    //   – payment-failed page mistakenly routes back to /checkout
+    if (!isOffline) {
+      const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+      const existingOrder = await Order.findOne({
+        customerId: req.user._id,
+        status: 'Payment Pending',
+        'payment.status': 'Pending',
+        createdAt: { $gte: thirtyMinutesAgo }
+      }).sort({ createdAt: -1 });
+
+      if (existingOrder) {
+        logger.info(`[createPaymentOrder] Idempotency: reusing existing Payment Pending order ${existingOrder.id} for user ${req.user._id}.`);
+
+        // Create a fresh Razorpay order for the existing total
+        const amountPaise = Math.round(existingOrder.totals.total * 100);
+        const rzp = await createRazorpayOrder({ amountPaise, receipt: existingOrder.id });
+        const { keyId } = await getRazorpayCredentials();
+
+        existingOrder.payment.gatewayOrderId = rzp.id;
+        existingOrder.lastGatewayOrderId = rzp.id;
+        existingOrder.lastAttemptAt = new Date();
+        existingOrder.paymentAttemptsCount = (existingOrder.paymentAttemptsCount || 0) + 1;
+        if (!existingOrder.paymentAttempts) existingOrder.paymentAttempts = [];
+        existingOrder.paymentAttempts.push({
+          gatewayOrderId: rzp.id,
+          status: 'Pending',
+          amount: existingOrder.totals.total,
+          createdAt: new Date()
+        });
+        await existingOrder.save();
+
+        await Payment.create({
+          orderId: existingOrder.id,
+          customerId: req.user._id,
+          method: existingOrder.payment?.method || 'Razorpay',
+          gateway: 'razorpay',
+          amount: existingOrder.totals.total,
+          status: 'Pending',
+          gatewayOrderId: rzp.id,
+          gatewayResponse: rzp
+        });
+
+        return sendResponse(res, 200, {
+          success: true,
+          message: 'Existing pending order reused.',
+          data: {
+            order: existingOrder,
+            requiresPayment: true,
+            razorpay: {
+              orderId: rzp.id,
+              amount: amountPaise,
+              currency: 'INR',
+              keyId: keyId || process.env.RAZORPAY_KEY_ID
+            }
+          }
+        });
+      }
+    }
+    // ── END IDEMPOTENCY GUARD ────────────────────────────────────────────────
+
     // Reuses the exact same validation/stock/coupon/total logic as /orders.
     const order = await placeOrder({
       user: req.user,
@@ -219,6 +297,138 @@ exports.createPaymentOrder = async (req, res, next) => {
   }
 };
 
+
+// @desc    Retry payment for an existing unpaid order (reuses DB order, creates NEW Razorpay order)
+// @route   POST /api/v1/payment/retry-order/:orderId
+// @access  Private
+exports.retryPaymentOrder = async (req, res, next) => {
+  try {
+    const { orderId } = req.params;
+    const order = await Order.findOne({ $or: [{ id: orderId }, { _id: orderId }] });
+
+    if (!order) {
+      return next(new ErrorResponse('Order not found', 404));
+    }
+
+    if (order.payment && order.payment.status === 'Paid') {
+      return next(new ErrorResponse('Order has already been paid for.', 400));
+    }
+
+    if (order.status === 'Cancelled' || order.status === 'Refunded' || order.status === 'Expired') {
+      return next(new ErrorResponse(`Cannot retry payment for an order in '${order.status}' status.`, 400));
+    }
+
+    if ((order.paymentAttemptsCount || 0) >= 5) {
+      return next(new ErrorResponse('Maximum payment retry limit (5 attempts) reached. Please place a new order or contact support.', 400));
+    }
+
+    const isConfigured = await gatewayConfigured();
+    if (!isConfigured) {
+      return next(new ErrorResponse('Online payment gateway is not configured.', 503));
+    }
+
+    // Create a NEW Razorpay Gateway Order for the existing total
+    const amountPaise = Math.round(order.totals.total * 100);
+    const rzp = await createRazorpayOrder({ amountPaise, receipt: order.id });
+    const { keyId } = await getRazorpayCredentials();
+
+    // Update order fields
+    order.status = 'Payment Pending';
+    order.orderStatus = 'Payment Pending';
+    order.payment.status = 'Pending';
+    order.payment.gatewayOrderId = rzp.id;
+    order.lastGatewayOrderId = rzp.id;
+    order.lastAttemptAt = new Date();
+    order.paymentAttemptsCount = (order.paymentAttemptsCount || 0) + 1;
+
+    const attemptRecord = {
+      gatewayOrderId: rzp.id,
+      status: 'Pending',
+      amount: order.totals.total,
+      createdAt: new Date()
+    };
+    if (!order.paymentAttempts) order.paymentAttempts = [];
+    order.paymentAttempts.push(attemptRecord);
+
+    order.timeline.push({
+      status: 'Payment Pending',
+      time: new Date(),
+      note: `Payment retry attempt #${order.paymentAttemptsCount} initiated with Razorpay Order ${rzp.id}.`
+    });
+
+    await order.save();
+
+    // Also record in Payment audit collection
+    await Payment.create({
+      orderId: order.id,
+      customerId: req.user._id,
+      method: order.payment?.method || 'Razorpay',
+      gateway: 'razorpay',
+      amount: order.totals.total,
+      status: 'Pending',
+      gatewayOrderId: rzp.id,
+      gatewayResponse: rzp
+    });
+
+    sendResponse(res, 200, {
+      success: true,
+      message: 'Payment retry order generated',
+      data: {
+        order,
+        requiresPayment: true,
+        razorpay: {
+          orderId: rzp.id,
+          amount: amountPaise,
+          currency: 'INR',
+          keyId: keyId || process.env.RAZORPAY_KEY_ID
+        }
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Manually expire a pending unpaid order (Admin)
+// @route   POST /api/v1/admin/orders/:orderId/expire
+// @access  Private (Admin)
+exports.expireOrderManually = async (req, res, next) => {
+  try {
+    const { orderId } = req.params;
+    const order = await Order.findOne({ $or: [{ id: orderId }, { _id: orderId }] });
+
+    if (!order) {
+      return next(new ErrorResponse('Order not found', 404));
+    }
+
+    if (order.payment && order.payment.status === 'Paid') {
+      return next(new ErrorResponse('Cannot expire an order that is already paid', 400));
+    }
+
+    order.status = 'Expired';
+    order.orderStatus = 'Expired';
+    order.payment.status = 'Failed';
+    order.expiredAt = new Date();
+    order.expiredReason = req.body.reason || `Manually expired by admin ${req.user.username || req.user.name || ''}`;
+
+    order.timeline.push({
+      status: 'Expired',
+      time: new Date(),
+      note: order.expiredReason
+    });
+
+    await order.save();
+
+    sendResponse(res, 200, {
+      success: true,
+      message: 'Order marked as Expired successfully',
+      data: order
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Verify a completed gateway payment (called by the client on success)
 // @route   POST /api/v1/payment/verify
 // @access  Private
@@ -234,10 +444,28 @@ exports.verifyPayment = async (req, res, next) => {
       return next(new ErrorResponse('Payment gateway is not configured', 503));
     }
 
+    // 1. Prefer the canonical orderId (e.g. RW-000009) sent from the frontend.
     let order = orderId ? await Order.findOne({ id: orderId }) : null;
+
+    // 2. Fallback: match by the active Razorpay gateway order on the order doc.
     if (!order) {
       order = await Order.findOne({ 'payment.gatewayOrderId': razorpay_order_id });
     }
+
+    // 3. Fallback: after a retry, the new Razorpay order is stored in
+    //    lastGatewayOrderId rather than payment.gatewayOrderId.
+    if (!order) {
+      order = await Order.findOne({ lastGatewayOrderId: razorpay_order_id });
+    }
+
+    // 4. Deepest fallback: scan the paymentAttempts array (handles edge-cases
+    //    where the order was retried before lastGatewayOrderId was added).
+    if (!order) {
+      order = await Order.findOne({
+        'paymentAttempts.gatewayOrderId': razorpay_order_id
+      });
+    }
+
     if (!order) {
       return next(new ErrorResponse('Order not found', 404));
     }
@@ -441,6 +669,100 @@ exports.paymentWebhook = async (req, res) => {
             message: `Payment failed via Webhook for Order ${order.displayId || order.id}. Reason: ${entity.error_description || 'Unknown'}.`,
             type: 'OrderStatus'
           });
+        }
+      }
+    }
+
+    // ── Handle Refund Webhooks (refund.processed, refund.created, refund.failed) ──────────────
+    const refundEntity = req.body?.payload?.refund?.entity;
+    if (refundEntity && (event === 'refund.processed' || event === 'refund.created' || event === 'refund.failed')) {
+      const Refund = require('../models/Refund');
+      const razorpayRefundId = refundEntity.id;
+      const paymentId = refundEntity.payment_id;
+      const refundNotes = refundEntity.notes || {};
+      const refundAmount = refundEntity.amount ? refundEntity.amount / 100 : 0;
+
+      let refundDoc = null;
+      if (refundNotes.refundId) {
+        refundDoc = await Refund.findOne({ refundId: refundNotes.refundId });
+      }
+      if (!refundDoc && razorpayRefundId) {
+        refundDoc = await Refund.findOne({ razorpayRefundId });
+      }
+      if (!refundDoc && paymentId) {
+        refundDoc = await Refund.findOne({ razorpayPaymentId: paymentId, status: { $ne: 'Refunded' } });
+      }
+
+      let orderDoc = null;
+      if (refundNotes.orderId) {
+        orderDoc = await Order.findOne({ id: refundNotes.orderId });
+      }
+      if (!orderDoc && paymentId) {
+        orderDoc = await Order.findOne({ 'payment.transactionId': paymentId });
+      }
+      if (!orderDoc && refundDoc) {
+        orderDoc = await Order.findOne({ id: refundDoc.orderId });
+      }
+
+      if (orderDoc) {
+        if (event === 'refund.failed') {
+          if (refundDoc) {
+            refundDoc.gatewayStatus = 'failed';
+            refundDoc.failureReason = refundEntity.error_description || 'Razorpay refund failed';
+            refundDoc.status = 'Failed';
+            await refundDoc.save();
+          }
+        } else {
+          // Processed / Created
+          orderDoc.payment.status = 'Refunded';
+          orderDoc.payment.refundedAt = new Date();
+          if (!orderDoc.timeline.some(t => t.note && t.note.includes(razorpayRefundId))) {
+            orderDoc.timeline.push({
+              status: 'Refund Completed',
+              time: new Date(),
+              note: `Refund of ₹${refundAmount} processed via Razorpay (${razorpayRefundId}).`
+            });
+          }
+          await orderDoc.save();
+
+          if (refundDoc) {
+            refundDoc.razorpayRefundId = razorpayRefundId;
+            refundDoc.gatewayStatus = refundEntity.status || 'processed';
+            refundDoc.gatewayResponse = refundEntity;
+            refundDoc.status = 'Refunded';
+            refundDoc.refundedAt = new Date();
+            await refundDoc.save();
+          } else {
+            // Created directly on Razorpay Dashboard
+            const service = require('../services/refund.service');
+            const newRefundId = await service.nextRefundId();
+            await Refund.create({
+              refundId: newRefundId,
+              orderId: orderDoc.id,
+              customerId: orderDoc.customerId,
+              customerName: orderDoc.userName,
+              customerPhone: orderDoc.userPhone,
+              orderTotal: orderDoc.totals.total,
+              type: 'Refund',
+              reason: 'Razorpay Dashboard Refund',
+              description: `Refund created directly on Razorpay Dashboard (${razorpayRefundId}).`,
+              items: orderDoc.items,
+              requestedAmount: refundAmount || orderDoc.totals.total,
+              approvedAmount: refundAmount || orderDoc.totals.total,
+              status: 'Refunded',
+              razorpayPaymentId: paymentId,
+              razorpayRefundId,
+              gatewayStatus: refundEntity.status || 'processed',
+              gatewayResponse: refundEntity,
+              refundedAt: new Date(),
+              timeline: [{
+                status: 'Refunded',
+                note: `Refund processed via Razorpay Dashboard (${razorpayRefundId}).`,
+                by: 'Razorpay Webhook',
+                at: new Date()
+              }]
+            });
+          }
         }
       }
     }

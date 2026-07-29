@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const LogisticsSettings = require('../../models/LogisticsSettings');
 const Shipment = require('../../models/Shipment');
 const Order = require('../../models/Order');
@@ -59,6 +60,37 @@ class LogisticsService {
       throw new Error(`Logistics provider "${providerName}" is not supported`);
     }
     return provider;
+  }
+
+  /**
+   * Sync pickup locations from active logistics provider (Shiprocket) into DB settings
+   */
+  async syncPickupLocations(providerName = 'shiprocket') {
+    const settings = await this.getSettings();
+    const token = await this.getAuthToken(providerName);
+    const provider = this.getProvider(providerName);
+
+    const locations = await provider.getPickupLocations(token);
+
+    if (Array.isArray(locations)) {
+      settings.pickupLocations = locations.map((loc, idx) => ({
+        pickupLocation: loc.pickupLocation,
+        name: loc.name,
+        email: loc.email,
+        phone: loc.phone,
+        address: loc.address,
+        address2: loc.address2 || '',
+        city: loc.city,
+        state: loc.state,
+        country: loc.country || 'India',
+        pinCode: loc.pinCode,
+        shiprocketLocationId: loc.shiprocketLocationId,
+        isDefault: idx === 0
+      }));
+      await settings.save();
+    }
+
+    return locations || [];
   }
 
   /**
@@ -500,8 +532,14 @@ class LogisticsService {
    * Generate Document (Label / Manifest / Invoice)
    */
   async generateDocument(shipmentId, docType) {
-    const shipment = await Shipment.findById(shipmentId);
-    if (!shipment) throw new Error('Shipment not found');
+    const shipment = await Shipment.findOne({
+      $or: [
+        { _id: mongoose.Types.ObjectId.isValid(shipmentId) ? shipmentId : null },
+        { order: mongoose.Types.ObjectId.isValid(shipmentId) ? shipmentId : null },
+        { orderId: shipmentId }
+      ]
+    });
+    if (!shipment) throw new Error('Shipment not found. Please click "Create Shipment" first.');
 
     const token = await this.getAuthToken(shipment.provider);
     const provider = this.getProvider(shipment.provider);

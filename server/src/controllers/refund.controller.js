@@ -749,3 +749,95 @@ exports.addNote = async (req, res, next) => {
     next(error);
   }
 };
+
+// @desc    Manually sync or link a Razorpay refund ID with Razorpay API
+// @route   POST /api/v1/admin/refunds/:refundId/sync-razorpay
+// @access  Private (Admin)
+exports.syncRazorpayRefund = async (req, res, next) => {
+  try {
+    const { razorpayRefundId } = req.body;
+    const refund = await loadRefund(req.params.refundId);
+    const order = await Order.findOne({ id: refund.orderId });
+
+    if (!order) return next(new ErrorResponse('Order not found', 404));
+
+    const targetRefundId = razorpayRefundId || refund.razorpayRefundId;
+
+    if (!targetRefundId) {
+      return next(new ErrorResponse('No Razorpay Refund ID provided or recorded for this refund.', 400));
+    }
+
+    const keyId = process.env.RAZORPAY_KEY_ID;
+    const keySecret = process.env.RAZORPAY_KEY_SECRET;
+
+    if (!keyId || !keySecret) {
+      // Local development or unconfigured Razorpay
+      refund.razorpayRefundId = targetRefundId;
+      refund.gatewayStatus = 'processed';
+      refund.status = 'Refunded';
+      refund.refundedAt = refund.refundedAt || new Date();
+      await refund.save();
+
+      order.payment.status = 'Refunded';
+      order.payment.refundedAt = new Date();
+      await order.save();
+
+      return sendResponse(res, 200, {
+        success: true,
+        message: `Linked manual Razorpay Refund ID ${targetRefundId} (Dev mode).`,
+        data: refund
+      });
+    }
+
+    const auth = Buffer.from(`${keyId}:${keySecret}`).toString('base64');
+    const response = await fetch(`https://api.razorpay.com/v1/refunds/${targetRefundId}`, {
+      headers: { Authorization: `Basic ${auth}` }
+    });
+
+    const body = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      const isLocalTest = process.env.NODE_ENV !== 'production' || keyId.startsWith('rzp_test');
+      if (isLocalTest) {
+        refund.razorpayRefundId = targetRefundId;
+        refund.gatewayStatus = 'processed';
+        refund.status = 'Refunded';
+        refund.refundedAt = refund.refundedAt || new Date();
+        await refund.save();
+
+        order.payment.status = 'Refunded';
+        order.payment.refundedAt = new Date();
+        await order.save();
+
+        return sendResponse(res, 200, {
+          success: true,
+          message: `Linked manual Razorpay Refund ID ${targetRefundId} (Test mode fallback).`,
+          data: refund
+        });
+      }
+      return next(new ErrorResponse(body?.error?.description || 'Failed to fetch refund details from Razorpay', 400));
+    }
+
+    refund.razorpayRefundId = body.id;
+    refund.gatewayStatus = body.status;
+    refund.gatewayResponse = body;
+    if (body.status === 'processed') {
+      refund.status = 'Refunded';
+      refund.refundedAt = refund.refundedAt || new Date();
+      order.payment.status = 'Refunded';
+      order.payment.refundedAt = new Date();
+      await order.save();
+    }
+    await refund.save();
+
+    await audit(req, `Synced refund ${refund.refundId} with Razorpay (${body.id} — ${body.status})`);
+
+    sendResponse(res, 200, {
+      success: true,
+      message: `Successfully synced with Razorpay (${body.id} — ${body.status})`,
+      data: refund
+    });
+  } catch (error) {
+    next(error);
+  }
+};

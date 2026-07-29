@@ -53,20 +53,47 @@ export function About() {
     .map((p) => p.trim())
     .filter(Boolean);
 
+  const effectiveHideVisual = hideVisual || (!media && (!cms.storyBlocks || cms.storyBlocks.length === 0));
+
   return (
     <section id="about" className="relative scroll-mt-24 py-8 sm:py-16 lg:py-24">
       <div
         className={cn(
-          "container-px mx-auto grid max-w-7xl items-center gap-16",
-          // Full width when the visual is turned off.
-          hideVisual ? "max-w-3xl" : "lg:grid-cols-2"
+          "container-px mx-auto grid max-w-7xl items-center gap-12 sm:gap-16",
+          // Full width when the visual is turned off or not present
+          effectiveHideVisual ? "max-w-4xl" : "lg:grid-cols-2"
         )}
       >
         {/* Visual — uploaded photo/video, or the generated tile collage */}
-        {!hideVisual && (
+        {!effectiveHideVisual && (
           <Reveal direction="right" className="relative order-2 lg:order-1">
             <div className="relative mx-auto max-w-md">
-              {media && !mediaError ? (
+              {Array.isArray(cms.mediaGallery) && cms.mediaGallery.length > 0 ? (
+                <div className="flex flex-col gap-4">
+                  {cms.mediaGallery.map((m: any, idx: number) => {
+                    const itemUrl = sanitizeMediaUrl(m.url || m);
+                    if (!itemUrl) return null;
+                    const isVid = /\.(mp4|webm|ogg|mov)(\?|$)/i.test(itemUrl);
+                    return (
+                      <div key={idx} className="overflow-hidden rounded-3xl bg-white/70 shadow-[var(--shadow-lift)] border border-purple-100">
+                        {isVid ? (
+                          <video
+                            src={itemUrl}
+                            autoPlay={settings?.autoplayVideo ?? true}
+                            loop={settings?.loopVideo ?? true}
+                            muted={settings?.muteVideo ?? true}
+                            playsInline
+                            className="aspect-square w-full object-cover"
+                          />
+                        ) : (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={itemUrl} alt={title} className="aspect-square w-full object-cover" />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : media && !mediaError ? (
                 // A real photo or video of how the chips are grown / made.
                 <div className="overflow-hidden rounded-3xl bg-white/70 shadow-[var(--shadow-lift)]">
                   {mediaIsVideo ? (
@@ -105,7 +132,7 @@ export function About() {
         )}
 
         {/* Story */}
-        <div className={cn(hideVisual ? "" : "order-1 lg:order-2")}>
+        <div className={cn(effectiveHideVisual ? "w-full" : "order-1 lg:order-2")}>
           <Reveal>
             <span className="inline-flex items-center gap-2 rounded-full bg-purple-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-purple-600">
               <span className="size-1.5 rounded-full bg-orange-500" />
@@ -118,8 +145,36 @@ export function About() {
             </h2>
           </Reveal>
           <Reveal delay={0.1}>
-            <div className="mt-6 space-y-4 text-lg leading-relaxed text-charcoal-muted">
-              {paragraphs.length > 0 ? (
+            <div className="mt-6 space-y-6 text-lg leading-relaxed text-charcoal-muted">
+              {Array.isArray(cms.storyBlocks) && cms.storyBlocks.length > 0 ? (
+                cms.storyBlocks.map((block: any, idx: number) => {
+                  if (block.type === "heading") {
+                    return (
+                      <h3 key={idx} className="font-serif text-2xl font-bold text-charcoal pt-2">
+                        {block.text}
+                      </h3>
+                    );
+                  }
+                  if (block.type === "image" && block.url) {
+                    return (
+                      <div key={idx} className="my-4 overflow-hidden rounded-2xl border border-gray-200 shadow-md">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={block.url} alt={block.caption || "Story image"} className="w-full max-h-96 object-cover" />
+                        {block.caption && <p className="p-2 text-center text-xs font-semibold text-gray-500 bg-gray-50">{block.caption}</p>}
+                      </div>
+                    );
+                  }
+                  if (block.type === "video" && block.url) {
+                    return (
+                      <div key={idx} className="my-4 overflow-hidden rounded-2xl border border-gray-200 shadow-md">
+                        <video src={block.url} controls autoPlay={block.autoplay} loop={block.loop} muted={block.muted} className="w-full max-h-96 object-cover" />
+                        {block.caption && <p className="p-2 text-center text-xs font-semibold text-gray-500 bg-gray-50">{block.caption}</p>}
+                      </div>
+                    );
+                  }
+                  return <p key={idx}>{block.text || block}</p>;
+                })
+              ) : paragraphs.length > 0 ? (
                 paragraphs.map((p, idx) => <p key={idx}>{p}</p>)
               ) : (
                 <>

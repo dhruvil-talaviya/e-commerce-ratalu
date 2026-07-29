@@ -103,9 +103,16 @@ export default function CheckoutPage() {
     [user?.addresses]
   );
 
+  /**
+   * Require initial profile completion if user has no saved addresses OR
+   * is missing a valid phone number. This ensures first-time checkout collects
+   * both personal details (name, phone) and the primary address, auto-saving
+   * them to the profile.
+   */
   const needsProfileCompletion = React.useMemo(() => {
     if (!isLoggedIn || !user) return false;
-    return addresses.length === 0;
+    const hasValidPhone = Boolean(user.phone && /^\d{10}$/.test(user.phone.trim()));
+    return addresses.length === 0 || !hasValidPhone;
   }, [isLoggedIn, user, addresses]);
 
   // Payment methods
@@ -127,17 +134,93 @@ export default function CheckoutPage() {
 
   const [placing, setPlacing] = React.useState(false);
   const [orderId, setOrderId] = React.useState<string | null>(null);
-  const [createdOrder, setCreatedOrder] = React.useState<{
+
+  /**
+   * `createdOrder` is backed by sessionStorage so it survives page refresh,
+   * browser-back, and navigation within the same browser tab.
+   *
+   * Problem it solves: if the user lands on /payment-failed then presses the
+   * browser back button or navigates to /checkout again, React state is wiped
+   * and handlePlaceOrder sees createdOrder===null, calling placeOrder() which
+   * creates a duplicate RW-XXXXXX document.
+   *
+   * With sessionStorage persistence the checkout page re-hydrates createdOrder
+   * on mount, so the if(createdOrder) guard in handlePlaceOrder still fires.
+   * Combined with the server-side idempotency guard in createPaymentOrder,
+   * duplicate creation is impossible.
+   */
+  const SESSION_KEY = 'ratalu_pending_order';
+
+  const [createdOrder, _setCreatedOrder] = React.useState<{
     orderId: string;
     rzpOrderId: string;
     amount: number;
     currency: string;
     keyId: string;
-  } | null>(null);
+  } | null>(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const saved = sessionStorage.getItem(SESSION_KEY);
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const setCreatedOrder = React.useCallback(
+    (val: typeof createdOrder | null) => {
+      _setCreatedOrder(val);
+      try {
+        if (val) {
+          sessionStorage.setItem(SESSION_KEY, JSON.stringify(val));
+        } else {
+          sessionStorage.removeItem(SESSION_KEY);
+        }
+      } catch {}
+    },
+    []
+  );
+
+  // When payment succeeds and orderId is set, clear the session
+  React.useEffect(() => {
+    if (orderId) {
+      try { sessionStorage.removeItem(SESSION_KEY); } catch {}
+    }
+  }, [orderId]);
 
   const [showAddForm, setShowAddForm] = React.useState(false);
   const [checkoutError, setCheckoutError] = React.useState("");
   const [editingAddress, setEditingAddress] = React.useState<SavedAddress | null>(null);
+
+  // Ref to the address card section for auto-scrolling
+  const addressSectionRef = React.useRef<HTMLDivElement>(null);
+
+  /**
+   * Auto-open address form when a logged-in user has no saved addresses.
+   * Covers two cases:
+   *  (a) Brand-new Google-login user who has a name but no saved addresses.
+   *  (b) Any user whose address was deleted and they return to checkout.
+   * After addresses are saved, this effect will not re-open the form.
+   */
+  React.useEffect(() => {
+    if (isLoggedIn && !needsProfileCompletion && addresses.length === 0) {
+      setShowAddForm(true);
+      // Smooth-scroll to the address section after a short render delay
+      const timer = setTimeout(() => {
+        addressSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  // Only run when login state / address list changes, not on every render
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoggedIn, needsProfileCompletion, addresses.length]);
+
+  /**
+   * `paymentFailed` tracks whether the current checkout session had a payment
+   * failure WHILE an order document already exists (`createdOrder` is set).
+   * If true and the customer presses "Place Order" again, we MUST call
+   * POST /payment/retry-order/:orderId — NOT POST /payment/create-order.
+   */
   const [paymentFailed, setPaymentFailed] = React.useState(false);
 
   // PIN-code auto-fill effect for city and state
@@ -315,9 +398,11 @@ export default function CheckoutPage() {
               router.push(`/order-success?orderId=${co.orderId}`);
             })
             .catch((err: any) => {
-              setCheckoutError(err.message || "Payment verification failed.");
+              const msg = err.message || "Payment verification failed.";
+              setCheckoutError(msg);
               setPaymentFailed(true);
               setPlacing(false);
+              router.push(`/payment-failed?orderId=${co.orderId}&reason=${encodeURIComponent(msg)}`);
             });
         },
         prefill: {
@@ -331,9 +416,11 @@ export default function CheckoutPage() {
 
       const rzp = new (window as any).Razorpay(options);
       rzp.on("payment.failed", function (response: any) {
-        setCheckoutError(response.error?.description || "Payment failed. Please try again.");
+        const msg = response.error?.description || "Payment failed or cancelled. Please try again.";
+        setCheckoutError(msg);
         setPaymentFailed(true);
         setPlacing(false);
+        router.push(`/payment-failed?orderId=${co.orderId}&reason=${encodeURIComponent(msg)}`);
       });
       rzp.open();
     } catch (err: any) {
@@ -346,11 +433,52 @@ export default function CheckoutPage() {
     e.preventDefault();
     setCheckoutError("");
 
+    /**
+     * DUPLICATE-ORDER GUARD
+     *
+     * Case A — Razorpay dismissed without navigation (same React session):
+     *   `createdOrder` is non-null. Re-launch the gateway with the same Razorpay
+     *   order. No backend call needed — the order still exists, payment is Pending.
+     *
+     * Case B — Payment failed AND we're back in the same session (paymentFailed=true):
+     *   The previous Razorpay order is expired/failed. We must create a NEW Razorpay
+     *   gateway order against the EXISTING MongoDB order via retry-order, never via
+     *   create-order (which would run placeOrder() → Order.create() → duplicate RW).
+     */
     if (createdOrder) {
-      await launchRazorpay(createdOrder);
+      if (paymentFailed) {
+        // Session is still alive but payment failed — get a fresh Razorpay order
+        // against the same MongoDB document. Never create a new order.
+        setPlacing(true);
+        try {
+          const retryRes = await apiFetch<any>(`/payment/retry-order/${createdOrder.orderId}`, {
+            method: "POST",
+          });
+          const rzpData = retryRes?.razorpay;
+          if (!rzpData?.orderId) throw new Error("Retry failed: no gateway order returned.");
+
+          const co = {
+            orderId: createdOrder.orderId, // SAME MongoDB order ID — never changes
+            rzpOrderId: rzpData.orderId,   // NEW Razorpay gateway order
+            amount: rzpData.amount,
+            currency: rzpData.currency,
+            keyId: rzpData.keyId,
+          };
+          setCreatedOrder(co);
+          setPaymentFailed(false);
+          await launchRazorpay(co);
+        } catch (err: any) {
+          setCheckoutError(err.message || "Failed to retry payment. Please try from your orders.");
+          setPlacing(false);
+        }
+      } else {
+        // Gateway dismissed (ondismiss) — re-open with the same Razorpay order.
+        await launchRazorpay(createdOrder);
+      }
       return;
     }
 
+    // No order exists yet — this is a fresh checkout. Safe to create one.
     const activeAddr = selectedAddress;
     if (!activeAddr) {
       setCheckoutError("Please select or add a delivery address to place your order.");
@@ -598,29 +726,67 @@ export default function CheckoutPage() {
 
             /* 3. FUTURE ORDERS PRE-FILLED ADDRESS & PAYMENT FLOW */
             <>
-              {/* Delivery Address Card */}
-              <div className="bg-white border border-purple-100/80 rounded-3xl p-5 sm:p-6 shadow-sm hover:shadow-md transition-shadow">
+              {/* Delivery Address Card — ref used for auto-scroll on first visit */}
+              <div
+                ref={addressSectionRef}
+                className={cn(
+                  "bg-white border rounded-3xl p-5 sm:p-6 shadow-sm hover:shadow-md transition-all",
+                  addresses.length === 0
+                    ? "border-purple-400 ring-2 ring-purple-200 ring-offset-1"
+                    : "border-purple-100/80"
+                )}
+              >
                 <div className="flex items-center justify-between mb-4 border-b border-gray-100 pb-3">
                   <div className="flex items-center gap-2">
                     <div className="p-2 rounded-xl bg-purple-50 text-purple-700">
                       <MapPin className="size-4.5" />
                     </div>
-                    <h2 className="font-serif font-extrabold text-base text-gray-900">Delivery Address</h2>
+                    <div>
+                      <h2 className="font-serif font-extrabold text-base text-gray-900">Delivery Address</h2>
+                      {addresses.length === 0 && !showAddForm && (
+                        <p className="text-[11px] font-bold text-purple-600 mt-0.5">Add your delivery address to continue</p>
+                      )}
+                    </div>
                   </div>
                   <button
                     type="button"
                     onClick={() => setShowAddForm(!showAddForm)}
-                    title={showAddForm ? "Cancel" : "Edit / Change Address"}
-                    aria-label={showAddForm ? "Cancel" : "Edit / Change Address"}
-                    className="grid size-9 place-items-center rounded-xl border border-purple-200 bg-purple-50/70 text-purple-700 hover:bg-purple-100 hover:border-purple-300 transition-all cursor-pointer shadow-2xs"
+                    title={showAddForm ? "Cancel" : "Add / Change Address"}
+                    aria-label={showAddForm ? "Cancel" : "Add / Change Address"}
+                    className={cn(
+                      "grid size-9 place-items-center rounded-xl border transition-all cursor-pointer shadow-2xs",
+                      addresses.length === 0 && !showAddForm
+                        ? "border-purple-400 bg-purple-100 text-purple-800 hover:bg-purple-200"
+                        : "border-purple-200 bg-purple-50/70 text-purple-700 hover:bg-purple-100 hover:border-purple-300"
+                    )}
                   >
                     {showAddForm ? (
                       <X className="size-4 text-purple-700" />
+                    ) : addresses.length === 0 ? (
+                      <Plus className="size-4 text-purple-700" />
                     ) : (
                       <Edit2 className="size-4 text-purple-700" />
                     )}
                   </button>
                 </div>
+
+                {/* No-address banner — shown only when user has no addresses and form is closed */}
+                {addresses.length === 0 && !showAddForm && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAddForm(true)}
+                    className="w-full flex items-center gap-3 rounded-2xl border-2 border-dashed border-purple-300 bg-purple-50/50 p-4 text-left hover:bg-purple-50 hover:border-purple-400 transition-all group"
+                  >
+                    <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-purple-100 text-purple-700 group-hover:bg-purple-200 transition-colors">
+                      <Plus className="size-4.5" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-extrabold text-[#4A1942]">Add Delivery Address</p>
+                      <p className="text-xs text-gray-500 font-medium mt-0.5">Enter your house, street, city & PIN to continue</p>
+                    </div>
+                    <ArrowLeft className="size-4 text-purple-400 ml-auto rotate-180 group-hover:translate-x-0.5 transition-transform" />
+                  </button>
+                )}
 
                 {showAddForm ? (
                   <div className="pt-2">
@@ -814,23 +980,42 @@ export default function CheckoutPage() {
 }
 
 function OrderConfirmation({ orderId }: { orderId: string }) {
+  const router = useRouter();
+
+  React.useEffect(() => {
+    if (orderId) {
+      router.push(`/order-success?orderId=${orderId}`);
+    }
+  }, [orderId, router]);
+
   return (
-    <div className="container-px mx-auto flex max-w-lg flex-col items-center gap-6 py-24 text-center">
-      <span className="grid size-20 place-items-center rounded-full bg-emerald-100 text-emerald-600 animate-bounce">
-        <PartyPopper className="size-10" />
-      </span>
-      <div>
-        <h1 className="font-serif text-3xl font-extrabold text-gray-900">Order Placed Successfully!</h1>
-        <p className="mt-2 text-sm text-gray-500 font-medium">
-          Order ID: <span className="font-bold text-purple-700">{orderId}</span>
-        </p>
-        <p className="mt-1 text-xs text-gray-400">We have sent the confirmation &amp; receipt to your email address.</p>
+    <div className="container-px mx-auto flex max-w-md flex-col items-center gap-6 py-20 text-center px-4">
+      <div className="size-16 grid place-items-center rounded-full bg-emerald-100 text-emerald-600 animate-bounce">
+        <CheckCircle2 className="size-9 stroke-[2.5]" />
       </div>
-      <div className="flex gap-3 mt-4">
-        <Button asChild size="lg" className="bg-[#4A1942] hover:bg-[#381132]">
-          <Link href="/account?tab=orders">Track Order Status</Link>
+      <div>
+        <h1 className="font-serif text-2xl sm:text-3xl font-extrabold text-gray-900">Order Placed Successfully!</h1>
+        <div className="mt-3 flex items-center justify-center gap-2">
+          <span className="text-xs text-gray-500 font-medium">Order ID:</span>
+          <button
+            type="button"
+            onClick={() => {
+              navigator.clipboard.writeText(orderId);
+              toast.success("Order ID copied to clipboard!");
+            }}
+            className="font-mono font-extrabold text-[#5B2C83] bg-purple-50 hover:bg-purple-100 px-3 py-1 rounded-xl border border-purple-200 text-xs transition-colors flex items-center gap-1 cursor-pointer"
+          >
+            #{orderId}
+          </button>
+        </div>
+        <p className="mt-2 text-xs text-gray-500">Redirecting to your order confirmation summary...</p>
+      </div>
+
+      <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs mt-2">
+        <Button asChild size="lg" className="w-full h-11 bg-[#4A1942] hover:bg-[#381132] font-bold text-xs">
+          <Link href={`/order-success?orderId=${orderId}`}>View Order Summary</Link>
         </Button>
-        <Button asChild variant="outline" size="lg">
+        <Button asChild variant="outline" size="lg" className="w-full h-11 border-gray-300 font-bold text-xs">
           <Link href="/shop">Continue Shopping</Link>
         </Button>
       </div>

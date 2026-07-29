@@ -628,18 +628,6 @@ function SettingsPanel({ onLogout }: { onLogout: () => void }) {
         </div>
       </Panel>
 
-      {/* ── Notification preferences ── */}
-      <Panel title="Notification preferences">
-        <div className="flex flex-col divide-y divide-[var(--color-border)]">
-          <Toggle label="Order updates" desc="Dispatch, shipping and delivery alerts." checked={prefs.orders} onChange={() => togglePref("orders")} />
-          <Toggle label="Offers & coupons" desc="Flash sales, festive deals and codes." checked={prefs.offers} onChange={() => togglePref("offers")} />
-          <Toggle label="Newsletter" desc="New flavours and behind-the-scenes stories." checked={prefs.newsletter} onChange={() => togglePref("newsletter")} />
-        </div>
-        <div className="mt-5">
-          <Button onClick={() => toast.success("Preferences saved")}>Save preferences</Button>
-        </div>
-      </Panel>
-
       <div className="flex justify-end">
         <Button variant="outline" onClick={onLogout} className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700">Sign Out</Button>
       </div>
@@ -713,23 +701,35 @@ function ProfilePanel() {
             label="Email Address"
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            disabled={!isEditing}
-            className={cn(!isEditing && "bg-gray-50/30 text-gray-500")}
+            readOnly
+            disabled
+            title="Email address is linked to your Google Account and cannot be changed."
+            className="bg-gray-100/70 text-gray-500 cursor-not-allowed border-gray-200 select-none"
           />
           <LabeledInput
             label="Mobile Number"
             type="tel"
+            maxLength={10}
+            inputMode="numeric"
             value={phone}
-            placeholder=""
-            onChange={(e) => setPhone(e.target.value)}
+            placeholder="10-digit mobile number"
+            onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
             disabled={!isEditing}
-            className={cn(!isEditing && "bg-gray-50/30 text-gray-500")}
+            className={cn(!isEditing && "bg-gray-50/30 text-gray-500 font-numbers")}
           />
         </div>
         {isEditing && (
           <div className="mt-6 flex items-center gap-3">
-            <Button onClick={handleSave} className="flex items-center gap-1.5">
+            <Button
+              onClick={async () => {
+                if (phone && !/^\d{10}$/.test(phone.trim())) {
+                  toast.error("Please enter a valid 10-digit mobile number");
+                  return;
+                }
+                await handleSave();
+              }}
+              className="flex items-center gap-1.5"
+            >
               <Check className="size-4" />
               {saved ? "Saved successfully!" : "Save changes"}
             </Button>
@@ -945,6 +945,7 @@ function OrderCard({
   const [isExpanded, setIsExpanded] = React.useState(defaultExpanded);
   const [detailedOrder, setDetailedOrder] = React.useState<any | null>(null);
   const [loading, setLoading] = React.useState(false);
+  const [retrying, setRetrying] = React.useState(false);
   const [timeLeft, setTimeLeft] = React.useState<number>(0);
 
   React.useEffect(() => {
@@ -989,6 +990,7 @@ function OrderCard({
       if (res?.data) {
         setDetailedOrder(res.data);
       }
+      refreshOrders();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to cancel order");
     } finally {
@@ -1171,17 +1173,82 @@ function OrderCard({
                   )}
                 </div>
 
-                {timeLeft > 0 && ['Pending Confirmation', 'Pending', 'Confirmed', 'Preparing'].includes(currentStatus) && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={loading}
-                    onClick={() => setShowCancelModal(true)}
-                    className="border-red-200 bg-red-50/50 text-red-600 hover:bg-red-600 hover:text-white h-8 text-xs font-bold px-3 rounded-xl transition-all shadow-xs"
-                  >
-                    Cancel Order
-                  </Button>
-                )}
+                <div className="flex items-center gap-2">
+                  {(currentStatus === "Payment Pending" || currentStatus === "Payment Failed") && (detailedOrder?.payment?.status !== "Paid" && order.payment?.status !== "Paid") && (
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      disabled={retrying}
+                      onClick={async () => {
+                        setRetrying(true);
+                        try {
+                          const res = await apiFetch<any>(`/payment/retry-order/${order.id}`, { method: "POST" });
+                          const rzpData = res.data?.razorpay;
+                          if (!rzpData) throw new Error("Payment gateway init failed.");
+
+                          const loaded = await new Promise<boolean>((resolve) => {
+                            if ((window as any).Razorpay) return resolve(true);
+                            const s = document.createElement("script");
+                            s.src = "https://checkout.razorpay.com/v1/checkout.js";
+                            s.onload = () => resolve(true);
+                            s.onerror = () => resolve(false);
+                            document.body.appendChild(s);
+                          });
+
+                          if (!loaded) throw new Error("Payment SDK failed to load.");
+
+                          const rzp = new (window as any).Razorpay({
+                            key: rzpData.keyId,
+                            amount: rzpData.amount,
+                            currency: rzpData.currency,
+                            name: "Ratalu Wafers",
+                            description: `Payment Retry for #${order.displayId || order.id}`,
+                            order_id: rzpData.orderId,
+                            handler: function (resp: any) {
+                              apiFetch("/payment/verify", {
+                                method: "POST",
+                                body: {
+                                  orderId: order.id,
+                                  razorpay_order_id: resp.razorpay_order_id,
+                                  razorpay_payment_id: resp.razorpay_payment_id,
+                                  razorpay_signature: resp.razorpay_signature,
+                                },
+                              })
+                                .then(() => {
+                                  toast.success("Payment successful! Order updated.");
+                                  refreshOrders();
+                                })
+                                .catch((err: any) => {
+                                  toast.error(err.message || "Payment verification failed.");
+                                });
+                            },
+                            theme: { color: "#4A1942" },
+                          });
+                          rzp.open();
+                        } catch (err: any) {
+                          toast.error(err.message || "Failed to retry payment.");
+                        } finally {
+                          setRetrying(false);
+                        }
+                      }}
+                      className="bg-[#5B2C83] hover:bg-[#4B236E] text-white font-bold text-xs h-8 px-4 rounded-xl shadow-xs"
+                    >
+                      {retrying ? "Opening Gateway..." : "Retry Payment"}
+                    </Button>
+                  )}
+
+                  {timeLeft > 0 && ['Pending Confirmation', 'Pending', 'Confirmed', 'Preparing'].includes(currentStatus) && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={loading}
+                      onClick={() => setShowCancelModal(true)}
+                      className="border-red-200 bg-red-50/50 text-red-600 hover:bg-red-600 hover:text-white h-8 text-xs font-bold px-3 rounded-xl transition-all shadow-xs"
+                    >
+                      Cancel Order
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           </motion.div>
@@ -1319,31 +1386,53 @@ function OrdersPanel() {
       {pageCount > 1 && (
         <nav
           aria-label="Orders pagination"
-          className="mt-5 flex items-center justify-between gap-3 border-t border-gray-100 pt-4"
+          className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-4"
         >
-          <button
-            type="button"
-            onClick={() => setPage(currentPage - 1)}
-            disabled={currentPage === 1}
-            className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-[11px] font-bold text-gray-600 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 sm:text-xs"
-          >
-            <ChevronLeft className="size-3.5" />
-            Previous
-          </button>
+          <p className="text-[11px] sm:text-xs font-semibold text-gray-500">
+            Showing <span className="font-extrabold text-purple-900">{(currentPage - 1) * ORDERS_PER_PAGE + 1}</span>–
+            <span className="font-extrabold text-purple-900">{Math.min(currentPage * ORDERS_PER_PAGE, filteredOrders.length)}</span> of{" "}
+            <span className="font-extrabold text-purple-900">{filteredOrders.length}</span> orders
+          </p>
 
-          <div className="text-[11px] sm:text-xs font-semibold text-gray-500">
-            Page {currentPage} of {pageCount}
+          <div className="flex items-center gap-1.5 ml-auto">
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="inline-flex items-center gap-1 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-bold text-gray-700 transition-all hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 sm:text-xs cursor-pointer"
+            >
+              <ChevronLeft className="size-3.5" />
+              Previous
+            </button>
+
+            <div className="flex items-center gap-1">
+              {Array.from({ length: pageCount }, (_, i) => i + 1).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setPage(p)}
+                  className={cn(
+                    "size-7 rounded-lg text-xs font-extrabold transition-all cursor-pointer",
+                    p === currentPage
+                      ? "bg-[#5B2C83] text-white shadow-xs"
+                      : "bg-gray-100 text-gray-600 hover:bg-purple-100 hover:text-purple-700"
+                  )}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
+              disabled={currentPage === pageCount}
+              className="inline-flex items-center gap-1 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-bold text-gray-700 transition-all hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 sm:text-xs cursor-pointer"
+            >
+              Next
+              <ChevronRight className="size-3.5" />
+            </button>
           </div>
-
-          <button
-            type="button"
-            onClick={() => setPage(currentPage + 1)}
-            disabled={currentPage === pageCount}
-            className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-[11px] font-bold text-gray-600 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 sm:text-xs"
-          >
-            Next
-            <ChevronRight className="size-3.5" />
-          </button>
         </nav>
       )}
     </Panel>

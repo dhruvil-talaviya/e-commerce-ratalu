@@ -115,16 +115,25 @@ const OrderSchema = new mongoose.Schema({
     enum: [
       'Payment Pending',
       'Pending Confirmation',
+      'Pending',
       'Confirmed',
+      'Preparing',
       'Packed',
       'Ready to Ship',
+      'Assigned to Logistics',
       'Shipped',
       'Out for Delivery',
       'Delivered',
       'Completed',
       'Cancelled',
+      'Returned',
+      'Refund Requested',
+      'Refund Approved',
       'Refund Processing',
-      'Refunded'
+      'Refund Completed',
+      'Refunded',
+      'Payment Failed',
+      'Expired'
     ],
     default: 'Pending Confirmation',
     index: true
@@ -151,6 +160,27 @@ const OrderSchema = new mongoose.Schema({
   shippedAt: { type: Date, default: null },
   deliveredAt: { type: Date, default: null },
   refundedAt: { type: Date, default: null },
+
+  // ─── Payment Retry & Expiry Fields ───────────────────────────────────────
+  paymentAttemptsCount: { type: Number, default: 0 },
+  lastAttemptAt: { type: Date, default: null },
+  lastGatewayOrderId: { type: String, default: '' },
+  expiredAt: { type: Date, default: null },
+  expiredReason: { type: String, default: '' },
+  closedReason: {
+    type: String,
+    enum: ['', 'Payment Expired', 'Customer Cancelled', 'Admin Cancelled', 'Payment Failed', 'Refund Completed'],
+    default: ''
+  },
+  paymentAttempts: [{
+    gatewayOrderId: { type: String },
+    paymentId: { type: String },
+    status: { type: String },
+    amount: { type: Number },
+    failureReason: { type: String },
+    createdAt: { type: Date, default: Date.now }
+  }],
+
   /**
    * Which coupon paid for the discount on this order.
    */
@@ -163,7 +193,6 @@ const OrderSchema = new mongoose.Schema({
   customerNotes: { type: String },
   internalNotes: { type: String },
 
-  // ─── Structured Cancellation Fields ─────────────────────────────────────────
   cancelledBy: {
     type: String,
     enum: ['customer', 'admin'],
@@ -171,18 +200,37 @@ const OrderSchema = new mongoose.Schema({
     index: true
   },
   cancelledAt: { type: Date, default: null },
-  cancelReason: { type: String, default: '' }
+  cancelReason: { type: String, default: '' },
+
+  // ─── Duplicate-Order Cleanup Fields ─────────────────────────────────────────
+  // Stamped by detectDuplicateOrders.js when an order is identified as a
+  // duplicate created by the payment-retry bug (fixed 2026-07-29).
+  // Never set manually; idempotent — setting it twice is a no-op.
+  archivedByDuplicateCleanup: { type: Boolean, default: false, index: true },
+  archivedAt: { type: Date, default: null },
+  archivedReason: { type: String, default: '' },
+  closedReason: { type: String, default: '' }
 }, { timestamps: true });
 
-// Auto-populate invoiceNumber and timeline on create
+// Auto-populate invoiceNumber and timeline on create & sync status fields
 OrderSchema.pre('save', function (next) {
+  if (this.isModified('status') && !this.isModified('orderStatus')) {
+    this.orderStatus = this.status;
+  } else if (this.isModified('orderStatus') && !this.isModified('status')) {
+    this.status = this.orderStatus;
+  }
+
   if (this.isNew) {
-    this.timeline.push({
-      status: this.status,
-      time: new Date(),
-      note: 'Order placed by customer.'
-    });
-    this.invoiceNumber = 'INV-' + this.id;
+    if (!this.timeline || this.timeline.length === 0) {
+      this.timeline.push({
+        status: this.status,
+        time: new Date(),
+        note: 'Order placed by customer.'
+      });
+    }
+    if (!this.invoiceNumber) {
+      this.invoiceNumber = 'INV-' + this.id;
+    }
   }
   next();
 });

@@ -11,6 +11,7 @@ const PORT = process.env.PORT || 5000;
 const { expireUnpaidOrders } = require('./utils/orderCleanup');
 const { initTrackingSyncJob } = require('./jobs/trackingSync.job');
 const { initOrderConfirmationJob } = require('./jobs/orderConfirmation.job');
+const { initStaleOrderCleanupJob } = require('./jobs/staleOrderCleanup.job');
 
 // Connect to Database
 connectDB().then(() => {
@@ -22,6 +23,9 @@ connectDB().then(() => {
 
   // Initialize 5-minute cancellation hold auto-confirmation worker
   initOrderConfirmationJob();
+
+  // Initialize 20-minute stale unpaid order auto-expiration worker
+  initStaleOrderCleanupJob();
 });
 
 // Start Server

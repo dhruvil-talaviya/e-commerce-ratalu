@@ -173,7 +173,7 @@ export default function WebsiteBuilderPage() {
 
   return (
     <AdminShell
-      title="Website Builder & Dynamic Homepage Layout"
+      title="Website Builder & Homepage Layout"
       description="Re-order any section on the homepage, edit copy, photos, and videos without touching code."
       actions={
         <>
@@ -187,24 +187,6 @@ export default function WebsiteBuilderPage() {
         </>
       }
     >
-      {/* Dynamic Homepage Layout Reordering Banner */}
-      <Card className="mb-5 border-purple-200/90 bg-gradient-to-r from-purple-50/80 via-white to-amber-50/40 p-4 sm:p-5 shadow-xs">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#5B2C83] text-white shadow-md">
-              <Layers className="size-6 text-[#E8B923]" />
-            </div>
-            <div>
-              <h2 className="font-serif text-base sm:text-lg font-bold text-[#4A1942]">
-                Dynamic Homepage Layout Order ({sections.length} Sections)
-              </h2>
-              <p className="text-xs text-gray-600 font-medium leading-relaxed">
-                Use the <span className="font-extrabold text-[#5B2C83]">▲ Up</span> and <span className="font-extrabold text-[#5B2C83]">▼ Down</span> buttons on any section card below to change its exact location on the live Homepage instantly. Toggle the Eye icon to hide/show sections.
-              </p>
-            </div>
-          </div>
-        </div>
-      </Card>
 
       {unpublishedCount > 0 && (
         <Card className="mb-4 flex flex-wrap items-center justify-between gap-3 border-amber-200 bg-amber-50/60 p-3">
@@ -340,11 +322,6 @@ function SectionRow({
           >
             <ArrowDown className="size-4 stroke-[3]" />
           </button>
-        </div>
-
-        <div className="flex flex-col items-center justify-center min-w-[54px] px-2.5 py-1 rounded-xl bg-purple-100/90 text-[#4A1942] border border-purple-200 shadow-2xs">
-          <span className="text-[9px] font-extrabold uppercase tracking-wider text-purple-800">Pos</span>
-          <span className="text-sm font-black font-mono">#{index + 1}</span>
         </div>
       </div>
 
@@ -1093,13 +1070,82 @@ function FeatureGridEditor({
           </label>
 
           {content.hideVisual !== true && (
-            <MediaField
-              label="Photo or video"
-              value={content.media}
-              onChange={(url) => set("media", url)}
-              accept="image/*,video/*"
-              aspect="aspect-square"
-            />
+            <div className="flex flex-col gap-3">
+              <p className="text-xs font-bold text-gray-700">Photos & Videos Gallery ({Array.isArray(content.mediaGallery) ? content.mediaGallery.length : (content.media ? 1 : 0)})</p>
+              <div className="flex flex-col gap-2">
+                {(Array.isArray(content.mediaGallery) ? content.mediaGallery : (content.media ? [{ url: content.media }] : [])).map((item: any, idx: number) => {
+                  const gallery = Array.isArray(content.mediaGallery) ? content.mediaGallery : (content.media ? [{ url: content.media }] : []);
+                  const updateGallery = (url: string) => {
+                    const next = gallery.map((x: any, i: number) => (i === idx ? { ...x, url } : x));
+                    set("mediaGallery", next);
+                    set("media", next[0]?.url || "");
+                  };
+                  const moveItem = (dir: -1 | 1) => {
+                    const target = idx + dir;
+                    if (target < 0 || target >= gallery.length) return;
+                    const next = [...gallery];
+                    [next[idx], next[target]] = [next[target], next[idx]];
+                    set("mediaGallery", next);
+                    set("media", next[0]?.url || "");
+                  };
+                  const removeItem = () => {
+                    const next = gallery.filter((_: any, i: number) => i !== idx);
+                    set("mediaGallery", next);
+                    set("media", next[0]?.url || "");
+                  };
+
+                  return (
+                    <Card key={idx} className="p-3 bg-white border-gray-200 flex flex-col gap-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-purple-800">Media #{idx + 1}</span>
+                        <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-0.5 bg-gray-100 p-0.5 rounded-lg border border-gray-200">
+                            <button
+                              type="button"
+                              onClick={() => moveItem(-1)}
+                              disabled={idx === 0}
+                              className="grid size-6 place-items-center rounded bg-white text-gray-700 hover:bg-purple-50 disabled:opacity-30 cursor-pointer"
+                            >
+                              <ArrowUp className="size-3.5 stroke-[2.5]" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => moveItem(1)}
+                              disabled={idx === gallery.length - 1}
+                              className="grid size-6 place-items-center rounded bg-white text-gray-700 hover:bg-purple-50 disabled:opacity-30 cursor-pointer"
+                            >
+                              <ArrowDown className="size-3.5 stroke-[2.5]" />
+                            </button>
+                          </div>
+                          <Button variant="danger" size="sm" onClick={removeItem}>
+                            <Trash2 className="size-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                      <MediaField
+                        label="Photo or Video URL"
+                        value={item.url || ""}
+                        onChange={updateGallery}
+                        accept="image/*,video/*"
+                        aspect="aspect-square"
+                      />
+                    </Card>
+                  );
+                })}
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                className="mt-1"
+                onClick={() => {
+                  const current = Array.isArray(content.mediaGallery) ? content.mediaGallery : (content.media ? [{ url: content.media }] : []);
+                  set("mediaGallery", [...current, { url: "" }]);
+                }}
+              >
+                <Plus className="size-3.5" />
+                Add Photo / Video Media
+              </Button>
+            </div>
           )}
         </div>
       )}
@@ -1205,46 +1251,80 @@ function FeatureGridEditor({
           Cards
         </p>
         <div className="flex flex-col gap-2">
-          {features.map((f, i) => (
-            <Card key={i} className="p-2.5">
-              <div className="flex gap-2">
-                <select
-                  value={f.icon ?? ""}
-                  onChange={(e) => updateFeature(i, { icon: e.target.value })}
-                  className={cn(INPUT, "w-36 shrink-0")}
-                  aria-label="Icon"
-                >
-                  {ICON_NAMES.map((n) => (
-                    <option key={n} value={n}>
-                      {n}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  value={f.title ?? ""}
-                  onChange={(e) => updateFeature(i, { title: e.target.value })}
-                  placeholder="Title"
-                  className={INPUT}
-                  aria-label="Card title"
+          {features.map((f, i) => {
+            const moveCard = (dir: -1 | 1) => {
+              const target = i + dir;
+              if (target < 0 || target >= features.length) return;
+              const next = [...features];
+              [next[i], next[target]] = [next[target], next[i]];
+              set("features", next);
+            };
+
+            return (
+              <Card key={i} className="p-2.5">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold text-gray-700">Card #{i + 1}</span>
+                  <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-0.5 bg-gray-100 p-0.5 rounded-lg border border-gray-200">
+                      <button
+                        type="button"
+                        onClick={() => moveCard(-1)}
+                        disabled={i === 0}
+                        className="grid size-6 place-items-center rounded bg-white text-gray-700 hover:bg-purple-50 disabled:opacity-30 cursor-pointer"
+                      >
+                        <ArrowUp className="size-3.5 stroke-[2.5]" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveCard(1)}
+                        disabled={i === features.length - 1}
+                        className="grid size-6 place-items-center rounded bg-white text-gray-700 hover:bg-purple-50 disabled:opacity-30 cursor-pointer"
+                      >
+                        <ArrowDown className="size-3.5 stroke-[2.5]" />
+                      </button>
+                    </div>
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      onClick={() => set("features", features.filter((_, idx) => idx !== i))}
+                    >
+                      <Trash2 className="size-3.5" />
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <select
+                    value={f.icon ?? ""}
+                    onChange={(e) => updateFeature(i, { icon: e.target.value })}
+                    className={cn(INPUT, "w-36 shrink-0")}
+                    aria-label="Icon"
+                  >
+                    {ICON_NAMES.map((n) => (
+                      <option key={n} value={n}>
+                        {n}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    value={f.title ?? ""}
+                    onChange={(e) => updateFeature(i, { title: e.target.value })}
+                    placeholder="Title"
+                    className={INPUT}
+                    aria-label="Card title"
+                  />
+                </div>
+                <textarea
+                  rows={2}
+                  value={f.body ?? ""}
+                  onChange={(e) => updateFeature(i, { body: e.target.value })}
+                  placeholder="Body"
+                  className={cn(INPUT, "mt-2 resize-y")}
+                  aria-label="Card body"
                 />
-                <Button
-                  variant="danger"
-                  size="sm"
-                  onClick={() => set("features", features.filter((_, idx) => idx !== i))}
-                >
-                  <Trash2 className="size-3.5" />
-                </Button>
-              </div>
-              <textarea
-                rows={2}
-                value={f.body ?? ""}
-                onChange={(e) => updateFeature(i, { body: e.target.value })}
-                placeholder="Body"
-                className={cn(INPUT, "mt-2 resize-y")}
-                aria-label="Card body"
-              />
-            </Card>
-          ))}
+              </Card>
+            );
+          })}
         </div>
         <Button
           variant="secondary"
@@ -1470,7 +1550,13 @@ function FaqEditor({
   content: Record<string, any>;
   set: (k: string, v: unknown) => void;
 }) {
-  const items: any[] = content.items ?? [];
+  const items: any[] = (content.items && content.items.length > 0)
+    ? content.items
+    : [
+        { id: "shipping", category: "Shipping", question: "How fast do you ship, and where do you deliver?", answer: "We ship pan-India via trusted courier partners. Orders placed before 2 PM IST are dispatched the same day. Metro cities typically receive orders in 2–3 business days; the rest of India within 4–6 business days. Enjoy free shipping on all orders above ₹599." },
+        { id: "shelf-life", category: "Shelf Life", question: "How long do the wafers stay fresh?", answer: "Because we cook in small batches with no artificial preservatives, each pack is best enjoyed within 3 months of the manufacturing date printed on the pack. Our nitrogen-flushed pouches lock in that just-cooked crunch until you open them." },
+        { id: "returns", category: "Returns", question: "What is your returns and refund policy?", answer: "Your happiness is guaranteed. If a pack arrives damaged, stale, or you're simply not delighted, write to us within 7 days of delivery with a photo and we'll send a free replacement or a full refund — no lengthy questions asked." }
+      ];
 
   const update = (i: number, patch: Record<string, unknown>) =>
     set("items", items.map((x, idx) => (idx === i ? { ...x, ...patch } : x)));
@@ -1915,6 +2001,161 @@ function GenericEditor({
           />
         </Field>
       )}
+
+      {/* Rich Story Blocks (Headings, Paragraphs, Photos, Videos) */}
+      <div className="mt-2 border-t border-gray-200 pt-3">
+        <h4 className="mb-2 text-xs font-bold text-gray-500 uppercase tracking-wider">
+          Rich Story Content & Media Blocks ({Array.isArray(content.storyBlocks) ? content.storyBlocks.length : 0})
+        </h4>
+        <p className="mb-3 text-xs text-gray-400">
+          Add alternating headings, paragraphs, photos, and videos in sequence.
+        </p>
+
+        <div className="flex flex-col gap-3">
+          {(content.storyBlocks || []).map((block: any, i: number) => {
+            const blocks = content.storyBlocks || [];
+            const updateBlock = (patch: Record<string, unknown>) => {
+              const next = blocks.map((x: any, idx: number) => (idx === i ? { ...x, ...patch } : x));
+              set("storyBlocks", next);
+            };
+            const moveBlock = (dir: -1 | 1) => {
+              const target = i + dir;
+              if (target < 0 || target >= blocks.length) return;
+              const next = [...blocks];
+              [next[i], next[target]] = [next[target], next[i]];
+              set("storyBlocks", next);
+            };
+            const removeBlock = () => {
+              set("storyBlocks", blocks.filter((_: any, idx: number) => idx !== i));
+            };
+
+            return (
+              <Card key={i} className="p-3 bg-gray-50/50 border-gray-200">
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-wider text-purple-800">
+                    Block #{i + 1}: {block.type}
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-0.5 bg-white p-0.5 rounded-lg border border-gray-200">
+                      <button
+                        type="button"
+                        onClick={() => moveBlock(-1)}
+                        disabled={i === 0}
+                        className="grid size-6 place-items-center rounded hover:bg-purple-50 disabled:opacity-30 cursor-pointer"
+                      >
+                        <ArrowUp className="size-3.5 stroke-[2.5]" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveBlock(1)}
+                        disabled={i === blocks.length - 1}
+                        className="grid size-6 place-items-center rounded hover:bg-purple-50 disabled:opacity-30 cursor-pointer"
+                      >
+                        <ArrowDown className="size-3.5 stroke-[2.5]" />
+                      </button>
+                    </div>
+                    <Button variant="danger" size="sm" onClick={removeBlock}>
+                      <Trash2 className="size-3.5" />
+                    </Button>
+                  </div>
+                </div>
+
+                {block.type === "heading" && (
+                  <input
+                    value={block.text || ""}
+                    onChange={(e) => updateBlock({ text: e.target.value })}
+                    placeholder="Section Heading Title..."
+                    className={INPUT}
+                  />
+                )}
+
+                {block.type === "paragraph" && (
+                  <textarea
+                    rows={3}
+                    value={block.text || ""}
+                    onChange={(e) => updateBlock({ text: e.target.value })}
+                    placeholder="Write paragraph content here..."
+                    className={cn(INPUT, "resize-y")}
+                  />
+                )}
+
+                {block.type === "image" && (
+                  <div className="flex flex-col gap-2">
+                    <MediaField
+                      label="Photo URL"
+                      value={block.url || ""}
+                      onChange={(url) => updateBlock({ url })}
+                      accept="image/*"
+                    />
+                    <input
+                      value={block.caption || ""}
+                      onChange={(e) => updateBlock({ caption: e.target.value })}
+                      placeholder="Photo Caption (Optional)"
+                      className={INPUT}
+                    />
+                  </div>
+                )}
+
+                {block.type === "video" && (
+                  <div className="flex flex-col gap-2">
+                    <MediaField
+                      label="Video URL"
+                      value={block.url || ""}
+                      onChange={(url) => updateBlock({ url })}
+                      accept="video/*"
+                    />
+                    <input
+                      value={block.caption || ""}
+                      onChange={(e) => updateBlock({ caption: e.target.value })}
+                      placeholder="Video Caption (Optional)"
+                      className={INPUT}
+                    />
+                  </div>
+                )}
+              </Card>
+            );
+          })}
+        </div>
+
+        <div className="flex flex-wrap gap-2 mt-3">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() =>
+              set("storyBlocks", [...(content.storyBlocks || []), { type: "heading", text: "" }])
+            }
+          >
+            <Plus className="size-3.5" /> Add Heading
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() =>
+              set("storyBlocks", [...(content.storyBlocks || []), { type: "paragraph", text: "" }])
+            }
+          >
+            <Plus className="size-3.5" /> Add Paragraph
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() =>
+              set("storyBlocks", [...(content.storyBlocks || []), { type: "image", url: "", caption: "" }])
+            }
+          >
+            <Plus className="size-3.5" /> Add Photo
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() =>
+              set("storyBlocks", [...(content.storyBlocks || []), { type: "video", url: "", caption: "" }])
+            }
+          >
+            <Plus className="size-3.5" /> Add Video
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

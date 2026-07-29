@@ -91,6 +91,15 @@ function ContactView() {
         <div className="grid gap-8 lg:grid-cols-[1fr_1.3fr]">
           {/* Info */}
           <div className="flex flex-col gap-4">
+            {/* Customer Support Representative Illustration (Top Hero Graphic) */}
+            <div className="flex justify-center overflow-hidden rounded-3xl border border-purple-100 bg-gradient-to-b from-purple-50/60 to-white p-6 shadow-sm mb-1">
+              <img
+                src="/images/contact-illustration.png"
+                alt="Customer Support Representative"
+                className="w-full max-w-[240px] sm:max-w-[280px] h-auto object-contain drop-shadow-md transition-transform duration-300 hover:scale-105"
+              />
+            </div>
+
             <InfoCard icon={Mail} label="Email us" value={email} href={`mailto:${email}`} />
             <InfoCard icon={Phone} label="Call us" value={phone} href={`tel:${(phone || "").replace(/\s+/g, "")}`} />
             <InfoCard icon={MapPin} label="Visit us" value={address} />
@@ -102,15 +111,6 @@ function ContactView() {
                 <p className="font-semibold text-charcoal">Support hours</p>
                 <p className="text-sm text-charcoal-muted">{supportHours}</p>
               </div>
-            </div>
-
-            {/* Customer Support Representative Illustration */}
-            <div className="mt-2 flex justify-center overflow-hidden rounded-3xl border border-purple-100 bg-gradient-to-b from-purple-50/60 to-white p-6 shadow-sm">
-              <img
-                src="/images/contact-illustration.png"
-                alt="Customer Support Representative"
-                className="w-full max-w-[240px] sm:max-w-[280px] h-auto object-contain drop-shadow-md transition-transform duration-300 hover:scale-105"
-              />
             </div>
           </div>
 

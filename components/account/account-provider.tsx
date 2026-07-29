@@ -238,34 +238,66 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
 
   const addAddress = React.useCallback(async (address: any) => {
     try {
-      const addresses = await apiFetch<SavedAddress[]>("/auth/addresses", {
+      const resData = await apiFetch<any>("/user/addresses", {
         method: "POST",
         body: address
       });
-      setUser((prev) => (prev ? { ...prev, addresses } : null));
-    } catch (err) {
-      // Fallback
       setUser((prev) => {
         if (!prev) return null;
-        const newAddr = { ...address, id: `addr_${Date.now()}` };
-        return { ...prev, addresses: [...prev.addresses, newAddr] };
+        const currentList = Array.isArray(prev.addresses) ? prev.addresses : [];
+        let updated: SavedAddress[] = [];
+        if (Array.isArray(resData)) {
+          updated = resData;
+        } else if (resData && typeof resData === "object") {
+          const id = resData.id || resData._id;
+          const exists = currentList.findIndex((a) => (a.id || a._id) === id);
+          if (exists >= 0) {
+            updated = [...currentList];
+            updated[exists] = resData;
+          } else {
+            updated = [resData, ...currentList];
+          }
+        } else {
+          updated = currentList;
+        }
+        const activeId = resData?.id || resData?._id || updated[0]?.id || updated[0]?._id;
+        return { ...prev, addresses: updated, activeAddressId: activeId };
+      });
+    } catch (err) {
+      setUser((prev) => {
+        if (!prev) return null;
+        const currentList = Array.isArray(prev.addresses) ? prev.addresses : [];
+        const newAddr = { ...address, id: `addr_${Date.now()}`, _id: `addr_${Date.now()}` };
+        const updated = [newAddr, ...currentList];
+        return { ...prev, addresses: updated, activeAddressId: newAddr.id };
       });
     }
   }, []);
 
   const updateAddress = React.useCallback(async (id: string, address: any) => {
     try {
-      const addresses = await apiFetch<SavedAddress[]>(`/auth/addresses/${id}`, {
+      const resData = await apiFetch<any>(`/user/addresses/${id}`, {
         method: "PUT",
         body: JSON.stringify(address)
       });
-      setUser((prev) => (prev ? { ...prev, addresses } : null));
+      setUser((prev) => {
+        if (!prev) return null;
+        const currentList = Array.isArray(prev.addresses) ? prev.addresses : [];
+        if (Array.isArray(resData)) {
+          return { ...prev, addresses: resData };
+        }
+        return {
+          ...prev,
+          addresses: currentList.map((a) => ((a.id === id || a._id === id) ? { ...a, ...address, ...(resData || {}) } : a))
+        };
+      });
     } catch {
       setUser((prev) => {
         if (!prev) return null;
+        const currentList = Array.isArray(prev.addresses) ? prev.addresses : [];
         return {
           ...prev,
-          addresses: prev.addresses.map((a) => (a.id === id || a._id === id ? { ...a, ...address } : a))
+          addresses: currentList.map((a) => ((a.id === id || a._id === id) ? { ...a, ...address } : a))
         };
       });
     }
@@ -273,16 +305,25 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
 
   const deleteAddress = React.useCallback(async (id: string) => {
     try {
-      const addresses = await apiFetch<SavedAddress[]>(`/auth/addresses/${id}`, {
+      const resData = await apiFetch<any>(`/user/addresses/${id}`, {
         method: "DELETE"
       });
-      setUser((prev) => (prev ? { ...prev, addresses } : null));
+      setUser((prev) => {
+        if (!prev) return null;
+        const currentList = Array.isArray(prev.addresses) ? prev.addresses : [];
+        if (Array.isArray(resData)) return { ...prev, addresses: resData };
+        return {
+          ...prev,
+          addresses: currentList.filter((a) => a.id !== id && a._id !== id)
+        };
+      });
     } catch {
       setUser((prev) => {
         if (!prev) return null;
+        const currentList = Array.isArray(prev.addresses) ? prev.addresses : [];
         return {
           ...prev,
-          addresses: prev.addresses.filter((a) => a.id !== id && a._id !== id)
+          addresses: currentList.filter((a) => a.id !== id && a._id !== id)
         };
       });
     }
@@ -290,17 +331,29 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
 
   const setDefaultAddress = React.useCallback(async (id: string) => {
     try {
-      const addresses = await apiFetch<SavedAddress[]>(`/auth/addresses/${id}/active`, {
-        method: "PUT"
+      await apiFetch<any>(`/user/addresses/${id}/default`, {
+        method: "PATCH"
       });
-      setUser((prev) => (prev ? { ...prev, addresses, activeAddressId: id } : null));
-    } catch {
       setUser((prev) => {
         if (!prev) return null;
+        const currentList = Array.isArray(prev.addresses) ? prev.addresses : [];
         return {
           ...prev,
           activeAddressId: id,
-          addresses: prev.addresses.map((a) => ({
+          addresses: currentList.map((a) => ({
+            ...a,
+            isDefault: a.id === id || a._id === id
+          }))
+        };
+      });
+    } catch {
+      setUser((prev) => {
+        if (!prev) return null;
+        const currentList = Array.isArray(prev.addresses) ? prev.addresses : [];
+        return {
+          ...prev,
+          activeAddressId: id,
+          addresses: currentList.map((a) => ({
             ...a,
             isDefault: a.id === id || a._id === id
           }))

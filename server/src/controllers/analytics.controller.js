@@ -4,17 +4,21 @@ const Order = require('../models/Order');
 const Wishlist = require('../models/Wishlist');
 const Flavor = require('../models/Flavor');
 const sendResponse = require('../utils/response');
+const { startOfDayInTz, DEFAULT_TZ } = require('../utils/date');
 
-/** Start of the local day, N days ago (0 = today). */
+/** Start of the local day in IST (Asia/Kolkata). */
 const dayStart = (daysAgo = 0) => {
   const d = new Date();
-  d.setHours(0, 0, 0, 0);
   d.setDate(d.getDate() - daysAgo);
-  return d;
+  return startOfDayInTz(d, DEFAULT_TZ);
 };
 
-/** Orders that count as real revenue (not cancelled / failed / expired). */
-const LIVE_ORDER = { status: { $nin: ['Cancelled', 'Payment Failed', 'Expired'] } };
+/** Real paid orders for revenue calculations (Paid, Delivered, Confirmed). Excludes Cancelled, Payment Failed, Expired, Refunded. */
+const REVENUE_ORDER_FILTER = {
+  status: { $nin: ['Cancelled', 'Payment Failed', 'Expired', 'Refunded'] },
+  'payment.status': { $in: ['Paid', 'Partially Refunded'] }
+};
+const LIVE_ORDER = REVENUE_ORDER_FILTER;
 
 /**
  * Record one page view.
@@ -64,9 +68,9 @@ exports.getReach = async (req, res, next) => {
       Visit.countDocuments({ createdAt: { $gte: today } }),
       // New sign-ups today.
       Customer.countDocuments({ createdAt: { $gte: today } }),
-      // Orders + revenue today.
+      // Orders + revenue today (Only valid paid / non-cancelled orders).
       Order.aggregate([
-        { $match: { createdAt: { $gte: today }, ...LIVE_ORDER } },
+        { $match: { createdAt: { $gte: today }, ...REVENUE_ORDER_FILTER } },
         { $group: { _id: null, count: { $sum: 1 }, revenue: { $sum: '$totals.total' } } },
       ]),
       Customer.countDocuments({}),

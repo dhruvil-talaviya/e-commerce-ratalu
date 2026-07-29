@@ -36,24 +36,24 @@ const ShipmentSchema = new mongoose.Schema({
   status: {
     type: String,
     enum: [
-      'Pending',
+      'Shipment Created',
       'Confirmed',
-      'Packed',
+      'AWB Assigned',
       'Pickup Scheduled',
       'Picked Up',
       'In Transit',
       'Out For Delivery',
       'Delivered',
+      'Delivery Failed',
       'RTO',
       'Cancelled',
-      'Lost',
-      'Exception',
       'Failed'
     ],
-    default: 'Pending',
+    default: 'Shipment Created',
     index: true
   },
   providerStatus: { type: String, default: '' },
+  providerEventTime: { type: Date },
   statusStatusCode: { type: Number }, // Shiprocket status code e.g. 6 = Shipped, 7 = Delivered
 
   // Physical specifications

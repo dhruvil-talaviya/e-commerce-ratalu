@@ -25,7 +25,7 @@ export const ADMIN = {
 
 /** Shared shape language: 12px radius, soft shadow, 200ms motion. */
 export const CARD = "rounded-xl border border-[#E5E7EB] bg-white shadow-sm";
-export const TRANSITION = "transition-all duration-200";
+export const TRANSITION = "transition-colors duration-150";
 
 /** Semantic tone → Tailwind classes. One source of truth for every badge. */
 export type Tone = "neutral" | "info" | "success" | "warning" | "danger" | "primary";

@@ -127,12 +127,21 @@ function OrderSuccessContent() {
               Thank You for Your Order!
             </h1>
 
-            <p className="mt-2 text-sm text-gray-600 font-medium">
-              Order ID:{" "}
-              <span className="font-mono font-extrabold text-[#5B2C83] bg-purple-50 px-2.5 py-1 rounded-lg border border-purple-100">
+            <div className="mt-2 flex items-center justify-center gap-2">
+              <span className="text-sm text-gray-600 font-medium">Order ID:</span>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(displayId);
+                  toast.success("Order ID copied to clipboard!");
+                }}
+                title="Click to copy Order ID"
+                className="font-mono font-extrabold text-[#5B2C83] bg-purple-50 hover:bg-purple-100 px-3 py-1 rounded-xl border border-purple-200 transition-colors flex items-center gap-1.5 cursor-pointer text-sm"
+              >
                 #{displayId}
-              </span>
-            </p>
+                <span className="text-[10px] uppercase tracking-wider text-purple-700 font-bold bg-white px-1.5 py-0.5 rounded border border-purple-200">Copy</span>
+              </button>
+            </div>
 
             <p className="mt-2 text-xs text-gray-500">
               We have received your order and are getting it ready with love &amp; fresh crunch!

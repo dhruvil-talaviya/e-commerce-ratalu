@@ -484,35 +484,35 @@ function MiniLineChart({
   );
 }
 
-// ── Hourly Orders Bar Chart ─────────────────────────────────────────────────
-function HourlyOrdersBarChart({ data }: { data: { hour: number; orders: number; revenue: number }[] }) {
+// ── Daily Orders Bar Chart ──────────────────────────────────────────────────
+function DailyOrdersBarChart({ data }: { data: { date: string; orders: number; cancelled?: number; delivered?: number }[] }) {
   if (!data || data.length === 0) {
-    return <p className="text-sm text-gray-400 text-center py-8">No orders recorded today yet</p>;
+    return <p className="text-sm text-gray-400 text-center py-8">No order trend data available</p>;
   }
 
   const maxOrders = Math.max(...data.map((d) => d.orders), 1);
 
   return (
     <div className="flex flex-col gap-2 pt-2">
-      <div className="flex items-end gap-1.5 h-36 border-b border-gray-100 pb-1 px-1">
-        {data.map((h) => {
-          const heightPercent = h.orders > 0 ? Math.max((h.orders / maxOrders) * 88, 12) : 4;
+      <div className="flex items-end gap-2 h-36 border-b border-gray-100 pb-1 px-1">
+        {data.map((d) => {
+          const heightPercent = d.orders > 0 ? Math.max((d.orders / maxOrders) * 88, 14) : 4;
           return (
-            <div key={h.hour} className="flex-1 flex flex-col items-center h-full justify-end group relative">
+            <div key={d.date} className="flex-1 flex flex-col items-center h-full justify-end group relative">
               <div className="absolute -top-10 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-900 text-white text-[10px] font-bold py-1 px-2 rounded shadow-lg pointer-events-none whitespace-nowrap z-30">
-                {h.hour}:00 — {h.orders} order{h.orders === 1 ? "" : "s"} ({formatINR(h.revenue)})
+                {d.date} — {d.orders} order{d.orders === 1 ? "" : "s"}
               </div>
 
-              {h.orders > 0 && (
+              {d.orders > 0 && (
                 <span className="text-[9px] font-extrabold text-purple-700 mb-1">
-                  {h.orders}
+                  {d.orders}
                 </span>
               )}
 
               <div
                 className={cn(
                   "w-full rounded-t-md transition-all duration-300",
-                  h.orders > 0
+                  d.orders > 0
                     ? "bg-[#5B2C83] group-hover:bg-purple-700 shadow-2xs"
                     : "bg-gray-100 group-hover:bg-gray-200"
                 )}
@@ -523,11 +523,9 @@ function HourlyOrdersBarChart({ data }: { data: { hour: number; orders: number; 
         })}
       </div>
       <div className="flex items-center justify-between text-[10px] font-bold text-gray-400 px-1 pt-1">
-        <span>12 AM</span>
-        <span>6 AM</span>
-        <span>12 PM</span>
-        <span>6 PM</span>
-        <span>11 PM</span>
+        <span>{data[0]?.date || ""}</span>
+        <span>{data[Math.floor(data.length / 2)]?.date || ""}</span>
+        <span>{data[data.length - 1]?.date || ""}</span>
       </div>
     </div>
   );
@@ -891,11 +889,11 @@ function DashboardTab({
           </div>
         </div>
 
-        {/* Hourly Orders */}
+        {/* Daily Orders Trend */}
         <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm flex flex-col justify-between">
           <div>
-            <h4 className="text-xs font-bold text-gray-700 mb-3">Today&apos;s Hourly Orders</h4>
-            <HourlyOrdersBarChart data={charts?.hourlyOrders || []} />
+            <h4 className="text-xs font-bold text-gray-700 mb-3">Daily Orders Trend</h4>
+            <DailyOrdersBarChart data={charts?.orderTrend || []} />
           </div>
         </div>
       </div>
@@ -4470,44 +4468,20 @@ function HomepageTab({
                     <Input type="email" value={supportEmail} onChange={(e: any) => setSupportEmail(e.target.value)} className="text-xs rounded-xl" />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold text-gray-700">Sales Email</label>
-                    <Input type="email" value={salesEmail} onChange={(e: any) => setSalesEmail(e.target.value)} className="text-xs rounded-xl" />
+                    <label className="text-xs font-bold text-gray-700">Customer Care Number</label>
+                    <Input value={customerCareNumber} onChange={(e: any) => setCustomerCareNumber(e.target.value)} className="text-xs rounded-xl" />
                   </div>
                 </div>
 
-                <div className="grid gap-3 sm:grid-cols-3">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold text-gray-700">Care Number</label>
-                    <Input value={customerCareNumber} onChange={(e: any) => setCustomerCareNumber(e.target.value)} className="text-xs rounded-xl" />
-                  </div>
+                <div className="grid gap-3 sm:grid-cols-2">
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-bold text-gray-700">GST Number</label>
                     <Input value={gstNumber} onChange={(e: any) => setGstNumber(e.target.value)} placeholder="e.g. 24AAAAA0000A1Z5" className="text-xs rounded-xl" />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold text-gray-700">Company Reg Details</label>
-                    <Input value={companyRegistration} onChange={(e: any) => setCompanyRegistration(e.target.value)} placeholder="Registration No" className="text-xs rounded-xl" />
+                    <label className="text-xs font-bold text-gray-700">Working Hours</label>
+                    <Input value={businessWorkingHours} onChange={(e: any) => setBusinessWorkingHours(e.target.value)} placeholder="e.g. Mon - Sat: 9:00 AM - 7:00 PM" className="text-xs rounded-xl" />
                   </div>
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-3">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold text-gray-700">Time Zone</label>
-                    <Input value={timeZone} onChange={(e: any) => setTimeZone(e.target.value)} className="text-xs rounded-xl" />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold text-gray-700">Currency</label>
-                    <Input value={currency} onChange={(e: any) => setCurrency(e.target.value)} className="text-xs rounded-xl" />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold text-gray-700">Language</label>
-                    <Input value={language} onChange={(e: any) => setLanguage(e.target.value)} className="text-xs rounded-xl" />
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-gray-700">Working Hours</label>
-                  <Input value={businessWorkingHours} onChange={(e: any) => setBusinessWorkingHours(e.target.value)} placeholder="e.g. Mon - Sat: 9:00 AM - 7:00 PM" className="text-xs rounded-xl" />
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-1 pt-2 border-t border-gray-100">
@@ -4800,8 +4774,8 @@ function HomepageTab({
             </div>
           </div>
 
-          <div>
-            <Button type="submit" className="bg-purple-650 hover:bg-purple-750 text-white font-bold px-6 py-2.5 rounded-xl">
+          <div className="sticky bottom-4 z-30 flex justify-end pt-4 bg-white/80 backdrop-blur-md p-4 rounded-2xl border border-purple-100 shadow-lg">
+            <Button type="submit" className="bg-[#5B2C83] hover:bg-[#4a236c] text-white font-bold text-sm px-8 py-3 rounded-2xl shadow-md transition-all cursor-pointer">
               Save WhatsApp Settings
             </Button>
           </div>

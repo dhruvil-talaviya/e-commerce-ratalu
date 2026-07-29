@@ -414,7 +414,12 @@ const applyCouponFields = (coupon, body) => {
     if (body[field] === undefined) return;
 
     if (field === 'expiryDate') {
-      coupon.expiryDate = body.expiryDate ? new Date(body.expiryDate) : undefined;
+      if (!body.expiryDate) {
+        coupon.expiryDate = undefined;
+      } else {
+        const d = new Date(body.expiryDate);
+        coupon.expiryDate = isNaN(d.getTime()) ? undefined : d;
+      }
     } else if (['firstOrderOnly', 'showOnLoginPopup', 'showOnHomepage'].includes(field)) {
       coupon[field] = Boolean(body[field]);
     } else if (['value', 'minSubtotal', 'maxDiscount', 'usageLimit', 'perAccountLimit'].includes(field)) {

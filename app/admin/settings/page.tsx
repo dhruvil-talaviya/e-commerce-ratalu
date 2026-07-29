@@ -41,7 +41,7 @@ import { MediaField } from "@/components/admin/ui/media-field";
 import { Button, Card, Skeleton } from "@/components/admin/ui/primitives";
 
 const INPUT =
-  "w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-[#111827] focus:border-[#5B2C83] focus:outline-none focus:ring-2 focus:ring-[#5B2C83]/15 transition-all";
+  "w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-[#111827] focus:border-[#5B2C83] focus:outline-none focus:ring-2 focus:ring-[#5B2C83]/15 transition-colors";
 
 function Badge({ className, children }: { className?: string; children: React.ReactNode }) {
   return (
@@ -81,7 +81,7 @@ export default function SettingsPage() {
                 type="button"
                 onClick={() => setActiveTab(tab.id as SettingsTab)}
                 className={cn(
-                  "flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all",
+                  "flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-colors",
                   active
                     ? "bg-[#5B2C83] text-white shadow-md shadow-[#5B2C83]/20"
                     : "bg-white text-gray-600 border border-gray-200 hover:border-gray-300 hover:bg-gray-50"
@@ -927,7 +927,17 @@ function RazorpayCard() {
   React.useEffect(() => {
     apiFetch<any>("/admin/settings/payment")
       .then((res) => {
-        if (res) setForm(res);
+        if (res) {
+          setForm({
+            ...res,
+            razorpayEnabled: res.razorpayEnabled ?? true,
+            razorpayTestMode: res.razorpayTestMode ?? res.testMode ?? false,
+            razorpayAutoCapture: res.razorpayAutoCapture ?? res.autoCapture ?? true,
+            razorpayEnableUPI: res.razorpayEnableUPI ?? res.enableUPI ?? true,
+            razorpayEnableCards: res.razorpayEnableCards ?? res.enableCards ?? true,
+            razorpayEnableNetBanking: res.razorpayEnableNetBanking ?? res.enableNetBanking ?? true,
+          });
+        }
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -1014,6 +1024,79 @@ function RazorpayCard() {
         <Skeleton className="h-64 w-full" />
       ) : (
         <div className="flex flex-col gap-6">
+          {/* RAZORPAY ENVIRONMENT MODE SWITCHER */}
+          <div
+            className={cn(
+              "rounded-2xl border p-4.5 transition-all shadow-xs",
+              form.razorpayTestMode
+                ? "border-amber-300 bg-gradient-to-r from-amber-50 via-orange-50/40 to-amber-50"
+                : "border-emerald-300 bg-gradient-to-r from-emerald-50 via-teal-50/40 to-emerald-50"
+            )}
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-start sm:items-center gap-3">
+                <span
+                  className={cn(
+                    "grid size-11 shrink-0 place-items-center rounded-2xl text-lg font-bold shadow-xs",
+                    form.razorpayTestMode ? "bg-amber-500 text-white" : "bg-emerald-600 text-white"
+                  )}
+                >
+                  {form.razorpayTestMode ? "🧪" : "⚡"}
+                </span>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-sm font-extrabold text-[#111827]">
+                      {form.razorpayTestMode ? "Razorpay Test / Sandbox Mode Active" : "Razorpay Live Production Mode Active"}
+                    </h3>
+                    <Badge
+                      className={cn(
+                        form.razorpayTestMode
+                          ? "bg-amber-600 text-white"
+                          : "bg-emerald-600 text-white"
+                      )}
+                    >
+                      {form.razorpayTestMode ? "TEST MODE" : "LIVE MODE"}
+                    </Badge>
+                  </div>
+                  <p className="mt-0.5 text-xs text-gray-600 font-medium leading-relaxed">
+                    {form.razorpayTestMode
+                      ? "Test key ID (rzp_test_...) is enabled. Real customer accounts will NOT be charged. All test orders are simulated."
+                      : "Live key ID (rzp_live_...) is active. Real payments will be processed via Razorpay gateway."}
+                  </p>
+                </div>
+              </div>
+
+              {/* TOGGLE BUTTONS */}
+              <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, razorpayTestMode: true, testMode: true })}
+                  className={cn(
+                    "px-3.5 py-2 text-xs font-bold rounded-xl border transition-all cursor-pointer flex items-center gap-1.5 shadow-xs",
+                    form.razorpayTestMode
+                      ? "border-amber-500 bg-amber-500 text-white ring-2 ring-amber-300"
+                      : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                  )}
+                >
+                  🧪 Enable Test Mode
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, razorpayTestMode: false, testMode: false })}
+                  className={cn(
+                    "px-3.5 py-2 text-xs font-bold rounded-xl border transition-all cursor-pointer flex items-center gap-1.5 shadow-xs",
+                    !form.razorpayTestMode
+                      ? "border-emerald-600 bg-emerald-600 text-white ring-2 ring-emerald-300"
+                      : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                  )}
+                >
+                  ⚡ Enable Live Mode
+                </button>
+              </div>
+            </div>
+          </div>
+
           {/* Credentials */}
           <div className="rounded-xl border border-gray-200 bg-gray-50/60 p-4">
             <p className="text-xs font-bold text-gray-700 mb-3">Razorpay API Keys &amp; Secrets (AES-256 Encrypted)</p>

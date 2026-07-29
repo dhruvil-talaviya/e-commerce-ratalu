@@ -29,10 +29,13 @@ const {
 const { protect, authorize } = require('../middlewares/auth');
 const adminOnly = [protect, authorize('admin')];
 
+const { handleShiprocketWebhook } = require('../controllers/logistics.controller');
+
 // ─── Public Routes ──────────────────────────────────────────────────────────
 router.post('/logistics/check-serviceability', checkServiceability);
 router.get('/logistics/track/:identifier', publicTrackShipment);
-router.post('/logistics/webhook/shiprocket', shiprocketWebhook);
+router.post('/logistics/webhook', handleShiprocketWebhook);
+router.post('/logistics/webhook/shiprocket', handleShiprocketWebhook);
 
 // ─── Admin Settings & Credentials Routes ────────────────────────────────────
 router.get('/admin/logistics/settings', ...adminOnly, getSettings);

@@ -267,10 +267,10 @@ export function CloudinaryImageUpload({
   return (
     <div className={cn("space-y-3", className)}>
       {label && (
-        <div className="flex items-center justify-between text-sm font-medium text-amber-100">
+        <div className="flex items-center justify-between text-xs font-bold text-gray-700">
           <span>{label}</span>
           {multiple && (
-            <span className="text-xs text-stone-400 font-normal">
+            <span className="text-xs text-gray-400 font-normal">
               {imageList.length} / {maxFiles} images
             </span>
           )}

@@ -279,8 +279,8 @@ function FeaturedCard({ flavor, rank }: { flavor: Flavor; rank: number }) {
           )}
 
           {/* Pack Size Selector Chips */}
-          <div className="mt-3 flex items-center justify-between gap-1 border-t border-[#E8DED4]/80 pt-2.5">
-            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
+          <div className="mt-3 border-t border-[#E8DED4]/80 pt-2.5">
+            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 w-full">
               {getPacks(flavor).map((p) => (
                 <button
                   key={p.id}
@@ -292,7 +292,7 @@ function FeaturedCard({ flavor, rank }: { flavor: Flavor; rank: number }) {
                   }}
                   aria-pressed={p.id === packId}
                   className={cn(
-                    "rounded-lg px-2 py-0.5 text-[10px] font-bold border transition-all shrink-0 cursor-pointer",
+                    "rounded-lg px-2.5 py-1 text-[10px] font-bold border transition-all shrink-0 cursor-pointer",
                     p.id === packId
                       ? "border-[#4A1942] bg-[#4A1942] text-white shadow-xs"
                       : "border-[#E8DED4] bg-white text-[#3D2B1F] hover:border-[#4A1942]/50",
@@ -303,9 +303,6 @@ function FeaturedCard({ flavor, rank }: { flavor: Flavor; rank: number }) {
                 </button>
               ))}
             </div>
-            <Link href={`/shop/${flavor.slug}`} className="text-[10px] font-bold text-[#8E4585] hover:underline shrink-0 flex items-center gap-0.5">
-              All sizes &rarr;
-            </Link>
           </div>
         </div>
 

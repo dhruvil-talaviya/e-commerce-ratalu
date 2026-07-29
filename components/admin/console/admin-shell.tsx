@@ -278,7 +278,6 @@ function AdminShellInner({
       <aside
         className={cn(
           "fixed inset-y-0 left-0 z-30 hidden border-r border-[#E5E7EB] bg-white lg:flex lg:flex-col",
-          TRANSITION,
           collapsed ? "w-16" : "w-60"
         )}
       >
@@ -323,7 +322,7 @@ function AdminShellInner({
       )}
 
       {/* ─── Main column ───────────────────────────────────────────────────── */}
-      <div className={cn(TRANSITION, collapsed ? "lg:pl-16" : "lg:pl-60")}>
+      <div className={cn(collapsed ? "lg:pl-16" : "lg:pl-60")}>
         {/* Topbar */}
         <header className="sticky top-0 z-20 border-b border-[#E5E7EB] bg-white/95 backdrop-blur">
           <div className="flex h-14 items-center gap-2 px-3 sm:px-5">

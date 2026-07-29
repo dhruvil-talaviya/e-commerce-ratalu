@@ -286,93 +286,10 @@ export default function ReviewsPage() {
           </div>
         )}
 
-        {/* ── MAIN CONTENT GRID: 5 ANIMATED REVIEWS & SUBMISSION FORM ──────── */}
+        {/* ── MAIN CONTENT GRID: SUBMISSION FORM & 5 ANIMATED REVIEWS ──────── */}
         <div className="grid gap-6 sm:gap-8 lg:grid-cols-12 items-start">
-          {/* LEFT SIDE: 5 ANIMATED REVIEWS (7 COLS) */}
-          <div id="reviews-list" className="lg:col-span-7 space-y-4">
-            <div className="flex items-center justify-between border-b border-purple-100/80 pb-3">
-              <div className="flex items-center gap-2">
-                <MessageSquare className="size-4 sm:size-5 text-[#5B2C83]" />
-                <h3 className="font-serif text-base sm:text-xl font-extrabold text-[#1A0F0A]">
-                  Verified Snacker Feedback
-                </h3>
-              </div>
-            </div>
-
-            {/* 5 Review Cards List */}
-            {loading ? (
-              <div className="space-y-3">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="h-28 animate-pulse rounded-2xl bg-white/60 border border-purple-100/60 backdrop-blur-md" />
-                ))}
-              </div>
-            ) : visible5Reviews.length === 0 ? (
-              <div className="rounded-2xl border border-purple-100 bg-white/70 backdrop-blur-md p-8 text-center shadow-xs">
-                <p className="text-gray-600 text-sm font-medium">No reviews yet. Be the first snacker to share!</p>
-              </div>
-            ) : (
-              <AnimatePresence mode="wait">
-                <motion.div key={listOffset} className="space-y-3">
-                  {visible5Reviews.map((rev, index) => {
-                    const key = String(rev._id || rev.id || index);
-                    return (
-                      <motion.div
-                        key={key + "-" + index}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        transition={{ duration: 0.35, delay: index * 0.05 }}
-                        className="group relative overflow-hidden rounded-2xl border border-purple-200/50 bg-white/80 backdrop-blur-md p-4 sm:p-5 shadow-xs transition-all duration-300 hover:shadow-md hover:bg-white hover:border-purple-300"
-                      >
-                        <div className="flex items-start justify-between gap-3 mb-2">
-                          <div className="flex items-center gap-2.5">
-                            {/* Avatar */}
-                            <div
-                              className="grid size-9 sm:size-10 place-items-center rounded-xl text-xs sm:text-sm font-extrabold text-white shadow-xs shrink-0"
-                              style={{
-                                background: rev.avatarGradient
-                                  ? `linear-gradient(135deg, ${rev.avatarGradient.from}, ${rev.avatarGradient.to})`
-                                  : "linear-gradient(135deg, #5B2C83, #8E4585)",
-                              }}
-                            >
-                              {rev.initials || rev.name.slice(0, 2).toUpperCase()}
-                            </div>
-
-                            <div>
-                              <div className="flex items-center gap-1.5 flex-wrap">
-                                <h4 className="font-bold text-[#1A0F0A] text-xs sm:text-sm">{rev.name}</h4>
-                                <span className="inline-flex items-center gap-0.5 rounded-full bg-green-50 px-1.5 py-0.5 text-[9px] font-semibold text-green-700 border border-green-200">
-                                  <Check className="size-2.5 stroke-[3]" /> Verified
-                                </span>
-                              </div>
-                              <p className="text-[10px] sm:text-xs text-gray-500 font-medium">
-                                {rev.location} · <strong className="text-[#5B2C83] font-semibold">{rev.flavor}</strong>
-                              </p>
-                            </div>
-                          </div>
-
-                          {/* Rating */}
-                          <div className="shrink-0 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-200">
-                            <StarRating rating={rev.rating} size="sm" />
-                          </div>
-                        </div>
-
-                        {/* Quote */}
-                        <div className="relative pt-0.5 pl-1">
-                          <p className="text-xs sm:text-sm text-gray-700 font-medium leading-relaxed italic">
-                            &ldquo;{rev.quote}&rdquo;
-                          </p>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
-                </motion.div>
-              </AnimatePresence>
-            )}
-          </div>
-
-          {/* RIGHT SIDE: WRITE REVIEW FORM (5 COLS) */}
-          <div id="write-review-form" className="lg:col-span-5 lg:sticky lg:top-24 lg:self-start">
+          {/* WRITE REVIEW FORM: Appears first on mobile (right after Featured Customer Feedback), and on the right side on desktop (lg:order-2 lg:col-span-5) */}
+          <div id="write-review-form" className="lg:order-2 lg:col-span-5 lg:sticky lg:top-24 lg:self-start">
             <div className="rounded-3xl border border-purple-200/90 bg-white p-5 sm:p-7 shadow-[0_12px_36px_rgba(74,25,66,0.08)]">
               <div className="flex items-center gap-3 mb-2">
                 <div className="grid size-9 place-items-center rounded-xl bg-purple-100 text-[#5B2C83]">
@@ -465,6 +382,89 @@ export default function ReviewsPage() {
                 </form>
               )}
             </div>
+          </div>
+
+          {/* 5 ANIMATED REVIEWS LIST: Appears after the form on mobile, and on the left side on desktop (lg:order-1 lg:col-span-7) */}
+          <div id="reviews-list" className="lg:order-1 lg:col-span-7 space-y-4">
+            <div className="flex items-center justify-between border-b border-purple-100/80 pb-3">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="size-4 sm:size-5 text-[#5B2C83]" />
+                <h3 className="font-serif text-base sm:text-xl font-extrabold text-[#1A0F0A]">
+                  Verified Snacker Feedback
+                </h3>
+              </div>
+            </div>
+
+            {/* 5 Review Cards List */}
+            {loading ? (
+              <div className="space-y-3">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="h-28 animate-pulse rounded-2xl bg-white/60 border border-purple-100/60 backdrop-blur-md" />
+                ))}
+              </div>
+            ) : visible5Reviews.length === 0 ? (
+              <div className="rounded-2xl border border-purple-100 bg-white/70 backdrop-blur-md p-8 text-center shadow-xs">
+                <p className="text-gray-600 text-sm font-medium">No reviews yet. Be the first snacker to share!</p>
+              </div>
+            ) : (
+              <AnimatePresence mode="wait">
+                <motion.div key={listOffset} className="space-y-3">
+                  {visible5Reviews.map((rev, index) => {
+                    const key = String(rev._id || rev.id || index);
+                    return (
+                      <motion.div
+                        key={key + "-" + index}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.35, delay: index * 0.05 }}
+                        className="group relative overflow-hidden rounded-2xl border border-purple-200/50 bg-white/80 backdrop-blur-md p-4 sm:p-5 shadow-xs transition-all duration-300 hover:shadow-md hover:bg-white hover:border-purple-300"
+                      >
+                        <div className="flex items-start justify-between gap-3 mb-2">
+                          <div className="flex items-center gap-2.5">
+                            {/* Avatar */}
+                            <div
+                              className="grid size-9 sm:size-10 place-items-center rounded-xl text-xs sm:text-sm font-extrabold text-white shadow-xs shrink-0"
+                              style={{
+                                background: rev.avatarGradient
+                                  ? `linear-gradient(135deg, ${rev.avatarGradient.from}, ${rev.avatarGradient.to})`
+                                  : "linear-gradient(135deg, #5B2C83, #8E4585)",
+                              }}
+                            >
+                              {rev.initials || rev.name.slice(0, 2).toUpperCase()}
+                            </div>
+
+                            <div>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <h4 className="font-bold text-[#1A0F0A] text-xs sm:text-sm">{rev.name}</h4>
+                                <span className="inline-flex items-center gap-0.5 rounded-full bg-green-50 px-1.5 py-0.5 text-[9px] font-semibold text-green-700 border border-green-200">
+                                  <Check className="size-2.5 stroke-[3]" /> Verified
+                                </span>
+                              </div>
+                              <p className="text-[10px] sm:text-xs text-gray-500 font-medium">
+                                {rev.location} · <strong className="text-[#5B2C83] font-semibold">{rev.flavor}</strong>
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Rating */}
+                          <div className="shrink-0 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-200">
+                            <StarRating rating={rev.rating} size="sm" />
+                          </div>
+                        </div>
+
+                        {/* Quote */}
+                        <div className="relative pt-0.5 pl-1">
+                          <p className="text-xs sm:text-sm text-gray-700 font-medium leading-relaxed italic">
+                            &ldquo;{rev.quote}&rdquo;
+                          </p>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </motion.div>
+              </AnimatePresence>
+            )}
           </div>
         </div>
       </div>

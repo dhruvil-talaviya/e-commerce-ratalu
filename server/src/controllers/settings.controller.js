@@ -186,16 +186,22 @@ exports.getPaymentSettings = async (req, res, next) => {
       themeColor: settings.razorpayThemeColor || '#5B2C6F',
 
       testMode: settings.razorpayTestMode ?? (process.env.NODE_ENV !== 'production'),
+      razorpayTestMode: settings.razorpayTestMode ?? (process.env.NODE_ENV !== 'production'),
       autoCapture: settings.razorpayAutoCapture ?? true,
+      razorpayAutoCapture: settings.razorpayAutoCapture ?? true,
       enableRefunds: settings.razorpayEnableRefunds ?? true,
       enablePartialRefunds: settings.razorpayEnablePartialRefunds ?? true,
       enableWebhooks: settings.razorpayEnableWebhooks ?? true,
 
       // Method switches
       enableUPI: settings.razorpayEnableUPI ?? true,
+      razorpayEnableUPI: settings.razorpayEnableUPI ?? true,
       enableCards: settings.razorpayEnableCards ?? true,
+      razorpayEnableCards: settings.razorpayEnableCards ?? true,
       enableWallets: settings.razorpayEnableWallets ?? true,
+      razorpayEnableWallets: settings.razorpayEnableWallets ?? true,
       enableNetBanking: settings.razorpayEnableNetBanking ?? true,
+      razorpayEnableNetBanking: settings.razorpayEnableNetBanking ?? true,
       enableEMI: settings.razorpayEnableEMI ?? false,
 
       // Connection Status
@@ -222,11 +228,20 @@ exports.updatePaymentSettings = async (req, res, next) => {
       'razorpayThemeColor', 'razorpayTestMode', 'razorpayAutoCapture',
       'razorpayEnableRefunds', 'razorpayEnablePartialRefunds', 'razorpayEnableWebhooks',
       'razorpayEnableUPI', 'razorpayEnableCards', 'razorpayEnableWallets',
-      'razorpayEnableNetBanking', 'razorpayEnableEMI'
+      'razorpayEnableNetBanking', 'razorpayEnableEMI',
+      'testMode', 'autoCapture', 'enableUPI', 'enableCards', 'enableWallets', 'enableNetBanking'
     ];
 
     fields.forEach((f) => {
-      if (body[f] !== undefined) settings[f] = body[f];
+      if (body[f] !== undefined) {
+        settings[f] = body[f];
+        if (f === 'testMode') settings.razorpayTestMode = body[f];
+        if (f === 'autoCapture') settings.razorpayAutoCapture = body[f];
+        if (f === 'enableUPI') settings.razorpayEnableUPI = body[f];
+        if (f === 'enableCards') settings.razorpayEnableCards = body[f];
+        if (f === 'enableWallets') settings.razorpayEnableWallets = body[f];
+        if (f === 'enableNetBanking') settings.razorpayEnableNetBanking = body[f];
+      }
     });
 
     if (body.keySecret && !body.keySecret.includes('••••')) {
@@ -272,7 +287,8 @@ exports.testShiprocketConnection = async (req, res, next) => {
     }
 
     const ShiprocketProvider = require('../services/logistics/ShiprocketProvider');
-    const auth = await ShiprocketProvider.authenticate(email, passToUse);
+    const provider = new ShiprocketProvider();
+    const auth = await provider.authenticate({ email, password: passToUse });
 
     if (auth?.token) {
       logistics.shiprocket.token = auth.token;
@@ -513,8 +529,7 @@ exports.calculateShippingCharges = async (req, res, next) => {
     if (pincode && String(pincode).trim().length === 6) {
       try {
         const LogisticsService = require('../services/logistics/LogisticsService');
-        const logisticsService = new LogisticsService();
-        const serviceability = await logisticsService.checkServiceability({
+        const serviceability = await LogisticsService.checkServiceability({
           deliveryPincode: String(pincode).trim(),
           weight: orderWeight
         });
