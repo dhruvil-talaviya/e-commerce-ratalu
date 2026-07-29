@@ -6,9 +6,6 @@ const errorHandler = (err, req, res, next) => {
   let error = { ...err };
   error.message = err.message;
 
-  // Log error stack for debugging
-  logger.error(`${err.message} \nStack: ${err.stack}`);
-
   // Mongoose bad ObjectId
   if (err.name === 'CastError') {
     const message = `Resource not found with id of ${err.value}`;
@@ -38,6 +35,13 @@ const errorHandler = (err, req, res, next) => {
 
   const statusCode = error.statusCode || 500;
   const message = error.message || 'Server Error';
+
+  // Log 500 server errors with stack trace; log expected 4xx user errors as clean warnings
+  if (statusCode >= 500) {
+    logger.error(`${err.message} \nStack: ${err.stack}`);
+  } else {
+    logger.warn(`[HTTP ${statusCode}] ${req.method} ${req.originalUrl} - ${message}`);
+  }
 
   sendResponse(res, statusCode, {
     success: false,

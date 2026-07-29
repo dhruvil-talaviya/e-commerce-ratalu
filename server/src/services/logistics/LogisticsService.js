@@ -196,6 +196,22 @@ class LogisticsService {
   }
 
   /**
+   * Create shipment wrapper (alias for order confirmation & fulfillment)
+   */
+  async createShipment(orderId) {
+    const shipmentDoc = await this.processOrderPostPayment(orderId);
+    if (!shipmentDoc) {
+      return { success: false, message: 'Shipment creation skipped or provider disabled' };
+    }
+    return {
+      success: true,
+      awbCode: shipmentDoc.awbCode || null,
+      courierName: shipmentDoc.courierName || null,
+      shipment: shipmentDoc
+    };
+  }
+
+  /**
    * Process Order Fulfillment after Razorpay / COD payment success
    */
   async processOrderPostPayment(orderId) {
