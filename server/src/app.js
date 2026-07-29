@@ -14,7 +14,8 @@ app.set('trust proxy', 1);
 
 // Set security HTTP headers
 app.use(helmet({
-  crossOriginResourcePolicy: false // Allow loading local uploads directly
+  crossOriginResourcePolicy: false, // Allow loading local uploads directly
+  crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" }
 }));
 
 // Enable CORS with credentials support
