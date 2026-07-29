@@ -3821,7 +3821,10 @@ function HomepageTab({
   const [companyRegistration, setCompanyRegistration] = React.useState(settings.companyRegistration || "");
   const [supportEmail, setSupportEmail] = React.useState(settings.supportEmail || "");
   const [salesEmail, setSalesEmail] = React.useState(settings.salesEmail || "");
-  const [customerCareNumber, setCustomerCareNumber] = React.useState(settings.customerCareNumber || "");
+  const [businessAddress, setBusinessAddress] = React.useState(settings.businessAddress || "");
+  const [businessCity, setBusinessCity] = React.useState(settings.businessCity || "");
+  const [businessState, setBusinessState] = React.useState(settings.businessState || "");
+  const [businessPincode, setBusinessPincode] = React.useState(settings.businessPincode || "");
   const [businessWorkingHours, setBusinessWorkingHours] = React.useState(settings.businessWorkingHours || "");
   const [timeZone, setTimeZone] = React.useState(settings.timeZone || "Asia/Kolkata");
   const [currency, setCurrency] = React.useState(settings.currency || "INR");
@@ -3969,6 +3972,10 @@ function HomepageTab({
     setSupportEmail(settings.supportEmail || "");
     setSalesEmail(settings.salesEmail || "");
     setCustomerCareNumber(settings.customerCareNumber || "");
+    setBusinessAddress(settings.businessAddress || "");
+    setBusinessCity(settings.businessCity || "");
+    setBusinessState(settings.businessState || "");
+    setBusinessPincode(settings.businessPincode || "");
     setBusinessWorkingHours(settings.businessWorkingHours || "");
     setTimeZone(settings.timeZone || "Asia/Kolkata");
     setCurrency(settings.currency || "INR");
@@ -4029,6 +4036,10 @@ function HomepageTab({
       supportEmail,
       salesEmail,
       customerCareNumber,
+      businessAddress,
+      businessCity,
+      businessState,
+      businessPincode,
       businessWorkingHours,
       timeZone,
       currency,
@@ -4470,6 +4481,26 @@ function HomepageTab({
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-bold text-gray-700">Customer Care Number</label>
                     <Input value={customerCareNumber} onChange={(e: any) => setCustomerCareNumber(e.target.value)} className="text-xs rounded-xl" />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-gray-700">Business Address (Footer & Invoices)</label>
+                  <textarea rows={2} value={businessAddress} onChange={(e: any) => setBusinessAddress(e.target.value)} placeholder="e.g. 14 Marine Drive, Nariman Point, Mumbai, Maharashtra 400021" className="w-full rounded-xl border border-gray-200 bg-white p-3 text-xs text-gray-900 outline-none focus:ring-2 focus:ring-purple-600/20" />
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-gray-700">City</label>
+                    <Input value={businessCity} onChange={(e: any) => setBusinessCity(e.target.value)} placeholder="Mumbai" className="text-xs rounded-xl" />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-gray-700">State</label>
+                    <Input value={businessState} onChange={(e: any) => setBusinessState(e.target.value)} placeholder="Maharashtra" className="text-xs rounded-xl" />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-gray-700">Pincode</label>
+                    <Input value={businessPincode} onChange={(e: any) => setBusinessPincode(e.target.value)} placeholder="400021" className="text-xs rounded-xl" />
                   </div>
                 </div>
 
