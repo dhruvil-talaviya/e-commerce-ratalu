@@ -3821,6 +3821,7 @@ function HomepageTab({
   const [companyRegistration, setCompanyRegistration] = React.useState(settings.companyRegistration || "");
   const [supportEmail, setSupportEmail] = React.useState(settings.supportEmail || "");
   const [salesEmail, setSalesEmail] = React.useState(settings.salesEmail || "");
+  const [customerCareNumber, setCustomerCareNumber] = React.useState(settings.customerCareNumber || "");
   const [businessAddress, setBusinessAddress] = React.useState(settings.businessAddress || "");
   const [businessCity, setBusinessCity] = React.useState(settings.businessCity || "");
   const [businessState, setBusinessState] = React.useState(settings.businessState || "");
