@@ -86,6 +86,8 @@ const FALLBACK: GalleryContent = {
 export function InstagramGallery() {
   const cms = useSection<GalleryContent>("instagram", FALLBACK);
   const socials = useSocialLinks();
+  const sliderRef = React.useRef<HTMLDivElement>(null);
+  const [activeIndex, setActiveIndex] = React.useState(0);
 
   const handle = cms.handle || "@yamorawafers";
   const instagram = socials.find((s) => s.platform === "instagram");
@@ -113,8 +115,28 @@ export function InstagramGallery() {
     };
   });
 
+  const scrollToSlide = (idx: number) => {
+    if (!sliderRef.current) return;
+    const items = sliderRef.current.querySelectorAll<HTMLAnchorElement>(".reel-card-item");
+    if (items[idx]) {
+      items[idx].scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+      setActiveIndex(idx);
+    }
+  };
+
+  const handleScroll = () => {
+    if (!sliderRef.current) return;
+    const container = sliderRef.current;
+    const scrollPos = container.scrollLeft;
+    const cardWidth = container.firstElementChild?.clientWidth || 280;
+    const newIdx = Math.round(scrollPos / cardWidth);
+    if (newIdx !== activeIndex && newIdx >= 0 && newIdx < posts.length) {
+      setActiveIndex(newIdx);
+    }
+  };
+
   return (
-    <section id="instagram" className="relative scroll-mt-24 py-16 sm:py-20 lg:py-24 bg-gradient-to-b from-white via-[#FAF5FF]/80 to-white border-t border-purple-100/60">
+    <section id="instagram" className="relative scroll-mt-24 py-14 sm:py-20 lg:py-24 bg-gradient-to-b from-white via-[#FAF5FF]/80 to-white border-t border-purple-100/60 overflow-hidden">
       <div className="container-px mx-auto max-w-7xl">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
           <SectionHeading
@@ -128,30 +150,52 @@ export function InstagramGallery() {
                 </span>
               </>
             }
-            description={(cms.description ?? "Click any reel to watch & follow directly on {handle}.").replace("{handle}", handle)}
+            description={(cms.description ?? "Swipe reels & click to watch directly on {handle}.").replace("{handle}", handle)}
             className="max-w-xl"
           />
-          <Button
-            asChild
-            size="lg"
-            className="hidden shrink-0 sm:inline-flex bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F77737] hover:brightness-110 text-white font-extrabold shadow-md hover:shadow-xl transition-all duration-300 border-0 rounded-full px-7 py-3"
-          >
-            <a href={profileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm">
-              <InstagramIcon className="size-5" /> Follow {handle} on Instagram
-            </a>
-          </Button>
+          
+          <div className="flex items-center gap-3">
+            {/* Mobile Arrow Controls */}
+            <div className="flex items-center gap-2 sm:hidden">
+              <button
+                onClick={() => scrollToSlide(Math.max(0, activeIndex - 1))}
+                disabled={activeIndex === 0}
+                className="grid size-9 place-items-center rounded-full bg-white shadow-md border border-purple-100 text-purple-900 disabled:opacity-40 disabled:cursor-not-allowed"
+                aria-label="Previous Reel"
+              >
+                <span className="text-lg font-bold">‹</span>
+              </button>
+              <button
+                onClick={() => scrollToSlide(Math.min(posts.length - 1, activeIndex + 1))}
+                disabled={activeIndex === posts.length - 1}
+                className="grid size-9 place-items-center rounded-full bg-white shadow-md border border-purple-100 text-purple-900 disabled:opacity-40 disabled:cursor-not-allowed"
+                aria-label="Next Reel"
+              >
+                <span className="text-lg font-bold">›</span>
+              </button>
+            </div>
+
+            <Button
+              asChild
+              size="lg"
+              className="hidden shrink-0 sm:inline-flex bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F77737] hover:brightness-110 text-white font-extrabold shadow-md hover:shadow-xl transition-all duration-300 border-0 rounded-full px-7 py-3"
+            >
+              <a href={profileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm">
+                <InstagramIcon className="size-5" /> Follow {handle} on Instagram
+              </a>
+            </Button>
+          </div>
         </div>
 
-        {/* Authentic 9:16 Instagram Reel Grid */}
+        {/* 
+          Reel Layout:
+          - Mobile (< sm): Horizontal snap-x slider with smooth touch swipe and peek.
+          - Desktop (>= sm): Clean 3 to 6 column grid layout.
+        */}
         <div
-          className={cn(
-            "mt-10 grid grid-cols-2 gap-4 sm:gap-6",
-            posts.length <= 2 && "sm:grid-cols-2",
-            posts.length === 3 && "sm:grid-cols-3",
-            posts.length === 4 && "sm:grid-cols-2 lg:grid-cols-4",
-            posts.length === 5 && "sm:grid-cols-3 lg:grid-cols-5",
-            posts.length >= 6 && "sm:grid-cols-3 lg:grid-cols-6"
-          )}
+          ref={sliderRef}
+          onScroll={handleScroll}
+          className="mt-8 sm:mt-10 flex sm:grid overflow-x-auto sm:overflow-x-visible snap-x snap-mandatory gap-4 sm:gap-6 no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid-cols-3 lg:grid-cols-6 pb-4 sm:pb-0"
         >
           {posts.map((post, i) => (
             <motion.a
@@ -161,9 +205,9 @@ export function InstagramGallery() {
               rel="noopener noreferrer"
               initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-40px" }}
-              transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1], delay: (i % 6) * 0.06 }}
-              className="group relative aspect-[9/16] w-full overflow-hidden rounded-3xl bg-gray-950 shadow-lg border border-purple-200/50 hover:shadow-2xl hover:border-purple-400 transition-all duration-500 cursor-pointer block"
+              viewport={{ once: true, margin: "-20px" }}
+              transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1], delay: (i % 6) * 0.05 }}
+              className="reel-card-item group relative aspect-[9/16] w-[78vw] sm:w-full max-w-[290px] sm:max-w-none shrink-0 snap-center overflow-hidden rounded-3xl bg-gray-950 shadow-lg border border-purple-200/50 hover:shadow-2xl hover:border-purple-400 transition-all duration-500 cursor-pointer block"
               aria-label={post.caption ? `Watch Instagram reel: ${post.caption}` : "Watch Instagram reel"}
             >
               {/* Media Content: Video or High-Res Image Poster */}
@@ -187,7 +231,7 @@ export function InstagramGallery() {
               )}
 
               {/* Reel Header Pill (Top Left) */}
-              <div className="absolute left-3 top-3 z-20 flex items-center gap-2 rounded-full bg-black/60 backdrop-blur-md px-3 py-1.5 text-white shadow-sm border border-white/10">
+              <div className="absolute left-3 top-3 z-20 flex items-center gap-1.5 rounded-full bg-black/60 backdrop-blur-md px-2.5 py-1 text-white shadow-sm border border-white/10">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/logo.png" alt="" className="size-4 rounded-full ring-1 ring-purple-400 object-cover" />
                 <span className="text-[10px] font-extrabold tracking-wide uppercase">REEL</span>
@@ -195,7 +239,7 @@ export function InstagramGallery() {
 
               {/* Top Right Direct Instagram Link Icon */}
               <div className="absolute right-3 top-3 z-20 flex items-center justify-center rounded-full bg-black/50 backdrop-blur-md p-2 text-white/90 group-hover:bg-gradient-to-tr group-hover:from-[#833AB4] group-hover:to-[#FD1D1D] group-hover:scale-110 group-hover:text-white transition-all duration-300 shadow-sm">
-                <InstagramIcon className="size-4" />
+                <InstagramIcon className="size-3.5" />
               </div>
 
               {/* Play Pulse Overlay on Hover */}
@@ -259,12 +303,27 @@ export function InstagramGallery() {
           ))}
         </div>
 
+        {/* Mobile Pagination Indicator Dots */}
+        <div className="flex items-center justify-center gap-1.5 mt-2 sm:hidden">
+          {posts.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => scrollToSlide(i)}
+              aria-label={`Go to slide ${i + 1}`}
+              className={cn(
+                "h-1.5 rounded-full transition-all duration-300",
+                activeIndex === i ? "w-6 bg-gradient-to-r from-[#833AB4] to-[#FD1D1D]" : "w-1.5 bg-purple-200"
+              )}
+            />
+          ))}
+        </div>
+
         {/* Mobile Follow Button */}
-        <div className="mt-8 sm:hidden">
+        <div className="mt-6 sm:hidden">
           <Button
             asChild
             size="lg"
-            className="w-full bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F77737] text-white font-extrabold shadow-lg border-0 rounded-full py-4 text-sm"
+            className="w-full bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F77737] text-white font-extrabold shadow-lg border-0 rounded-full py-3.5 text-sm"
           >
             <a href={profileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2">
               <InstagramIcon className="size-5" /> Follow {handle} on Instagram
