@@ -24,6 +24,8 @@ const COMPONENT_MAP: Record<string, React.ComponentType> = {
   full_width_carousel: FullWidthCarousel,
   gallery: FullWidthCarousel,
   instagram_gallery: InstagramGallery,
+  "instagram-gallery": InstagramGallery,
+  instagram: InstagramGallery,
 };
 
 const DEFAULT_ORDER = [
@@ -33,9 +35,9 @@ const DEFAULT_ORDER = [
   "full_width_carousel",
   "best-sellers",
   "testimonials",
+  "instagram-gallery",
   "reviews",
   "faqs",
-  "faq",
 ];
 
 function SectionWrapper({ sectionKey }: { sectionKey: string }) {
