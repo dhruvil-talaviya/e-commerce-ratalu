@@ -119,6 +119,9 @@ export interface GalleryContent extends Record<string, unknown> {
    */
   posts?: {
     image?: string;
+    video?: string;
+    isVideo?: boolean;
+    likes?: number;
     link?: string;
     caption?: string;
     flavorIndex?: number;
