@@ -154,37 +154,15 @@ export function InstagramGallery() {
             className="max-w-xl"
           />
           
-          <div className="flex items-center gap-3">
-            {/* Mobile Arrow Controls */}
-            <div className="flex items-center gap-2 sm:hidden">
-              <button
-                onClick={() => scrollToSlide(Math.max(0, activeIndex - 1))}
-                disabled={activeIndex === 0}
-                className="grid size-9 place-items-center rounded-full bg-white shadow-md border border-purple-100 text-purple-900 disabled:opacity-40 disabled:cursor-not-allowed"
-                aria-label="Previous Reel"
-              >
-                <span className="text-lg font-bold">‹</span>
-              </button>
-              <button
-                onClick={() => scrollToSlide(Math.min(posts.length - 1, activeIndex + 1))}
-                disabled={activeIndex === posts.length - 1}
-                className="grid size-9 place-items-center rounded-full bg-white shadow-md border border-purple-100 text-purple-900 disabled:opacity-40 disabled:cursor-not-allowed"
-                aria-label="Next Reel"
-              >
-                <span className="text-lg font-bold">›</span>
-              </button>
-            </div>
-
-            <Button
-              asChild
-              size="lg"
-              className="hidden shrink-0 sm:inline-flex bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F77737] hover:brightness-110 text-white font-extrabold shadow-md hover:shadow-xl transition-all duration-300 border-0 rounded-full px-7 py-3"
-            >
-              <a href={profileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm">
-                <InstagramIcon className="size-5" /> Follow {handle} on Instagram
-              </a>
-            </Button>
-          </div>
+          <Button
+            asChild
+            size="lg"
+            className="hidden shrink-0 sm:inline-flex bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F77737] hover:brightness-110 text-white font-extrabold shadow-md hover:shadow-xl transition-all duration-300 border-0 rounded-full px-7 py-3"
+          >
+            <a href={profileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm">
+              <InstagramIcon className="size-5" /> Follow {handle} on Instagram
+            </a>
+          </Button>
         </div>
 
         {/* 
