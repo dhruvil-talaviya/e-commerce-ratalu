@@ -91,13 +91,14 @@ export function InstagramGallery() {
 
   const handle = cms.handle || "@yamorawafers";
   const cleanHandle = handle.replace(/^@/, "").trim();
-  const handleProfileUrl = cleanHandle ? `https://instagram.com/${cleanHandle}` : "";
+  const handleProfileUrl = cleanHandle ? `https://instagram.com/${cleanHandle}` : "https://instagram.com/yamorawafers";
 
   const instagram = socials.find((s) => s.platform === "instagram");
-  const profileUrl =
-    instagram?.url && !instagram.url.toLowerCase().includes("ratalu")
-      ? instagram.url
-      : handleProfileUrl || SITE.social.instagram || "https://instagram.com/yamorawafers";
+  const isCustomUrl =
+    instagram?.url &&
+    !instagram.url.toLowerCase().includes("ratalu") &&
+    !instagram.url.toLowerCase().includes("dhruvil");
+  const profileUrl = isCustomUrl ? instagram.url : handleProfileUrl;
 
   const limit = Math.max(Number(cms.postLimit ?? FALLBACK.postLimit ?? 6), 0);
 
@@ -110,10 +111,17 @@ export function InstagramGallery() {
     const imgSrc = p.image || flavor?.image || "/logo.jpg";
     const isVideo = Boolean(p.video || p.isVideo !== false);
     
-    let targetUrl = p.link && p.link.trim() ? p.link.trim() : profileUrl;
+    let targetUrl = profileUrl;
+    if (p.link && p.link.trim()) {
+      const linkStr = p.link.trim();
+      if (!linkStr.toLowerCase().includes("dhruvil") && !linkStr.toLowerCase().includes("ratalu")) {
+        targetUrl = linkStr;
+      }
+    }
+
     if (cleanHandle && targetUrl.includes("instagram.com")) {
       targetUrl = targetUrl.replace(
-        /instagram\.com\/(rataluchips|ratalu_chips|rataluwafers|ratalu)/gi,
+        /instagram\.com\/(rataluchips|ratalu_chips|rataluwafers|ratalu|dhruvil_talaviya_|dhruvil_talaviya|dhruvil)/gi,
         `instagram.com/${cleanHandle}`
       );
     }
