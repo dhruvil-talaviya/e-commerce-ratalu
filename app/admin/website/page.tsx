@@ -1497,22 +1497,24 @@ function GalleryEditor({
               </div>
 
               <MediaField
-                label="Cover Image / Poster"
+                label="Cover Image / Poster File"
                 value={p.image ?? ""}
                 onChange={(url) => setPost(i, { image: url })}
+                accept="image/*"
                 aspect="aspect-video max-h-36"
-                hint="Upload image/poster (PNG, JPG, WebP)"
+                folder="instagram"
+                hint="Upload image/poster file (PNG, JPG, WebP)"
               />
 
-              <div className="flex flex-col gap-1">
-                <span className="text-[10px] font-bold text-gray-500">Video MP4 URL (Optional for Video Reel)</span>
-                <input
-                  value={p.video ?? ""}
-                  onChange={(e) => setPost(i, { video: e.target.value, isVideo: Boolean(e.target.value) })}
-                  placeholder="https://…/video.mp4"
-                  className={INPUT}
-                />
-              </div>
+              <MediaField
+                label="Video MP4 File (Optional Video Reel)"
+                value={p.video ?? ""}
+                onChange={(url) => setPost(i, { video: url, isVideo: true })}
+                accept="video/*"
+                aspect="aspect-video max-h-36"
+                folder="instagram"
+                hint="Upload MP4/WebM video reel file or paste video URL"
+              />
 
               <div className="flex flex-col gap-1">
                 <span className="text-[10px] font-bold text-gray-500">Instagram Reel / Post Direct Link</span>
