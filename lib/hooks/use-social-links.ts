@@ -33,7 +33,20 @@ export function useSocialLinks() {
     apiFetch<SocialLink[]>("/admin/social-links/public")
       .then((data) => {
         if (cancelled) return;
-        const valid = (data ?? []).filter((l) => l.enabled && l.url?.trim());
+        const valid = (data ?? [])
+          .filter((l) => l.enabled && l.url?.trim())
+          .map((l) => {
+            let cleanUrl = l.url.trim();
+            if (cleanUrl.toLowerCase().includes("dhruvil") || cleanUrl.toLowerCase().includes("ratalu")) {
+              if (l.platform === "instagram") cleanUrl = SITE.social.instagram;
+              else if (l.platform === "facebook") cleanUrl = SITE.social.facebook;
+              else if (l.platform === "x" || l.platform === "twitter") cleanUrl = SITE.social.twitter;
+              else if (l.platform === "youtube") cleanUrl = SITE.social.youtube;
+              else cleanUrl = `https://${l.platform}.com/yamorawafers`;
+            }
+            return { ...l, url: cleanUrl };
+          });
+
         if (valid.length > 0) {
           setLinks(valid);
         } else {

@@ -103,18 +103,28 @@ export function Footer() {
 
             {socials.length > 0 && (
               <div className="mt-5 sm:mt-6 flex flex-wrap gap-2.5">
-                {socials.map((s) => (
-                  <a
-                    key={s._id}
-                    href={s.url}
-                    target={s.openInNewTab ? "_blank" : undefined}
-                    rel={s.openInNewTab ? "noopener noreferrer" : undefined}
-                    aria-label={SOCIAL_LABELS[s.platform] ?? s.platform}
-                    className="grid size-9 sm:size-10 place-items-center rounded-full bg-white/10 text-white transition-all hover:-translate-y-0.5 hover:bg-[#F4B400] hover:text-[#2E1148] shadow-sm"
-                  >
-                    <SocialIcon platform={s.platform} className="size-4" />
-                  </a>
-                ))}
+                {socials.map((s) => {
+                  let href = s.url || "";
+                  if (href.toLowerCase().includes("dhruvil") || href.toLowerCase().includes("ratalu") || !href) {
+                    if (s.platform === "instagram") href = "https://instagram.com/yamorawafers";
+                    else if (s.platform === "facebook") href = "https://facebook.com/yamorawafers";
+                    else if (s.platform === "x" || s.platform === "twitter") href = "https://x.com/yamorawafers";
+                    else if (s.platform === "youtube") href = "https://youtube.com/@yamorawafers";
+                    else href = `https://${s.platform}.com/yamorawafers`;
+                  }
+                  return (
+                    <a
+                      key={s._id}
+                      href={href}
+                      target={s.openInNewTab ? "_blank" : undefined}
+                      rel={s.openInNewTab ? "noopener noreferrer" : undefined}
+                      aria-label={SOCIAL_LABELS[s.platform] ?? s.platform}
+                      className="grid size-9 sm:size-10 place-items-center rounded-full bg-white/10 text-white transition-all hover:-translate-y-0.5 hover:bg-[#F4B400] hover:text-[#2E1148] shadow-sm"
+                    >
+                      <SocialIcon platform={s.platform} className="size-4" />
+                    </a>
+                  );
+                })}
               </div>
             )}
           </div>
