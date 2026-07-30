@@ -1450,6 +1450,7 @@ function AddressesPanel() {
   const { user, addAddress, updateAddress, deleteAddress, setDefaultAddress, setActiveAddress } = useAccount();
   const [showForm, setShowForm] = React.useState(false);
   const [editingAddress, setEditingAddress] = React.useState<SavedAddress | null>(null);
+  const [deletingAddressId, setDeletingAddressId] = React.useState<string | null>(null);
 
   return (
     <Panel title="Saved Delivery Addresses">
@@ -1526,8 +1527,7 @@ function AddressesPanel() {
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            deleteAddress(addr.id);
-                            toast.success("Address deleted");
+                            setDeletingAddressId(addr.id);
                           }}
                           className="p-1 text-gray-400 hover:text-red-500 transition-colors"
                           aria-label="Remove address"
@@ -1598,9 +1598,48 @@ function AddressesPanel() {
               onClick={() => setShowForm(true)}
               className="flex min-h-[160px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-purple-200 text-charcoal-muted transition-colors hover:border-purple-400 hover:text-purple-700"
             >
-              <Plus className="size-6" />
-              <span className="text-sm font-semibold">Add New Address</span>
+              <Plus className="size-6 text-purple-400" />
+              <span className="text-xs font-bold text-purple-800">Add New Address</span>
             </button>
+          </div>
+        )}
+
+        {/* Delete Address Confirmation Modal */}
+        {deletingAddressId && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div
+              className="fixed inset-0 bg-black/50 backdrop-blur-xs transition-opacity"
+              onClick={() => setDeletingAddressId(null)}
+            />
+            <div className="relative z-10 w-full max-w-sm overflow-hidden rounded-3xl bg-white p-6 shadow-2xl text-center border border-purple-100 animate-in fade-in zoom-in duration-200">
+              <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-red-50 text-red-600 mb-4 border border-red-100">
+                <Trash2 className="size-6" />
+              </div>
+              <h3 className="text-base font-extrabold text-gray-900 font-serif">Delete Delivery Address?</h3>
+              <p className="mt-1.5 text-xs text-gray-600 font-medium leading-relaxed">
+                Are you sure you want to remove this saved delivery address from your account? This action cannot be undone.
+              </p>
+              <div className="mt-6 flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDeletingAddressId(null)}
+                  className="w-full rounded-xl border border-gray-200 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await deleteAddress(deletingAddressId);
+                    setDeletingAddressId(null);
+                    toast.success("Address deleted successfully");
+                  }}
+                  className="w-full rounded-xl bg-red-600 py-2.5 text-xs font-bold text-white hover:bg-red-700 shadow-md shadow-red-600/20 transition-all active:scale-[0.98]"
+                >
+                  Delete Address
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>

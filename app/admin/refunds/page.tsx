@@ -483,13 +483,16 @@ function RefundDetail({
   const canApprove = r && (r.approvedAmount == null || ["Submitted", "More Info Needed", "Failed"].includes(r.status)) && !terminal;
   const canProcess = r && r.approvedAmount != null && !r.razorpayRefundId && !terminal && ["Approved", "Item Received", "Refund Processing"].includes(r.status);
 
+  const refundLabel = r?.refundId?.startsWith("REF-") ? r.refundId : `REF-${r?.refundId || ""}`;
+  const orderLabel = data?.order?.displayId || (r?.orderId ? (r.orderId.startsWith("RW") ? r.orderId : `RW-${r.orderId}`) : "Order");
+
   return (
     <>
       <Modal
         open
         onClose={onClose}
-        title={loading ? "Loading…" : `${r?.refundId} — ${r?.reason}`}
-        description={r ? `Order ${r.orderId} · requested ${formatDateTime(r.createdAt)}` : undefined}
+        title={loading ? "Loading…" : `${refundLabel} — ${r?.reason}`}
+        description={r ? `${orderLabel} · requested ${formatDateTime(r.createdAt)}` : undefined}
         width="max-w-3xl"
       >
         {loading || !r ? (

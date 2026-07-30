@@ -279,7 +279,14 @@ export function ConfirmDialog({
           onClick={onConfirm}
           disabled={busy}
         >
-          {busy ? "Working…" : confirmLabel}
+          {busy ? (
+            <span className="flex items-center gap-1.5 text-white font-bold">
+              <span className="inline-block size-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              Processing…
+            </span>
+          ) : (
+            confirmLabel
+          )}
         </Button>
       </div>
     </Modal>
