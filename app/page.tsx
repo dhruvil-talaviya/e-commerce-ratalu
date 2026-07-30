@@ -4,6 +4,7 @@ import { ComboSection } from "@/components/sections/combo-section";
 import { FullWidthCarousel } from "@/components/sections/full-width-carousel";
 import { BestSellers } from "@/components/sections/best-sellers";
 import { Reviews } from "@/components/sections/reviews";
+import { InstagramGallery } from "@/components/sections/instagram-gallery";
 import { Faq } from "@/components/sections/faq";
 import { ProductJsonLd, FaqJsonLd } from "@/components/seo/json-ld";
 
@@ -31,7 +32,10 @@ export default function HomePage() {
       {/* 6. Customer Reviews */}
       <Reviews />
 
-      {/* 7. FAQ (Last) */}
+      {/* 7. Instagram Community Feed */}
+      <InstagramGallery />
+
+      {/* 8. FAQ (Last) */}
       <Faq />
     </>
   );
