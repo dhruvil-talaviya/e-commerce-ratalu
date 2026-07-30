@@ -90,8 +90,14 @@ export function InstagramGallery() {
   const [activeIndex, setActiveIndex] = React.useState(0);
 
   const handle = cms.handle || "@yamorawafers";
+  const cleanHandle = handle.replace(/^@/, "").trim();
+  const handleProfileUrl = cleanHandle ? `https://instagram.com/${cleanHandle}` : "";
+
   const instagram = socials.find((s) => s.platform === "instagram");
-  const profileUrl = instagram?.url || SITE.social.instagram || "https://instagram.com/yamorawafers";
+  const profileUrl =
+    instagram?.url && !instagram.url.toLowerCase().includes("ratalu")
+      ? instagram.url
+      : handleProfileUrl || SITE.social.instagram || "https://instagram.com/yamorawafers";
 
   const limit = Math.max(Number(cms.postLimit ?? FALLBACK.postLimit ?? 6), 0);
 
@@ -103,7 +109,15 @@ export function InstagramGallery() {
     const flavor = FLAVORS[(p.flavorIndex ?? i) % FLAVORS.length];
     const imgSrc = p.image || flavor?.image || "/logo.jpg";
     const isVideo = Boolean(p.video || p.isVideo !== false);
-    const targetUrl = p.link && p.link.trim() ? p.link.trim() : profileUrl;
+    
+    let targetUrl = p.link && p.link.trim() ? p.link.trim() : profileUrl;
+    if (cleanHandle && targetUrl.includes("instagram.com")) {
+      targetUrl = targetUrl.replace(
+        /instagram\.com\/(rataluchips|ratalu_chips|rataluwafers|ratalu)/gi,
+        `instagram.com/${cleanHandle}`
+      );
+    }
+
     return {
       ...p,
       flavor,

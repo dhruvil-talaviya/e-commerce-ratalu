@@ -22,6 +22,8 @@ export interface SocialLink {
   sortOrder: number;
 }
 
+import { SITE } from "@/lib/constants";
+
 export function useSocialLinks() {
   const [links, setLinks] = React.useState<SocialLink[]>([]);
 
@@ -31,11 +33,28 @@ export function useSocialLinks() {
     apiFetch<SocialLink[]>("/admin/social-links/public")
       .then((data) => {
         if (cancelled) return;
-        // A channel with no URL is not a channel — never render a dead icon.
-        setLinks((data ?? []).filter((l) => l.enabled && l.url?.trim()));
+        const valid = (data ?? []).filter((l) => l.enabled && l.url?.trim());
+        if (valid.length > 0) {
+          setLinks(valid);
+        } else {
+          // Provide clean fallback social channels from SITE.social
+          setLinks([
+            { _id: "ig", platform: "instagram", url: SITE.social.instagram, username: "yamorawafers", enabled: true, openInNewTab: true, sortOrder: 0 },
+            { _id: "fb", platform: "facebook", url: SITE.social.facebook, username: "yamorawafers", enabled: true, openInNewTab: true, sortOrder: 1 },
+            { _id: "x", platform: "x", url: SITE.social.twitter, username: "yamorawafers", enabled: true, openInNewTab: true, sortOrder: 2 },
+            { _id: "yt", platform: "youtube", url: SITE.social.youtube, username: "yamorawafers", enabled: true, openInNewTab: true, sortOrder: 3 },
+          ]);
+        }
       })
       .catch(() => {
-        if (!cancelled) setLinks([]);
+        if (!cancelled) {
+          setLinks([
+            { _id: "ig", platform: "instagram", url: SITE.social.instagram, username: "yamorawafers", enabled: true, openInNewTab: true, sortOrder: 0 },
+            { _id: "fb", platform: "facebook", url: SITE.social.facebook, username: "yamorawafers", enabled: true, openInNewTab: true, sortOrder: 1 },
+            { _id: "x", platform: "x", url: SITE.social.twitter, username: "yamorawafers", enabled: true, openInNewTab: true, sortOrder: 2 },
+            { _id: "yt", platform: "youtube", url: SITE.social.youtube, username: "yamorawafers", enabled: true, openInNewTab: true, sortOrder: 3 },
+          ]);
+        }
       });
 
     return () => {
