@@ -308,6 +308,13 @@ export async function apiFetch<T = any>(endpoint: string, options: RequestOption
     try {
       const json = await apiRequest<T>(endpoint, options);
       return (json.data ?? []) as T;
+    } catch (err: any) {
+      if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
+        if (isGet) {
+          return [] as any;
+        }
+      }
+      throw err;
     } finally {
       if (isGet && cacheKey) {
         inFlightRequests.delete(cacheKey);

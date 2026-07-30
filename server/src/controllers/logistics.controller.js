@@ -690,3 +690,129 @@ exports.handleShiprocketWebhook = async (req, res, next) => {
     sendResponse(res, 200, { success: true, message: 'Webhook error handled safely' });
   }
 };
+
+// @desc    Get Logistics Dashboard KPIs & Analytics Metrics
+// @route   GET /api/v1/admin/logistics/kpis
+// @access  Private (Admin)
+exports.getLogisticsKPIs = async (req, res, next) => {
+  try {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const [
+      totalCount,
+      todayCount,
+      pendingPickupCount,
+      delayedCount,
+      rtoCount,
+      deliveredCount,
+      cancelledCount,
+      failedCount,
+      shipmentsList
+    ] = await Promise.all([
+      Shipment.countDocuments({}),
+      Shipment.countDocuments({ createdAt: { $gte: todayStart } }),
+      Shipment.countDocuments({ status: { $in: ['Pickup Scheduled', 'AWB Assigned', 'Confirmed'] } }),
+      Shipment.countDocuments({ status: 'In Transit', estimatedDelivery: { $lt: new Date() } }),
+      Shipment.countDocuments({ status: { $in: ['RTO', 'RTO In Transit', 'RTO Delivered'] } }),
+      Shipment.countDocuments({ status: 'Delivered' }),
+      Shipment.countDocuments({ status: 'Cancelled' }),
+      Shipment.countDocuments({ status: { $in: ['Failed', 'Pending Retry'] } }),
+      Shipment.find({ status: 'Delivered', deliveredDate: { $ne: null } }).select('createdAt deliveredDate freightCharge').lean()
+    ]);
+
+    const totalCalculable = totalCount || 1;
+    const rtoPercent = Math.round((rtoCount / totalCalculable) * 100);
+    const deliveredPercent = Math.round((deliveredCount / totalCalculable) * 100);
+    const cancelledPercent = Math.round((cancelledCount / totalCalculable) * 100);
+    const codPercent = 0; // COD currently disabled
+
+    let totalFreight = 0;
+    let totalDeliveryTimeMs = 0;
+    let deliveredWithDateCount = 0;
+
+    for (const s of shipmentsList) {
+      if (s.freightCharge) totalFreight += s.freightCharge;
+      if (s.createdAt && s.deliveredDate) {
+        totalDeliveryTimeMs += (new Date(s.deliveredDate).getTime() - new Date(s.createdAt).getTime());
+        deliveredWithDateCount++;
+      }
+    }
+
+    const avgShippingCost = shipmentsList.length ? Math.round(totalFreight / shipmentsList.length) : 55;
+    const avgDeliveryTimeDays = deliveredWithDateCount ? Math.round((totalDeliveryTimeMs / deliveredWithDateCount / (1000 * 3600 * 24)) * 10) / 10 : 3.2;
+
+    sendResponse(res, 200, {
+      success: true,
+      data: {
+        todaysShipments: todayCount,
+        pendingPickup: pendingPickupCount,
+        delayedOrders: delayedCount,
+        avgDeliveryTimeDays,
+        avgShippingCost,
+        rtoPercent,
+        deliveredPercent,
+        cancelledPercent,
+        codPercent,
+        failedQueueCount: failedCount,
+        totalShipments: totalCount
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get Courier Performance Analytics
+// @route   GET /api/v1/admin/logistics/courier-analytics
+// @access  Private (Admin)
+exports.getCourierAnalytics = async (req, res, next) => {
+  try {
+    const analytics = await Shipment.aggregate([
+      { $match: { courierName: { $ne: null, $ne: '' } } },
+      {
+        $group: {
+          _id: '$courierName',
+          courierId: { $first: '$courierCompanyId' },
+          totalShipments: { $sum: 1 },
+          delivered: { $sum: { $cond: [{ $eq: ['$status', 'Delivered'] }, 1, 0] } },
+          rto: { $sum: { $cond: [{ $in: ['$status', ['RTO', 'RTO In Transit', 'RTO Delivered']] }, 1, 0] } },
+          cancelled: { $sum: { $cond: [{ $eq: ['$status', 'Cancelled'] }, 1, 0] } },
+          failed: { $sum: { $cond: [{ $eq: ['$status', 'Failed'] }, 1, 0] } },
+          avgCost: { $avg: '$freightCharge' },
+          avgRating: { $avg: '$courierRating' }
+        }
+      },
+      { $sort: { totalShipments: -1 } }
+    ]);
+
+    const formatted = analytics.map(c => ({
+      courierName: c._id,
+      courierId: c.courierId,
+      totalShipments: c.totalShipments,
+      deliveredPercent: Math.round((c.delivered / c.totalShipments) * 100) || 0,
+      rtoPercent: Math.round((c.rto / c.totalShipments) * 100) || 0,
+      avgCost: Math.round(c.avgCost || 0),
+      avgRating: c.avgRating ? Math.round(c.avgRating * 10) / 10 : 4.5
+    }));
+
+    sendResponse(res, 200, { success: true, data: formatted });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Retry Pending/Failed Shipment Queue
+// @route   POST /api/v1/admin/logistics/retry-queue
+// @access  Private (Admin)
+exports.retryFailedQueue = async (req, res, next) => {
+  try {
+    const result = await LogisticsService.processRetryQueue();
+    sendResponse(res, 200, {
+      success: true,
+      message: `Processed ${result.processed} queued shipment(s). ${result.succeeded} retried successfully.`
+    });
+  } catch (error) {
+    next(error);
+  }
+};

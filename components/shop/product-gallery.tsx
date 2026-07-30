@@ -20,6 +20,17 @@ const badgeVariant: Record<string, "gold" | "orange" | "primary"> = {
  * <CldImage /> when Cloudinary photography lands — the shell is identical.
  */
 export function ProductGallery({ flavor }: { flavor: Flavor }) {
+  const galleryImages: string[] =
+    (flavor as any).images && (flavor as any).images.length > 0
+      ? (flavor as any).images
+      : (flavor as any).gallery && (flavor as any).gallery.length > 0
+      ? (flavor as any).gallery
+      : flavor.image
+      ? [flavor.image]
+      : [];
+
+  const hasRealImage = Boolean(flavor.image || galleryImages.length > 0);
+  const showThumbnails = galleryImages.length > 1 || (!hasRealImage);
   const seeds = [4, 11, 21, 33];
   const [active, setActive] = React.useState(0);
   const [zoom, setZoom] = React.useState(false);
@@ -33,11 +44,13 @@ export function ProductGallery({ flavor }: { flavor: Flavor }) {
     });
   };
 
+  const currentImage = galleryImages[active] || (flavor.image ? flavor.image : undefined);
+
   return (
     <div className="flex flex-col gap-4">
       {/* Main image */}
       <div
-        className="relative aspect-square w-full cursor-zoom-in overflow-hidden rounded-3xl border border-[var(--color-border)] shadow-[var(--shadow-soft)]"
+        className="relative aspect-square w-full cursor-zoom-in overflow-hidden rounded-3xl border border-[var(--color-border)] shadow-[var(--shadow-soft)] bg-[#FFF8EC]"
         style={{
           background: `radial-gradient(130% 130% at 50% 12%, ${flavor.gradient.from}22, transparent 65%)`,
         }}
@@ -46,50 +59,80 @@ export function ProductGallery({ flavor }: { flavor: Flavor }) {
         onMouseMove={onMove}
       >
         <div
-          className="absolute inset-0 flex items-center justify-center p-10 transition-transform duration-200 ease-out"
+          className="absolute inset-0 flex items-center justify-center transition-transform duration-200 ease-out"
           style={{
-            transform: zoom ? "scale(2)" : "scale(1)",
+            transform: zoom ? "scale(1.8)" : "scale(1)",
             transformOrigin: `${pos.x}% ${pos.y}%`,
           }}
         >
-          <WaferVisual flavor={flavor} seed={seeds[active]} className="h-full w-auto" />
+          {currentImage ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={currentImage}
+              alt={`${flavor.name} Yamora Wafers`}
+              className="size-full object-cover select-none"
+            />
+          ) : (
+            <WaferVisual flavor={flavor} seed={seeds[active]} className="h-full w-auto" />
+          )}
         </div>
 
-        <div className="absolute left-6 top-6 flex flex-col gap-2">
+        <div className="absolute left-6 top-6 flex flex-col gap-2 z-10">
           {flavor.bestSeller && <Badge variant="gold" size="lg">★ Best Seller</Badge>}
           {flavor.badge && (
             <Badge variant={badgeVariant[flavor.badge] ?? "soft"} size="lg">{flavor.badge}</Badge>
           )}
         </div>
 
-        <span className="pointer-events-none absolute bottom-4 right-4 flex items-center gap-1.5 rounded-full bg-white/85 px-3 py-1.5 text-xs font-medium text-charcoal-muted shadow-sm backdrop-blur">
+        <span className="pointer-events-none absolute bottom-4 right-4 flex items-center gap-1.5 rounded-full bg-white/85 px-3 py-1.5 text-xs font-medium text-charcoal-muted shadow-sm backdrop-blur z-10">
           <ZoomIn className="size-3.5" /> Hover to zoom
         </span>
       </div>
 
-      {/* Thumbnails */}
-      <div className="flex gap-3 overflow-x-auto pb-1 no-scrollbar" role="tablist" aria-label="Product images">
-        {seeds.map((seed, i) => (
-          <button
-            key={seed}
-            onClick={() => setActive(i)}
-            role="tab"
-            aria-selected={active === i}
-            aria-label={`View ${i + 1}`}
-            className={cn(
-              "relative aspect-square w-20 shrink-0 overflow-hidden rounded-2xl border-2 transition-all sm:w-24",
-              active === i ? "border-purple-500 shadow-sm" : "border-[var(--color-border)] opacity-70 hover:opacity-100"
-            )}
-            style={{
-              background: `radial-gradient(130% 130% at 50% 12%, ${flavor.gradient.from}22, transparent 65%)`,
-            }}
-          >
-            <div className="absolute inset-0 flex items-center justify-center p-2.5">
-              <WaferVisual flavor={flavor} seed={seed} className="h-full w-auto" />
-            </div>
-          </button>
-        ))}
-      </div>
+      {/* Thumbnails — ONLY shown if there are multiple gallery images or in generative SVG mode */}
+      {showThumbnails && (
+        <div className="flex gap-3 overflow-x-auto pb-1 no-scrollbar" role="tablist" aria-label="Product images">
+          {galleryImages.length > 1 ? (
+            galleryImages.map((imgUrl, i) => (
+              <button
+                key={i}
+                onClick={() => setActive(i)}
+                role="tab"
+                aria-selected={active === i}
+                aria-label={`View image ${i + 1}`}
+                className={cn(
+                  "relative aspect-square w-20 shrink-0 overflow-hidden rounded-2xl border-2 transition-all sm:w-24 cursor-pointer",
+                  active === i ? "border-purple-600 shadow-md ring-2 ring-purple-600/20" : "border-gray-200 opacity-70 hover:opacity-100"
+                )}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={imgUrl} alt="" className="size-full object-cover" />
+              </button>
+            ))
+          ) : (
+            seeds.map((seed, i) => (
+              <button
+                key={seed}
+                onClick={() => setActive(i)}
+                role="tab"
+                aria-selected={active === i}
+                aria-label={`View angle ${i + 1}`}
+                className={cn(
+                  "relative aspect-square w-20 shrink-0 overflow-hidden rounded-2xl border-2 transition-all sm:w-24 cursor-pointer",
+                  active === i ? "border-purple-600 shadow-md ring-2 ring-purple-600/20" : "border-gray-200 opacity-70 hover:opacity-100"
+                )}
+                style={{
+                  background: `radial-gradient(130% 130% at 50% 12%, ${flavor.gradient.from}22, transparent 65%)`,
+                }}
+              >
+                <div className="absolute inset-0 flex items-center justify-center p-2.5">
+                  <WaferVisual flavor={flavor} seed={seed} className="h-full w-auto" />
+                </div>
+              </button>
+            ))
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -21,6 +21,7 @@ import { toast } from "@/components/ui/toast";
 import { apiFetch, apiFetchEnvelope } from "@/lib/api";
 import { useAccount } from "@/components/account/account-provider";
 import { AdminShell } from "@/components/admin/console/admin-shell";
+import { MediaField } from "@/components/admin/ui/media-field";
 import { DataTable, type Column } from "@/components/admin/ui/data-table";
 import {
   Badge,
@@ -1071,14 +1072,14 @@ function ProductEditor({
       onClose={onClose}
       title={`Edit — ${product.name}`}
       description="Changes save as a draft. Nothing reaches customers until you publish."
-      width="max-w-5xl"
+      width="max-w-6xl"
     >
       {/*
         Two panes: the form scrolls, the preview stays put. They were previously
         columns of one grid inside the dialog's own scroller, so the preview
         drifted off-screen the moment you reached the pack prices.
       */}
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_260px]">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
         <div className="min-w-0">
           {/* Tabs — the form was one long column that overflowed the dialog. */}
           <div
@@ -1126,7 +1127,7 @@ function ProductEditor({
 
               <Field label="Description">
                 <textarea
-                  rows={4}
+                  rows={3}
                   value={form.description}
                   onChange={(e) => set("description", e.target.value)}
                   className={cn(INPUT, "resize-y")}
@@ -1194,14 +1195,14 @@ function ProductEditor({
                 />
               </Field>
 
-              <Field label="Image URL" hint="Optional — the generative wafer renders if blank">
-                <input
-                  value={form.image ?? ""}
-                  onChange={(e) => set("image", e.target.value)}
-                  placeholder="https://…"
-                  className={INPUT}
-                />
-              </Field>
+              <MediaField
+                label="Product Image"
+                hint="Upload high quality product image (PNG, JPG, WebP) or enter image URL"
+                value={form.image ?? ""}
+                onChange={(url) => set("image", url)}
+                aspect="aspect-video max-h-48"
+                folder="products"
+              />
 
               {/*
                 "Published" was a terrible name for this next to a Publish
@@ -1318,12 +1319,23 @@ function ProductEditor({
           </p>
           <Card className="overflow-hidden">
             <div
-              className="grid h-32 place-items-center"
+              className="grid h-36 place-items-center overflow-hidden relative bg-gray-100"
               style={{
-                background: `radial-gradient(120% 120% at 30% 20%, ${form.gradient?.from}, ${form.gradient?.to})`,
+                background: form.image
+                  ? undefined
+                  : `radial-gradient(120% 120% at 30% 20%, ${form.gradient?.from}, ${form.gradient?.to})`,
               }}
             >
-              <Package className="size-9 text-white/70" />
+              {form.image ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={form.image}
+                  alt={form.name}
+                  className="size-full object-cover"
+                />
+              ) : (
+                <Package className="size-9 text-white/70" />
+              )}
             </div>
             <div className="p-3">
               <div className="flex flex-wrap items-center gap-1.5">

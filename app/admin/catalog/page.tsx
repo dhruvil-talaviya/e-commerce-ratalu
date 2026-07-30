@@ -320,6 +320,20 @@ function CategoryEditor({
   });
   const [saving, setSaving] = React.useState(false);
 
+  const isDirty = React.useMemo(() => {
+    if (!category) return true;
+    const initial = {
+      name: category.name ?? "",
+      slug: category.slug ?? "",
+      description: category.description ?? "",
+      image: category.image ?? "",
+      sorting: category.sorting ?? 0,
+      status: category.status ?? "Active",
+      visibility: category.visibility ?? true,
+    };
+    return JSON.stringify(form) !== JSON.stringify(initial);
+  }, [form, category]);
+
   const save = async () => {
     if (!form.name.trim()) {
       toast.error("A category needs a name");
@@ -444,7 +458,7 @@ function CategoryEditor({
         <Button variant="secondary" onClick={onClose} disabled={saving}>
           Cancel
         </Button>
-        <Button variant="primary" onClick={save} disabled={saving}>
+        <Button variant="primary" onClick={save} disabled={saving || !isDirty || !form.name.trim()}>
           {saving ? "Saving…" : category ? "Save changes" : "Create category"}
         </Button>
       </div>
@@ -696,6 +710,41 @@ function ComboEditor({
     ]
   );
   const [saving, setSaving] = React.useState(false);
+
+  const isDirty = React.useMemo(() => {
+    if (!combo) return true;
+    const initial = {
+      name: combo.name ?? "",
+      subtitle: (combo as any)?.subtitle ?? "",
+      badge: combo.badge ?? "",
+      rating: String((combo as any)?.rating ?? "4.8"),
+      reviewCount: String((combo as any)?.reviewCount ?? "16"),
+      description: combo.description ?? "",
+      image: combo.image ?? "",
+      featured: combo.featured ?? false,
+      active: (combo.status ?? "Active") === "Active",
+      comboPrice: String(combo.comboPrice ?? ""),
+      items: combo.items.map((i) => ({
+        flavorId: i.flavorId,
+        packId: i.packId,
+        quantity: i.quantity,
+      })),
+    };
+    const current = {
+      name,
+      subtitle,
+      badge,
+      rating,
+      reviewCount,
+      description,
+      image,
+      featured,
+      active,
+      comboPrice,
+      items,
+    };
+    return JSON.stringify(current) !== JSON.stringify(initial);
+  }, [combo, name, subtitle, badge, rating, reviewCount, description, image, featured, active, comboPrice, items]);
 
   /** Every line resolved against the live catalogue — names, packs and prices. */
   const resolved = React.useMemo(
@@ -1092,7 +1141,7 @@ function ComboEditor({
         <Button
           variant="primary"
           onClick={save}
-          disabled={saving || !name.trim() || !complete || !priceValid}
+          disabled={saving || !isDirty || !name.trim() || !complete || !priceValid}
         >
           {saving ? "Saving…" : combo ? "Save changes" : "Create combo"}
         </Button>

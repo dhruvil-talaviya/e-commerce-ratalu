@@ -10,6 +10,9 @@ const ShiprocketProvider = require('./ShiprocketProvider');
 const { decrypt } = require('../../utils/crypto');
 const { notifyOrderStatus, notifyAdmin } = require('../../utils/notify');
 const logger = require('../../config/logger');
+const { buildPackage } = require('../../utils/packageBuilder');
+const shippingRulesService = require('./shippingRules.service');
+const LogisticsAuditLog = require('../../models/LogisticsAuditLog');
 
 class LogisticsService {
   constructor() {
@@ -254,13 +257,15 @@ class LogisticsService {
       hsn: 2106
     }));
 
-    // Calculate total weight (default 0.5kg per unit or setting)
-    const calculatedWeight = Math.max(
-      settings.defaults.weight,
-      order.items.reduce((acc, item) => acc + (item.grams * item.quantity) / 1000, 0)
-    );
+    // Calculate package specs (dead weight, volumetric weight, dimensions) automatically
+    const packageSpecs = buildPackage(order.items, {
+      tareWeightGrams: settings.defaults.tareWeightGrams || 100,
+      length: settings.defaults.length,
+      breadth: settings.defaults.breadth,
+      height: settings.defaults.height
+    });
 
-    const isCOD = order.payment?.method === 'COD';
+    const isCOD = order.payment?.method === 'COD' && settings.defaults.codToggle !== false;
 
     const shiprocketOrderPayload = {
       order_id: order.displayId || order.id,
@@ -280,21 +285,23 @@ class LogisticsService {
       payment_method: isCOD ? 'COD' : 'Prepaid',
       shipping_charges: order.totals?.shipping || 0,
       sub_total: order.totals?.subtotal || order.totals?.total,
-      length: settings.defaults.length,
-      breadth: settings.defaults.breadth,
-      height: settings.defaults.height,
-      weight: calculatedWeight
+      length: packageSpecs.dimensions.length,
+      breadth: packageSpecs.dimensions.breadth,
+      height: packageSpecs.dimensions.height,
+      weight: packageSpecs.chargeableWeightKg
     };
 
     let shipmentDoc = existingShipment || new Shipment({
       order: order._id,
       orderId: order.displayId || order.id,
+      shipmentTag: 'Shipment A',
       provider: settings.activeProvider,
+      packageSpecs,
       dimensions: {
-        length: settings.defaults.length,
-        breadth: settings.defaults.breadth,
-        height: settings.defaults.height,
-        weight: calculatedWeight
+        length: packageSpecs.dimensions.length,
+        breadth: packageSpecs.dimensions.breadth,
+        height: packageSpecs.dimensions.height,
+        weight: packageSpecs.chargeableWeightKg
       },
       pickupLocation: pickupLocationName,
       status: 'Confirmed'
@@ -308,6 +315,8 @@ class LogisticsService {
       shipmentDoc.shiprocketOrderId = createRes.shiprocketOrderId;
       shipmentDoc.shiprocketShipmentId = createRes.shiprocketShipmentId;
       shipmentDoc.status = 'Confirmed';
+      shipmentDoc.queueStatus = 'idle';
+      shipmentDoc.retryCount = 0;
       shipmentDoc.apiLogs.push({
         action: 'create_order',
         request: shiprocketOrderPayload,
@@ -320,24 +329,28 @@ class LogisticsService {
       order.timeline.push({
         status: 'Confirmed',
         time: new Date(),
-        note: `Shiprocket order #${createRes.shiprocketOrderId} created successfully.`
+        note: `Shiprocket order #${createRes.shiprocketOrderId} created successfully (${packageSpecs.presetName}, ${packageSpecs.chargeableWeightKg}kg).`
       });
 
-      // 2. Auto-Generate AWB if enabled
+      // 2. Auto-Generate AWB using Shipping Rules Engine if enabled
       if (settings.defaults.autoGenerateAWB && createRes.shiprocketShipmentId) {
         try {
-          // Check available couriers first to select optimal courier
           const serviceability = await provider.checkServiceability(token, {
             pickupPincode: defaultPickup?.pinCode || '395006',
             deliveryPincode: order.address?.pincode,
-            weight: calculatedWeight,
-            cod: isCOD
+            weight: packageSpecs.chargeableWeightKg,
+            cod: isCOD,
+            length: packageSpecs.dimensions.length,
+            breadth: packageSpecs.dimensions.breadth,
+            height: packageSpecs.dimensions.height
           });
 
-          const chosenCourier = this.selectCourier(serviceability.couriers, settings.courierPreferences);
+          // Evaluate couriers with custom shipping rules engine
+          const ruleResult = shippingRulesService.evaluateCouriers(serviceability.couriers, order, packageSpecs, settings);
+          const chosenCourier = ruleResult.selectedCourier;
           const courierId = chosenCourier?.courierCompanyId || null;
 
-          logger.info(`[LogisticsService] Generating AWB for shipment #${createRes.shiprocketShipmentId} using courier ${courierId || 'auto'}...`);
+          logger.info(`[LogisticsService] Generating AWB for shipment #${createRes.shiprocketShipmentId} via ${chosenCourier?.courierName || 'auto'}...`);
           const awbRes = await provider.generateAWB(token, {
             shipmentId: createRes.shiprocketShipmentId,
             courierId
@@ -346,12 +359,14 @@ class LogisticsService {
           shipmentDoc.awbCode = awbRes.awbCode;
           shipmentDoc.courierCompanyId = awbRes.courierCompanyId;
           shipmentDoc.courierName = awbRes.courierName;
-          shipmentDoc.freightCharge = awbRes.freightCharge || 0;
+          shipmentDoc.courierRating = chosenCourier?.rating || 0;
+          shipmentDoc.freightCharge = awbRes.freightCharge || chosenCourier?.rate || 0;
+          shipmentDoc.totalShippingCost = shipmentDoc.freightCharge;
           shipmentDoc.status = 'Packed';
           shipmentDoc.trackingUrl = `https://shiprocket.co/tracking/${awbRes.awbCode}`;
           shipmentDoc.apiLogs.push({
             action: 'generate_awb',
-            request: { shipmentId: createRes.shiprocketShipmentId, courierId },
+            request: { shipmentId: createRes.shiprocketShipmentId, courierId, ruleReason: ruleResult.reason },
             response: awbRes,
             status: 'success'
           });
@@ -362,7 +377,7 @@ class LogisticsService {
           order.timeline.push({
             status: 'Packed',
             time: new Date(),
-            note: `AWB ${awbRes.awbCode} assigned via ${awbRes.courierName}.`
+            note: `AWB ${awbRes.awbCode} assigned via ${awbRes.courierName} (${ruleResult.reason}).`
           });
         } catch (awbErr) {
           logger.error(`[LogisticsService] AWB Generation Warning: ${awbErr.message}`);
@@ -433,19 +448,87 @@ class LogisticsService {
 
       return shipmentDoc;
     } catch (error) {
-      logger.error(`[LogisticsService] Shipment creation failed: ${error.message}`);
-      shipmentDoc.status = 'Failed';
-      shipmentDoc.lastError = error.message;
-      shipmentDoc.apiLogs.push({
-        action: 'create_order',
-        request: shiprocketOrderPayload,
-        response: error.details || null,
-        status: 'error',
-        errorMessage: error.message
-      });
-      await shipmentDoc.save();
+      logger.error(`[LogisticsService] Shipment creation failed for ${order.displayId || order.id}: ${error.message}`);
+      await this.scheduleRetry(shipmentDoc, error);
       throw error;
     }
+  }
+
+  /**
+   * Schedule exponential backoff retry for failed shipment API requests
+   */
+  async scheduleRetry(shipmentDoc, error) {
+    const settings = await this.getSettings();
+    const backoffMinutes = settings.retrySettings?.backoffMinutes || [2, 10, 30];
+    const maxRetries = settings.retrySettings?.maxRetries || 3;
+
+    shipmentDoc.apiLogs.push({
+      action: 'create_order_failed',
+      request: { orderId: shipmentDoc.orderId },
+      response: error.details || null,
+      status: 'error',
+      errorMessage: error.message
+    });
+
+    if (shipmentDoc.retryCount >= maxRetries) {
+      shipmentDoc.queueStatus = 'failed_max_retries';
+      shipmentDoc.status = 'Failed';
+      shipmentDoc.lastError = `Max retries (${maxRetries}) reached: ${error.message}`;
+      await shipmentDoc.save();
+
+      await LogisticsAuditLog.create({
+        action: 'shipment_retry_failed_max',
+        shipmentId: String(shipmentDoc._id),
+        orderId: shipmentDoc.orderId,
+        status: 'error',
+        details: `Failed after ${maxRetries} retry attempts: ${error.message}`
+      });
+      return;
+    }
+
+    const delayMin = backoffMinutes[shipmentDoc.retryCount] || 30;
+    shipmentDoc.retryCount += 1;
+    shipmentDoc.nextRetryAt = new Date(Date.now() + delayMin * 60 * 1000);
+    shipmentDoc.queueStatus = 'queued';
+    shipmentDoc.status = 'Pending Retry';
+    shipmentDoc.lastError = error.message;
+    await shipmentDoc.save();
+
+    await LogisticsAuditLog.create({
+      action: 'shipment_queued_for_retry',
+      shipmentId: String(shipmentDoc._id),
+      orderId: shipmentDoc.orderId,
+      status: 'warning',
+      details: `Attempt #${shipmentDoc.retryCount} failed. Queued for retry in ${delayMin} minutes.`
+    });
+  }
+
+  /**
+   * Background Worker Job: Retry all pending shipments due for execution
+   */
+  async processRetryQueue() {
+    const dueShipments = await Shipment.find({
+      queueStatus: 'queued',
+      nextRetryAt: { $lte: new Date() }
+    });
+
+    if (dueShipments.length === 0) return { processed: 0, succeeded: 0 };
+
+    logger.info(`[LogisticsRetryQueue] Retrying ${dueShipments.length} pending shipment(s)...`);
+    let succeeded = 0;
+
+    for (const shipment of dueShipments) {
+      try {
+        shipment.queueStatus = 'retrying';
+        await shipment.save();
+        await this.processOrderPostPayment(shipment.order);
+        succeeded++;
+      } catch (err) {
+        logger.warn(`[LogisticsRetryQueue] Retry failed for order ${shipment.orderId}: ${err.message}`);
+      }
+    }
+
+    return { processed: dueShipments.length, succeeded };
   }
 
   /**

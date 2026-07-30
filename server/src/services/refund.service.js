@@ -156,7 +156,13 @@ const callRazorpayRefund = async ({ paymentId, amountPaise, idempotencyKey, note
     .from(`${process.env.RAZORPAY_KEY_ID}:${process.env.RAZORPAY_KEY_SECRET}`)
     .toString('base64');
 
-  const res = await fetch(`${RAZORPAY_API}/payments/${paymentId}/refund`, {
+  let requestBody = {
+    amount: amountPaise,
+    speed: 'normal',
+    notes
+  };
+
+  let res = await fetch(`${RAZORPAY_API}/payments/${paymentId}/refund`, {
     method: 'POST',
     headers: {
       Authorization: `Basic ${auth}`,
@@ -166,14 +172,25 @@ const callRazorpayRefund = async ({ paymentId, amountPaise, idempotencyKey, note
       // timeout safe to retry.
       'X-Razorpay-Idempotency-Key': idempotencyKey
     },
-    body: JSON.stringify({
-      amount: amountPaise,
-      speed: 'normal',
-      notes
-    })
+    body: JSON.stringify(requestBody)
   });
 
-  const body = await res.json().catch(() => ({}));
+  let body = await res.json().catch(() => ({}));
+
+  // Fallback: If Razorpay API rejects speed parameter, retry without speed param (which defaults to normal)
+  if (!res.ok && body?.error?.description?.toLowerCase().includes('speed')) {
+    delete requestBody.speed;
+    res = await fetch(`${RAZORPAY_API}/payments/${paymentId}/refund`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${auth}`,
+        'Content-Type': 'application/json',
+        'X-Razorpay-Idempotency-Key': idempotencyKey
+      },
+      body: JSON.stringify(requestBody)
+    });
+    body = await res.json().catch(() => ({}));
+  }
 
   if (!res.ok) {
     // Keep Razorpay's own wording — "The id provided does not exist" is
@@ -196,6 +213,8 @@ const callRazorpayRefund = async ({ paymentId, amountPaise, idempotencyKey, note
         payment_id: paymentId,
         notes: notes || {},
         status: 'processed',
+        speed_requested: 'normal',
+        speed_processed: 'normal',
         created_at: Math.floor(Date.now() / 1000)
       };
     }

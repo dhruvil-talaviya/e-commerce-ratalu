@@ -15,6 +15,17 @@ const PickupLocationSchema = new mongoose.Schema({
   shiprocketLocationId: { type: String, default: '' }
 }, { timestamps: true });
 
+const ShippingRuleSchema = new mongoose.Schema({
+  id: { type: String, required: true },
+  name: { type: String, required: true },
+  enabled: { type: Boolean, default: true },
+  states: [{ type: String }],
+  minWeight: { type: Number, default: 0 },
+  maxWeight: { type: Number, default: 100 },
+  preferredCourierId: { type: String, default: '' },
+  description: { type: String, default: '' }
+});
+
 const LogisticsSettingsSchema = new mongoose.Schema({
   activeProvider: {
     type: String,
@@ -35,7 +46,7 @@ const LogisticsSettingsSchema = new mongoose.Schema({
     lastTestedAt: { type: Date, default: null },
     lastSyncAt: { type: Date, default: null },
     lastError: { type: String, default: '' },
-    webhookToken: { type: String, default: '' },
+    webhookSecret: { type: String, default: 'yamora_logistics_wh_sec_2026' },
     warehouseName: { type: String, default: 'Yamora Warehouse' },
     warehousePhone: { type: String, default: '+91 98250 22222' },
     gstNumber: { type: String, default: '' },
@@ -47,8 +58,9 @@ const LogisticsSettingsSchema = new mongoose.Schema({
     length: { type: Number, default: 15 }, // in CM
     breadth: { type: Number, default: 15 }, // in CM
     height: { type: Number, default: 10 }, // in CM
+    tareWeightGrams: { type: Number, default: 100 },
     insuranceToggle: { type: Boolean, default: false },
-    codToggle: { type: Boolean, default: true },
+    codToggle: { type: Boolean, default: false }, // COD currently disabled
     autoAssignCourier: { type: Boolean, default: true },
     autoGenerateAWB: { type: Boolean, default: true },
     autoCreateShipment: { type: Boolean, default: true },
@@ -62,13 +74,19 @@ const LogisticsSettingsSchema = new mongoose.Schema({
   courierPreferences: {
     selectionMode: {
       type: String,
-      enum: ['auto', 'manual', 'cheapest', 'fastest', 'preferred'],
-      default: 'auto'
+      enum: ['auto', 'lowest_cost', 'fastest', 'rating', 'preferred'],
+      default: 'lowest_cost'
     },
     preferredCourierId: { type: Number, default: null },
-    preferredCourierName: { type: String, default: '' }
+    preferredCourierName: { type: String, default: '' },
+    disabledCouriers: [{ type: String }]
   },
-  pickupLocations: [PickupLocationSchema]
+  shippingRules: [ShippingRuleSchema],
+  pickupLocations: [PickupLocationSchema],
+  retrySettings: {
+    maxRetries: { type: Number, default: 3 },
+    backoffMinutes: [{ type: Number }] // [2, 10, 30]
+  }
 }, { timestamps: true });
 
 module.exports = mongoose.model('LogisticsSettings', LogisticsSettingsSchema);

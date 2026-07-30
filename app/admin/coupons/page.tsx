@@ -555,6 +555,11 @@ function CouponEditor({
   const [saving, setSaving] = React.useState(false);
 
   const isNew = !coupon._id;
+  const isDirty = React.useMemo(() => {
+    if (isNew) return true;
+    return JSON.stringify(form) !== JSON.stringify(coupon);
+  }, [form, coupon, isNew]);
+
   const set = <K extends keyof Coupon>(key: K, value: Coupon[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
 
@@ -784,7 +789,7 @@ function CouponEditor({
         <Button variant="secondary" onClick={onClose} disabled={saving}>
           Cancel
         </Button>
-        <Button variant="primary" onClick={save} disabled={saving || !valid}>
+        <Button variant="primary" onClick={save} disabled={saving || !valid || !isDirty}>
           {saving ? "Saving…" : isNew ? "Create Coupon" : "Save Changes"}
         </Button>
       </div>

@@ -4665,7 +4665,7 @@ function HomepageTab({
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-bold text-gray-700">SEO Keywords</label>
-                    <Input value={seoKeywords} onChange={(e: any) => setSeoKeywords(e.target.value)} placeholder="ratalu chips, purple yam wafers..." className="text-xs rounded-xl" />
+                    <Input value={seoKeywords} onChange={(e: any) => setSeoKeywords(e.target.value)} placeholder="yamora wafers, ratalu wafers, purple yam chips..." className="text-xs rounded-xl" />
                   </div>
                 </div>
 

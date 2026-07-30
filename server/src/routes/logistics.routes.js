@@ -61,6 +61,8 @@ router.post('/admin/logistics/shipments/:id/pickup', ...adminOnly, schedulePicku
 router.get('/admin/logistics/shipments/:id/document', ...adminOnly, downloadDocument);
 router.get('/admin/logistics/shipments/:id/track', ...adminOnly, trackShipment);
 router.post('/admin/logistics/shipments/:id/cancel', ...adminOnly, cancelShipment);
-router.post('/admin/logistics/shipments/:id/retry', ...adminOnly, retryShipment);
+router.get('/admin/logistics/kpis', ...adminOnly, require('../controllers/logistics.controller').getLogisticsKPIs);
+router.get('/admin/logistics/courier-analytics', ...adminOnly, require('../controllers/logistics.controller').getCourierAnalytics);
+router.post('/admin/logistics/retry-queue', ...adminOnly, require('../controllers/logistics.controller').retryFailedQueue);
 
 module.exports = router;

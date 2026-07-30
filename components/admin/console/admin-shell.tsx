@@ -147,9 +147,44 @@ function AdminShellInner({
   const [collapsed, setCollapsed] = React.useState(false);
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [unread, setUnread] = React.useState(0);
+  const [newOrdersCount, setNewOrdersCount] = React.useState(0);
   const searchRef = React.useRef<HTMLInputElement>(null);
 
   const isAdmin = isAdminSession(user);
+
+  // New Orders tracking & Red badge counter in sidebar
+  React.useEffect(() => {
+    if (!isAdmin) return;
+
+    if (pathname === "/admin/orders" || (pathname === "/admin/dashboard" && currentTab === "orders")) {
+      localStorage.setItem("admin_orders_last_seen", new Date().toISOString());
+      setNewOrdersCount(0);
+      return;
+    }
+
+    const checkNewOrders = async () => {
+      try {
+        let lastSeen = localStorage.getItem("admin_orders_last_seen");
+        if (!lastSeen) {
+          // If never set before, set lastSeen to 1 hour ago so new orders trigger badge
+          lastSeen = new Date(Date.now() - 3600 * 1000).toISOString();
+          localStorage.setItem("admin_orders_last_seen", lastSeen);
+        }
+
+        const env = await apiFetchEnvelope<unknown>(
+          `/admin/orders?dateFrom=${encodeURIComponent(lastSeen)}&limit=1`
+        );
+        const meta = env.meta as { total?: number } | undefined;
+        setNewOrdersCount(meta?.total ?? 0);
+      } catch {
+        /* Ignore background badge check failure */
+      }
+    };
+
+    checkNewOrders();
+    const timer = setInterval(checkNewOrders, 5000);
+    return () => clearInterval(timer);
+  }, [isAdmin, pathname, currentTab]);
 
   // Restore the collapsed preference (client-only, so no hydration mismatch).
   React.useEffect(() => {
@@ -229,6 +264,8 @@ function AdminShellInner({
           {group.items.map((item) => {
             const Icon = item.icon;
             const active = matchNav(pathname ?? "", currentTab, item.href);
+            const isOrdersNav = item.href === "/admin/orders";
+            const showOrderBadge = isOrdersNav && newOrdersCount > 0;
             return (
               <Link
                 key={item.href}
@@ -236,7 +273,7 @@ function AdminShellInner({
                 aria-current={active ? "page" : undefined}
                 title={collapsed ? item.label : undefined}
                 className={cn(
-                  "mb-0.5 flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-semibold",
+                  "relative mb-0.5 flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-semibold",
                   TRANSITION,
                   active
                     ? "bg-[#5B2C83] text-white shadow-sm"
@@ -244,8 +281,20 @@ function AdminShellInner({
                   collapsed && "justify-center px-0"
                 )}
               >
-                <Icon className="size-4 shrink-0" />
+                <div className="relative flex items-center justify-center">
+                  <Icon className="size-4 shrink-0" />
+                  {collapsed && showOrderBadge && (
+                    <span className="absolute -top-1.5 -right-2 flex size-4 items-center justify-center rounded-full bg-red-600 text-[9px] font-bold text-white shadow-sm animate-pulse">
+                      {newOrdersCount > 99 ? "99+" : newOrdersCount}
+                    </span>
+                  )}
+                </div>
                 {!collapsed && <span className="truncate">{item.label}</span>}
+                {!collapsed && showOrderBadge && (
+                  <span className="ml-auto flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1.5 text-[10px] font-bold text-white shadow-sm animate-pulse">
+                    {newOrdersCount > 99 ? "99+" : newOrdersCount}
+                  </span>
+                )}
               </Link>
             );
           })}

@@ -19,18 +19,23 @@ const ShipmentHistorySchema = new mongoose.Schema({
 
 const ShipmentSchema = new mongoose.Schema({
   order: { type: mongoose.Schema.Types.ObjectId, ref: 'Order', required: true, index: true },
-  orderId: { type: String, required: true, index: true }, // Human readable order displayId e.g., RW-000101
+  orderId: { type: String, required: true, index: true }, // Display ID (RW-000101)
+  shipmentTag: { type: String, default: 'Shipment A' }, // Partial shipment identifier e.g., Shipment A, Shipment B
   provider: { type: String, default: 'shiprocket' },
 
-  // Provider specific identifiers
+  // Provider identifiers
   shiprocketOrderId: { type: Number, index: true },
   shiprocketShipmentId: { type: Number, index: true },
   awbCode: { type: String, index: true, sparse: true },
 
-  // Courier information
+  // Courier info & ranking metadata
   courierCompanyId: { type: Number },
   courierName: { type: String },
+  courierRating: { type: Number, default: 0 },
   freightCharge: { type: Number, default: 0 },
+  codCharge: { type: Number, default: 0 },
+  fuelSurcharge: { type: Number, default: 0 },
+  totalShippingCost: { type: Number, default: 0 },
 
   // Status mapping
   status: {
@@ -46,17 +51,30 @@ const ShipmentSchema = new mongoose.Schema({
       'Delivered',
       'Delivery Failed',
       'RTO',
+      'RTO In Transit',
+      'RTO Delivered',
       'Cancelled',
-      'Failed'
+      'Failed',
+      'Pending Retry'
     ],
     default: 'Shipment Created',
     index: true
   },
   providerStatus: { type: String, default: '' },
   providerEventTime: { type: Date },
-  statusStatusCode: { type: Number }, // Shiprocket status code e.g. 6 = Shipped, 7 = Delivered
+  statusStatusCode: { type: Number },
 
-  // Physical specifications
+  // Package Builder Specs
+  packageSpecs: {
+    netWeightGrams: { type: Number, default: 0 },
+    tareWeightGrams: { type: Number, default: 100 },
+    deadWeightKg: { type: Number, default: 0.5 },
+    volumetricWeightKg: { type: Number, default: 0.45 },
+    chargeableWeightKg: { type: Number, default: 0.5 },
+    presetName: { type: String, default: 'Small Box' }
+  },
+
+  // Physical dimensions
   dimensions: {
     length: { type: Number, default: 15 },
     breadth: { type: Number, default: 15 },
@@ -82,10 +100,13 @@ const ShipmentSchema = new mongoose.Schema({
   deliveredDate: { type: Date },
   lastSyncedAt: { type: Date, default: Date.now },
 
-  // Complete history log
-  trackingHistory: [ShipmentHistorySchema],
+  // Failure Retry Queue parameters
+  retryCount: { type: Number, default: 0 },
+  nextRetryAt: { type: Date },
+  queueStatus: { type: String, enum: ['idle', 'queued', 'retrying', 'failed_max_retries'], default: 'idle' },
 
-  // Audit logs for all provider API calls
+  // Complete history log & Audit log
+  trackingHistory: [ShipmentHistorySchema],
   apiLogs: [ApiAuditLogSchema],
 
   // Error tracking
@@ -94,5 +115,7 @@ const ShipmentSchema = new mongoose.Schema({
 
 ShipmentSchema.index({ order: 1, status: 1 });
 ShipmentSchema.index({ awbCode: 1, provider: 1 });
+ShipmentSchema.index({ status: 1, createdAt: -1 });
+ShipmentSchema.index({ queueStatus: 1, nextRetryAt: 1 });
 
 module.exports = mongoose.model('Shipment', ShipmentSchema);

@@ -24,11 +24,11 @@ export function WaferVisual({
 }) {
   if (flavor.image) {
     return (
-      <div className={cn("relative flex h-full w-full items-center justify-center p-2 overflow-hidden", className)}>
+      <div className={cn("relative flex h-full w-full items-center justify-center overflow-hidden", className)}>
         <img
           src={flavor.image}
-          alt={`${flavor.name} Ratalu Chips`}
-          className="h-full w-auto object-contain max-h-full rounded-2xl drop-shadow-md select-none transition-transform duration-300"
+          alt={`${flavor.name} Yamora Wafers`}
+          className="size-full object-cover select-none transition-transform duration-300"
         />
       </div>
     );

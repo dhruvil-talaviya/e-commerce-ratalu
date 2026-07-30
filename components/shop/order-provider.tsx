@@ -162,11 +162,13 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
     setOrdersLoading(true);
     try {
       const data = await apiFetch<Order[]>("/orders/my");
-      setOrders(data);
+      setOrders(Array.isArray(data) ? data : []);
       setOrdersPagination(null);
       setOrdersLastSyncedAt(Date.now());
     } catch (err) {
-      console.error("Failed to load customer orders from backend:", err);
+      console.warn("[OrderProvider] Customer orders fetch notice:", err);
+      setOrders([]);
+      setOrdersPagination(null);
     } finally {
       setOrdersLoading(false);
       setHydrated(true);
@@ -257,13 +259,17 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
 
   const refreshOrders = React.useCallback(async () => {
     if (isLoggedIn) {
-      if (isAdmin) {
-        await Promise.all([
-          loadAdminOrders(),
-          loadOrderFilterOptions()
-        ]);
-      } else {
-        await fetchMyOrders();
+      try {
+        if (isAdmin) {
+          await Promise.all([
+            loadAdminOrders(),
+            loadOrderFilterOptions()
+          ]);
+        } else {
+          await fetchMyOrders();
+        }
+      } catch (err) {
+        console.warn("[OrderProvider] refreshOrders notice:", err);
       }
     }
   }, [isLoggedIn, isAdmin, fetchMyOrders, loadAdminOrders, loadOrderFilterOptions]);

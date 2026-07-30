@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const SettingsSchema = new mongoose.Schema({
   // ─── Store Info ────────────────────────────────────────────────────────────
-  storeName: { type: String, default: 'Ratalu Wafers' },
+  storeName: { type: String, default: 'Yamora Wafers' },
   storeLogo: { type: String, default: '' },
   storeLogoDark: { type: String, default: '' },
   storeFavicon: { type: String, default: '' },
@@ -20,7 +20,7 @@ const SettingsSchema = new mongoose.Schema({
   gstEnabled: { type: Boolean, default: true },
   taxRate: { type: Number, default: 5 }, // percentage, e.g. 5 for 5% GST
   companyRegistration: { type: String, default: '' },
-  businessName: { type: String, default: 'Ratalu Wafers Private Limited' },
+  businessName: { type: String, default: 'Yamora Wafers Private Limited' },
   panNumber: { type: String, default: '' },
   gstSlabs: { type: [Number], default: [0, 3, 5, 12, 18, 28] },
   defaultHsnCode: { type: String, default: '1905' },
@@ -33,8 +33,8 @@ const SettingsSchema = new mongoose.Schema({
   taxInclusive: { type: Boolean, default: true },
 
   // ─── Email & Phone Channels ───────────────────────────────────────────────
-  supportEmail: { type: String, default: 'support@rataluwafers.com' },
-  salesEmail: { type: String, default: 'sales@rataluwafers.com' },
+  supportEmail: { type: String, default: 'support@yamorawafers.com' },
+  salesEmail: { type: String, default: 'sales@yamorawafers.com' },
   customerCareNumber: { type: String, default: '+91 98250 22222' },
   businessWorkingHours: { type: String, default: '9 AM - 6 PM IST, Mon - Sat' },
   timeZone: { type: String, default: 'Asia/Kolkata' },
@@ -141,19 +141,19 @@ const SettingsSchema = new mongoose.Schema({
    * admin was editing.
    */
   footerTagline: { type: String, default: 'Small batch. Natural ingredients. Guilt-free crunch.' },
-  footerCopyright: { type: String, default: '© 2026 Ratalu Wafers. All rights reserved.' },
+  footerCopyright: { type: String, default: '© 2026 Yamora Wafers. All rights reserved.' },
 
   // ─── SEO / Head Integrations ──────────────────────────────────────────────
-  seoTitle: { type: String, default: 'Ratalu Wafers — India\'s Finest Purple Yam Snacks' },
+  seoTitle: { type: String, default: 'Yamora Wafers — India\'s Finest Purple Yam Snacks' },
   seoDescription: { type: String, default: 'Handcrafted purple yam wafers in 6 bold flavours. No artificial preservatives. Free shipping above ₹599.' },
-  seoKeywords: { type: String, default: 'ratalu wafers, purple yam chips, indian snacks, healthy chips' },
+  seoKeywords: { type: String, default: 'yamora wafers, ratalu wafers, purple yam chips, indian snacks, healthy chips' },
   ogImage: { type: String, default: '' },
   googleAnalyticsId: { type: String, default: '' },
   googleTagManagerId: { type: String, default: '' },
   facebookPixelId: { type: String, default: '' },
   metaVerification: { type: String, default: '' },
   googleSearchConsoleVerification: { type: String, default: '' },
-  robotsTxt: { type: String, default: 'User-agent: *\nAllow: /\nSitemap: https://rataluwafers.com/sitemap.xml' },
+  robotsTxt: { type: String, default: 'User-agent: *\nAllow: /\nSitemap: https://yamorawafers.com/sitemap.xml' },
   sitemapXml: { type: String, default: '' },
 
   // ─── Order Limits ──────────────────────────────────────────────────────────

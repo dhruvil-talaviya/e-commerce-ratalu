@@ -55,8 +55,8 @@ export const metadata: Metadata = {
     default: `${SITE.name} — ${SITE.tagline}`,
     template: `%s · ${SITE.name}`,
   },
-  description: SITE.description,
   keywords: [
+    "yamora wafers",
     "ratalu wafers",
     "purple yam chips",
     "premium wafers India",
@@ -68,9 +68,13 @@ export const metadata: Metadata = {
   creator: SITE.name,
   applicationName: SITE.name,
   icons: {
-    icon: "/icon.svg",
-    shortcut: "/icon.svg",
-    apple: "/icon.svg",
+    icon: [
+      { url: "/icon.png?v=5", type: "image/png" },
+      { url: "/favicon.png?v=5", type: "image/png" },
+      { url: "/logo.png?v=5", type: "image/png" }
+    ],
+    shortcut: "/icon.png?v=5",
+    apple: "/apple-icon.png?v=5",
   },
   alternates: { canonical: "/" },
   openGraph: {

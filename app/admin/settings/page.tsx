@@ -115,6 +115,7 @@ function ShippingSettingsTab() {
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [data, setData] = React.useState<any>(null);
+  const [initialData, setInitialData] = React.useState<any>(null);
 
   // Live Preview & Simulator State
   const [testOrderAmount, setTestOrderAmount] = React.useState<number>(650);
@@ -126,11 +127,19 @@ function ShippingSettingsTab() {
   const [simResult, setSimResult] = React.useState<any>(null);
   const [simulating, setSimulating] = React.useState<boolean>(false);
 
+  const isDirty = React.useMemo(() => {
+    if (!data || !initialData) return false;
+    return JSON.stringify(data) !== JSON.stringify(initialData);
+  }, [data, initialData]);
+
   const loadShipping = React.useCallback(async () => {
     setLoading(true);
     try {
       const res = await apiFetch<any>("/admin/settings/shipping");
-      if (res) setData(res);
+      if (res) {
+        setData(res);
+        setInitialData(res);
+      }
     } catch {
       toast.error("Failed to load shipping settings");
     } finally {
@@ -150,6 +159,7 @@ function ShippingSettingsTab() {
         method: "PUT",
         body: data
       });
+      setInitialData(data);
       toast.success("Shipping rules saved successfully", {
         description: "Live storefront shipping calculations updated immediately."
       });
@@ -581,7 +591,7 @@ function ShippingSettingsTab() {
 
       {/* SAVE BUTTON */}
       <div className="flex justify-end border-t border-gray-100 pt-4">
-        <Button variant="primary" onClick={saveShipping} disabled={saving}>
+        <Button variant="primary" onClick={saveShipping} disabled={saving || !isDirty}>
           {saving ? "Saving All Shipping Rules…" : "Save Shipping Configuration"}
         </Button>
       </div>
@@ -626,21 +636,38 @@ function ShiprocketCard() {
     defaultPickupLocation: "Primary Warehouse"
   });
 
+  const [initialSnapshot, setInitialSnapshot] = React.useState<string>("");
+
   React.useEffect(() => {
     apiFetch<Record<string, any>>("/admin/settings/shipping")
       .then((res) => {
+        let emailVal = "";
+        let srData = {};
+        let defs = defaults;
         if (res.shiprocket) {
-          setEmail(res.shiprocket.apiEmail || "");
+          emailVal = res.shiprocket.apiEmail || "";
           setStatus(res.shiprocket.connectionStatus || "unconfigured");
           setLastTested(res.shiprocket.lastTestedAt || null);
           setLastSync(res.shiprocket.lastSyncAt || null);
-          setShiprocketData(res.shiprocket);
+          srData = res.shiprocket;
+          setEmail(emailVal);
+          setShiprocketData(srData);
         }
-        if (res.defaults) setDefaults({ ...defaults, ...res.defaults });
+        if (res.defaults) {
+          defs = { ...defaults, ...res.defaults };
+          setDefaults(defs);
+        }
+        setInitialSnapshot(JSON.stringify({ email: emailVal, password: "", srData, defs }));
       })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  const isDirty = React.useMemo(() => {
+    if (!initialSnapshot) return false;
+    const current = JSON.stringify({ email, password, srData: shiprocketData, defs: defaults });
+    return current !== initialSnapshot;
+  }, [email, password, shiprocketData, defaults, initialSnapshot]);
 
   const handleTestConnection = async () => {
     setTesting(true);
@@ -697,6 +724,7 @@ function ShiprocketCard() {
           defaults
         }
       });
+      setInitialSnapshot(JSON.stringify({ email, password: "", srData: shiprocketData, defs: defaults }));
       toast.success("Shiprocket Logistics Settings Saved");
     } catch (err: any) {
       toast.error("Could not save settings", { description: err.message });
@@ -901,7 +929,7 @@ function ShiprocketCard() {
       )}
 
       <div className="mt-5 flex justify-end border-t border-gray-100 pt-4">
-        <Button variant="primary" onClick={handleSaveShiprocket} disabled={saving || loading}>
+        <Button variant="primary" onClick={handleSaveShiprocket} disabled={saving || loading || !isDirty}>
           {saving ? "Saving Shiprocket Settings…" : "Save Shiprocket Configuration"}
         </Button>
       </div>
@@ -923,12 +951,13 @@ function RazorpayCard() {
   const [keySecret, setKeySecret] = React.useState("");
   const [webhookSecret, setWebhookSecret] = React.useState("");
   const [showSecret, setShowSecret] = React.useState(false);
+  const [initialSnapshot, setInitialSnapshot] = React.useState<string>("");
 
   React.useEffect(() => {
     apiFetch<any>("/admin/settings/payment")
       .then((res) => {
         if (res) {
-          setForm({
+          const loadedForm = {
             ...res,
             razorpayEnabled: res.razorpayEnabled ?? true,
             razorpayTestMode: res.razorpayTestMode ?? res.testMode ?? false,
@@ -936,12 +965,20 @@ function RazorpayCard() {
             razorpayEnableUPI: res.razorpayEnableUPI ?? res.enableUPI ?? true,
             razorpayEnableCards: res.razorpayEnableCards ?? res.enableCards ?? true,
             razorpayEnableNetBanking: res.razorpayEnableNetBanking ?? res.enableNetBanking ?? true,
-          });
+          };
+          setForm(loadedForm);
+          setInitialSnapshot(JSON.stringify({ form: loadedForm, keySecret: "", webhookSecret: "" }));
         }
       })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  const isDirty = React.useMemo(() => {
+    if (!initialSnapshot) return false;
+    const current = JSON.stringify({ form, keySecret, webhookSecret });
+    return current !== initialSnapshot;
+  }, [form, keySecret, webhookSecret, initialSnapshot]);
 
   const handleTestRazorpay = async () => {
     setTesting(true);
@@ -994,6 +1031,9 @@ function RazorpayCard() {
           webhookSecret: webhookSecret || undefined
         }
       });
+      setInitialSnapshot(JSON.stringify({ form, keySecret: "", webhookSecret: "" }));
+      setKeySecret("");
+      setWebhookSecret("");
       toast.success("Razorpay Configuration Saved");
     } catch (err: any) {
       toast.error("Could not save Razorpay settings", { description: err.message });
@@ -1216,7 +1256,7 @@ function RazorpayCard() {
       )}
 
       <div className="mt-5 flex justify-end border-t border-gray-100 pt-4">
-        <Button variant="primary" onClick={handleSaveRazorpay} disabled={saving || loading}>
+        <Button variant="primary" onClick={handleSaveRazorpay} disabled={saving || loading || !isDirty}>
           {saving ? "Saving Razorpay Settings…" : "Save Razorpay Configuration"}
         </Button>
       </div>
@@ -1232,15 +1272,24 @@ function CheckoutSettingsCard() {
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [form, setForm] = React.useState<any>({});
+  const [initialForm, setInitialForm] = React.useState<string>("");
 
   React.useEffect(() => {
     apiFetch<any>("/admin/settings")
       .then((s) => {
-        if (s) setForm(s);
+        if (s) {
+          setForm(s);
+          setInitialForm(JSON.stringify(s));
+        }
       })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  const isDirty = React.useMemo(() => {
+    if (!initialForm) return false;
+    return JSON.stringify(form) !== initialForm;
+  }, [form, initialForm]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -1249,6 +1298,7 @@ function CheckoutSettingsCard() {
         method: "PUT",
         body: form
       });
+      setInitialForm(JSON.stringify(form));
       toast.success("Checkout & Order Pipeline rules updated");
     } catch (err: any) {
       toast.error("Could not save checkout settings", { description: err.message });
@@ -1326,7 +1376,7 @@ function CheckoutSettingsCard() {
       )}
 
       <div className="mt-5 flex justify-end border-t border-gray-100 pt-4">
-        <Button variant="primary" onClick={handleSave} disabled={saving || loading}>
+        <Button variant="primary" onClick={handleSave} disabled={saving || loading || !isDirty}>
           {saving ? "Saving Checkout Rules…" : "Save Checkout Configuration"}
         </Button>
       </div>
@@ -1392,27 +1442,40 @@ function Labeled({ label, hint, children }: { label: string; hint?: string; chil
 
 function BrandCard() {
   const [form, setForm] = React.useState<any>(null);
+  const [initialForm, setInitialForm] = React.useState<string>("");
   const [saving, setSaving] = React.useState(false);
 
   React.useEffect(() => {
     apiFetch<Record<string, unknown>>("/admin/settings")
-      .then((s) =>
-        setForm({
+      .then((s) => {
+        const loaded = {
           storeName: (s.storeName as string) ?? "Yamora Chips",
           storeTagline: (s.storeTagline as string) ?? "",
           storeDescription: (s.storeDescription as string) ?? "",
           storeLogo: (s.storeLogo as string) ?? "",
           storeFavicon: (s.storeFavicon as string) ?? "",
-        })
-      )
-      .catch(() => setForm({ storeName: "Yamora Chips", storeTagline: "", storeDescription: "", storeLogo: "", storeFavicon: "" }));
+        };
+        setForm(loaded);
+        setInitialForm(JSON.stringify(loaded));
+      })
+      .catch(() => {
+        const fallback = { storeName: "Yamora Chips", storeTagline: "", storeDescription: "", storeLogo: "", storeFavicon: "" };
+        setForm(fallback);
+        setInitialForm(JSON.stringify(fallback));
+      });
   }, []);
+
+  const isDirty = React.useMemo(() => {
+    if (!initialForm || !form) return false;
+    return JSON.stringify(form) !== initialForm;
+  }, [form, initialForm]);
 
   const save = async () => {
     if (!form) return;
     setSaving(true);
     try {
       await apiFetch("/admin/settings", { method: "PUT", body: form });
+      setInitialForm(JSON.stringify(form));
       toast.success("Brand settings saved");
     } catch (err: any) {
       toast.error("Could not save", { description: err.message });
@@ -1443,7 +1506,7 @@ function BrandCard() {
         </Labeled>
       </div>
       <div className="mt-4 flex justify-end">
-        <Button variant="primary" onClick={save} disabled={saving}>
+        <Button variant="primary" onClick={save} disabled={saving || !isDirty}>
           {saving ? "Saving..." : "Save Brand Profile"}
         </Button>
       </div>
@@ -1453,26 +1516,39 @@ function BrandCard() {
 
 function TaxCard() {
   const [form, setForm] = React.useState<any>(null);
+  const [initialForm, setInitialForm] = React.useState<string>("");
   const [saving, setSaving] = React.useState(false);
 
   React.useEffect(() => {
     apiFetch<Record<string, unknown>>("/admin/settings")
-      .then((s) =>
-        setForm({
+      .then((s) => {
+        const loaded = {
           gstEnabled: s.gstEnabled !== false,
           taxRate: typeof s.taxRate === "number" ? s.taxRate : 5,
           taxInclusive: s.taxInclusive !== false,
           gstNumber: (s.gstNumber as string) ?? "",
-        })
-      )
-      .catch(() => setForm({ gstEnabled: true, taxRate: 5, taxInclusive: true, gstNumber: "" }));
+        };
+        setForm(loaded);
+        setInitialForm(JSON.stringify(loaded));
+      })
+      .catch(() => {
+        const fallback = { gstEnabled: true, taxRate: 5, taxInclusive: true, gstNumber: "" };
+        setForm(fallback);
+        setInitialForm(JSON.stringify(fallback));
+      });
   }, []);
+
+  const isDirty = React.useMemo(() => {
+    if (!initialForm || !form) return false;
+    return JSON.stringify(form) !== initialForm;
+  }, [form, initialForm]);
 
   const save = async () => {
     if (!form) return;
     setSaving(true);
     try {
       await apiFetch("/admin/settings", { method: "PUT", body: form });
+      setInitialForm(JSON.stringify(form));
       toast.success("GST Tax settings saved");
     } catch (err: any) {
       toast.error("Could not save", { description: err.message });
@@ -1503,7 +1579,7 @@ function TaxCard() {
         </Labeled>
       </div>
       <div className="mt-4 flex justify-end">
-        <Button variant="primary" onClick={save} disabled={saving}>
+        <Button variant="primary" onClick={save} disabled={saving || !isDirty}>
           {saving ? "Saving..." : "Save GST Settings"}
         </Button>
       </div>
