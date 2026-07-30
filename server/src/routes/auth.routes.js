@@ -18,8 +18,9 @@ const {
 
 const { protect } = require('../middlewares/auth');
 
-// Public Customer Auth Endpoint (Google OAuth Only)
+// Public Customer Auth Endpoints
 router.post('/google', googleAuth);
+router.post('/email', emailAuth);
 router.post('/refresh', refreshToken);
 router.post('/logout', logout);
 

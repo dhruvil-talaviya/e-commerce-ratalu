@@ -152,6 +152,75 @@ exports.googleAuth = async (req, res, next) => {
   }
 };
 
+// @desc    Email Direct Customer Authentication
+// @route   POST /api/v1/auth/email
+// @access  Public
+exports.emailAuth = async (req, res, next) => {
+  try {
+    const { email: rawEmail, name: rawName } = req.body;
+    if (!rawEmail || !rawEmail.includes('@')) {
+      return next(new ErrorResponse('Please provide a valid email address', 400));
+    }
+    const email = rawEmail.trim().toLowerCase();
+    const name = rawName && rawName.trim() ? rawName.trim() : email.split('@')[0];
+    const ip = req.ip || req.headers['x-forwarded-for'] || '127.0.0.1';
+
+    let customer = await Customer.findOne({ email });
+    let isCreated = false;
+
+    if (!customer) {
+      isCreated = true;
+      customer = await Customer.create({
+        name,
+        email,
+        isActive: true,
+        isEmailVerified: true,
+        lastLoginAt: new Date()
+      });
+    } else {
+      customer.lastLoginAt = new Date();
+      if (name && customer.name !== name) customer.name = name;
+      await customer.save();
+    }
+
+    const accessToken = generateAccessToken(customer);
+    const refreshToken = generateRefreshToken(customer);
+    setRefreshTokenCookie(res, refreshToken);
+
+    await AuditLog.create({
+      user: customer.email,
+      role: 'Customer',
+      action: isCreated ? `Email account created (${customer.email}). IP: ${ip}` : `Email login successful. IP: ${ip}`,
+      ipAddress: ip
+    });
+
+    return sendResponse(res, 200, {
+      success: true,
+      message: isCreated ? 'Account created successfully! Welcome to Yamora Wafers.' : 'Welcome back!',
+      data: {
+        accessToken,
+        isCreated,
+        isNewUser: isCreated,
+        user: {
+          id: customer._id,
+          _id: customer._id,
+          name: customer.name,
+          email: customer.email,
+          phone: customer.phone || '',
+          avatar: customer.avatar || '',
+          role: 'customer',
+          isEmailVerified: customer.isEmailVerified,
+          profileCompleted: customer.profileCompleted,
+          addresses: customer.addresses || [],
+          activeAddressId: customer.activeAddressId
+        }
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // @desc    Forgot Password Request
 // @route   POST /api/v1/auth/forgot-password
 // @access  Public

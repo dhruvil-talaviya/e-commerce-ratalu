@@ -10,7 +10,27 @@ import Link from "next/link";
 import { useGoogleAuth } from "@/lib/hooks/use-google-auth";
 
 function LoginGateContent() {
-  const { isLoggedIn, loginWithGoogle } = useAccount();
+  const { isLoggedIn, loginWithGoogle, loginWithEmailDirect } = useAccount();
+  const [emailInput, setEmailInput] = React.useState("");
+  const [showEmailForm, setShowEmailForm] = React.useState(false);
+
+  const handleEmailSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!emailInput || !emailInput.includes("@")) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+    setError("");
+    setLoading(true);
+    const res = await loginWithEmailDirect(emailInput);
+    setLoading(false);
+    if (res.success) {
+      toast.success(res.message || "Signed in successfully!");
+      handleClose();
+    } else {
+      setError(res.message || "Failed to sign in. Please try again.");
+    }
+  };
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -139,6 +159,39 @@ function LoginGateContent() {
               </>
             )}
           </button>
+
+          <div className="relative my-3 flex items-center justify-center">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200" /></div>
+            <span className="relative bg-white px-3 text-[11px] font-bold text-gray-400 uppercase">OR</span>
+          </div>
+
+          {showEmailForm ? (
+            <form onSubmit={handleEmailSignIn} className="space-y-3">
+              <input
+                type="email"
+                required
+                value={emailInput}
+                onChange={(e) => setEmailInput(e.target.value)}
+                placeholder="Enter your email address"
+                className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm focus:border-purple-600 focus:outline-none"
+              />
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full rounded-xl bg-purple-900 py-3 text-sm font-bold text-white shadow-md hover:bg-purple-950 transition-colors disabled:opacity-50"
+              >
+                {loading ? <Loader2 className="mx-auto size-4 animate-spin" /> : "Sign in with Email"}
+              </button>
+            </form>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowEmailForm(true)}
+              className="text-xs font-bold text-purple-900 hover:underline"
+            >
+              Sign in with Email Address instead
+            </button>
+          )}
 
           {/* Legal / Policy Disclaimer */}
           <p className="text-xs text-gray-500 font-medium leading-normal px-2">

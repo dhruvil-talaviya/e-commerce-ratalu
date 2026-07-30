@@ -55,6 +55,7 @@ interface AccountContextValue {
   login: (email: string, password: string) => Promise<{ success: boolean; isAdmin?: boolean; message?: string }>;
   registerUser: (data: { name: string; email: string; password: string; confirmPassword: string }) => Promise<{ success: boolean; message?: string }>;
   loginWithGoogle: (googleData: { googleId: string; email: string; name: string; avatar?: string; idToken?: string }) => Promise<{ success: boolean; isAdmin?: boolean; requiresPassword?: boolean; message?: string }>;
+  loginWithEmailDirect: (email: string, name?: string) => Promise<{ success: boolean; message?: string }>;
   forgotPassword: (email: string) => Promise<{ success: boolean; message?: string; resetToken?: string }>;
   resetPassword: (token: string, newPassword: string, confirmPassword: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => Promise<void>;
@@ -173,6 +174,26 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
       return { success: true, isAdmin, message: json.message || "Logged in with Google!" };
     } catch {
       return { success: false, message: "Google sign in error. Please try again." };
+    }
+  }, []);
+
+  const loginWithEmailDirect = React.useCallback(async (email: string, name?: string) => {
+    try {
+      const res = await fetch("/api/v1/auth/email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, name })
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        return { success: false, message: json.message || "Email authentication failed" };
+      }
+
+      saveTokens({ accessToken: json.data.accessToken });
+      setUser(cleanUser(json.data.user));
+      return { success: true, message: json.message || "Signed in successfully!" };
+    } catch {
+      return { success: false, message: "Server connection error. Please try again." };
     }
   }, []);
 
@@ -373,6 +394,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
       login: loginWithEmailPassword,
       registerUser,
       loginWithGoogle,
+      loginWithEmailDirect,
       forgotPassword,
       resetPassword,
       logout,
@@ -383,7 +405,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
       setDefaultAddress,
       setActiveAddress
     }),
-    [user, hydrated, loginWithEmailPassword, registerUser, loginWithGoogle, forgotPassword, resetPassword, logout, updateProfile, addAddress, updateAddress, deleteAddress, setDefaultAddress]
+    [user, hydrated, loginWithEmailPassword, registerUser, loginWithGoogle, loginWithEmailDirect, forgotPassword, resetPassword, logout, updateProfile, addAddress, updateAddress, deleteAddress, setDefaultAddress]
   );
 
   return <AccountContext.Provider value={value}>{children}</AccountContext.Provider>;
