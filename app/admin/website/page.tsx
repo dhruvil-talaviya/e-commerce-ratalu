@@ -1477,35 +1477,86 @@ function GalleryEditor({
           Posts
         </p>
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
           {posts.map((p, i) => (
             <div
               key={i}
-              className="flex flex-col gap-2.5 rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] p-2.5"
+              className="flex flex-col gap-2.5 rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] p-3 shadow-xs"
             >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-[#5B2C83]">Reel / Post {i + 1}</span>
+                <label className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-600 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(p.isVideo || p.video)}
+                    onChange={(e) => setPost(i, { isVideo: e.target.checked })}
+                    className="rounded border-gray-300 text-[#5B2C83] focus:ring-[#5B2C83]"
+                  />
+                  Is Video / Reel
+                </label>
+              </div>
+
               <MediaField
-                label={`Post ${i + 1} image`}
-                value={p.image}
+                label="Cover Image / Poster"
+                value={p.image ?? ""}
                 onChange={(url) => setPost(i, { image: url })}
-                aspect="aspect-square"
-                hint={p.image ? undefined : "No image yet — a flavour visual stands in."}
+                aspect="aspect-video max-h-36"
+                hint="Upload image/poster (PNG, JPG, WebP)"
               />
 
-              <input
-                value={p.caption ?? ""}
-                onChange={(e) => setPost(i, { caption: e.target.value })}
-                placeholder="Caption"
-                className={INPUT}
-                aria-label="Caption"
-              />
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] font-bold text-gray-500">Video MP4 URL (Optional for Video Reel)</span>
+                <input
+                  value={p.video ?? ""}
+                  onChange={(e) => setPost(i, { video: e.target.value, isVideo: Boolean(e.target.value) })}
+                  placeholder="https://…/video.mp4"
+                  className={INPUT}
+                />
+              </div>
 
-              <input
-                value={p.link ?? ""}
-                onChange={(e) => setPost(i, { link: e.target.value })}
-                placeholder="https://instagram.com/p/…"
-                className={INPUT}
-                aria-label="Link to the post"
-              />
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] font-bold text-gray-500">Instagram Reel / Post Direct Link</span>
+                <input
+                  value={p.link ?? ""}
+                  onChange={(e) => setPost(i, { link: e.target.value })}
+                  placeholder="https://instagram.com/reel/…"
+                  className={INPUT}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="flex flex-col gap-1">
+                  <span className="text-[10px] font-bold text-gray-500">Likes Count</span>
+                  <input
+                    type="number"
+                    value={p.likes ?? 1420}
+                    onChange={(e) => setPost(i, { likes: Number(e.target.value) })}
+                    className={INPUT}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-[10px] font-bold text-gray-500">Flavor Theme</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={5}
+                    value={p.flavorIndex ?? (i % 6)}
+                    onChange={(e) => setPost(i, { flavorIndex: Number(e.target.value) })}
+                    className={INPUT}
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] font-bold text-gray-500">Caption & Hashtags</span>
+                <textarea
+                  rows={2}
+                  value={p.caption ?? ""}
+                  onChange={(e) => setPost(i, { caption: e.target.value })}
+                  placeholder="Caption #YamoraWafers"
+                  className={cn(INPUT, "resize-y")}
+                />
+              </div>
 
               <Button
                 variant="danger"
@@ -1513,7 +1564,7 @@ function GalleryEditor({
                 onClick={() => set("posts", posts.filter((_, idx) => idx !== i))}
               >
                 <Trash2 className="size-3.5" />
-                Remove
+                Remove Post
               </Button>
             </div>
           ))}
@@ -1523,10 +1574,22 @@ function GalleryEditor({
           variant="secondary"
           size="sm"
           className="mt-3"
-          onClick={() => set("posts", [...posts, { image: "", caption: "", link: "", flavorIndex: posts.length }])}
+          onClick={() =>
+            set("posts", [
+              ...posts,
+              {
+                image: "",
+                video: "",
+                caption: "Yamora Wafers #NaturallyCrispy",
+                link: "https://instagram.com/yamorawafers",
+                likes: 1500,
+                flavorIndex: posts.length % 6,
+              },
+            ])
+          }
         >
           <Plus className="size-3.5" />
-          Add post
+          Add Instagram Reel / Post
         </Button>
       </div>
     </div>

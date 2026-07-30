@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { motion } from "motion/react";
-import { Play, Heart, ExternalLink } from "lucide-react";
+import { Play, Heart, MessageCircle, Send, Music2, CheckCircle2, ExternalLink } from "lucide-react";
 import { SectionHeading } from "@/components/common/section-heading";
 import { Button } from "@/components/ui/button";
 import { InstagramIcon } from "@/components/layout/social-icons";
@@ -20,52 +20,65 @@ export interface InstagramPost {
   video?: string;
   isVideo?: boolean;
   likes?: number;
+  comments?: number;
   link?: string;
 }
 
 const FALLBACK: GalleryContent = {
-  eyebrow: "📸 INSTAGRAM COMMUNITY",
-  title: "Join the",
+  eyebrow: "📸 INSTAGRAM REELS & FEED",
+  title: "Watch & Join the",
   titleHighlight: "crunch community",
   handle: "@yamorawafers",
-  description: "Tag {handle} to get featured. Real snackers, real love.",
+  description: "Click any reel to watch & follow directly on {handle}.",
   postLimit: 6,
   posts: [
     {
       flavorIndex: 0,
-      caption: "Movie night sorted with Original Salted 🍿 #YamoraWafers #CrunchTime",
+      caption: "Movie night sorted with Original Salted! 🍿 Crispy, thin & 100% natural. #YamoraWafers #CrunchTime",
       image: "https://images.unsplash.com/photo-1566478989037-eec170784d0b?auto=format&fit=crop&w=800&q=80",
-      likes: 1420,
+      link: "https://instagram.com/yamorawafers",
+      likes: 1840,
+      isVideo: true,
     },
     {
       flavorIndex: 2,
-      caption: "That peri peri kick 🔥 #SnackTime #PeriPeriCrunch",
+      caption: "That peri peri kick 🔥 Spice up your snacking routine! #YamoraWafers #PeriPeri",
       image: "https://images.unsplash.com/photo-1621447504864-d8686e12698c?auto=format&fit=crop&w=800&q=80",
-      likes: 2105,
+      link: "https://instagram.com/yamorawafers",
+      likes: 2410,
+      isVideo: true,
     },
     {
       flavorIndex: 4,
-      caption: "Cheesy little obsession 🧀 #NaturallyCrispy #YamoraSnacks",
+      caption: "Cheesy little obsession 🧀 Kettle-cooked perfection! #NaturallyCrispy #SnackBetter",
       image: "https://images.unsplash.com/photo-1528751014936-863e6e7a319c?auto=format&fit=crop&w=800&q=80",
-      likes: 1890,
+      link: "https://instagram.com/yamorawafers",
+      likes: 1950,
+      isVideo: true,
     },
     {
       flavorIndex: 1,
-      caption: "Nostalgia in every pack ✨ #YamoraWafers #HeritageFlavours",
+      caption: "Nostalgia in every pack ✨ Roasted spices & pure ratalu goodness. #HeritageFlavours",
       image: "https://images.unsplash.com/photo-1599490659213-e2b9527bd087?auto=format&fit=crop&w=800&q=80",
-      likes: 1650,
+      link: "https://instagram.com/yamorawafers",
+      likes: 1680,
+      isVideo: true,
     },
     {
       flavorIndex: 5,
-      caption: "Green chilli > everything 🌶️ #PureRatalu #CrispyGoodness",
+      caption: "Green chilli > everything 🌶️ Zesty, punchy & addictive! #PureRatalu #Yamora",
       image: "https://images.unsplash.com/photo-1541592106381-b31e9677c0e5?auto=format&fit=crop&w=800&q=80",
-      likes: 1340,
+      link: "https://instagram.com/yamorawafers",
+      likes: 2130,
+      isVideo: true,
     },
     {
       flavorIndex: 3,
-      caption: "Cracked pepper perfection 🥔 #TastySnacking #Yamora",
+      caption: "Cracked pepper perfection 🥔 Bold Malabar pepper crunch. #TastySnacking #YamoraWafers",
       image: "https://images.unsplash.com/photo-1600857544200-b2f666a9a2ec?auto=format&fit=crop&w=800&q=80",
-      likes: 1980,
+      link: "https://instagram.com/yamorawafers",
+      likes: 1790,
+      isVideo: true,
     },
   ],
 };
@@ -87,18 +100,21 @@ export function InstagramGallery() {
   const posts = rawPosts.slice(0, limit).map((p, i) => {
     const flavor = FLAVORS[(p.flavorIndex ?? i) % FLAVORS.length];
     const imgSrc = p.image || flavor?.image || "/logo.jpg";
-    const isVideo = Boolean(p.video || p.isVideo);
+    const isVideo = Boolean(p.video || p.isVideo !== false);
+    const targetUrl = p.link && p.link.trim() ? p.link.trim() : profileUrl;
     return {
       ...p,
       flavor,
       imgSrc,
       isVideo,
-      likes: p.likes || Math.floor(1200 + ((i * 317) % 950)),
+      targetUrl,
+      likes: p.likes || Math.floor(1400 + ((i * 383) % 1100)),
+      comments: p.comments || Math.floor(32 + ((i * 17) % 65)),
     };
   });
 
   return (
-    <section id="instagram" className="relative scroll-mt-24 py-16 sm:py-20 lg:py-24 bg-gradient-to-b from-white via-[#FAF5FF]/70 to-white border-t border-purple-100/60">
+    <section id="instagram" className="relative scroll-mt-24 py-16 sm:py-20 lg:py-24 bg-gradient-to-b from-white via-[#FAF5FF]/80 to-white border-t border-purple-100/60">
       <div className="container-px mx-auto max-w-7xl">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
           <SectionHeading
@@ -107,29 +123,29 @@ export function InstagramGallery() {
             title={
               <>
                 {cms.title}{" "}
-                <span className="bg-gradient-to-r from-[#5B2C83] via-[#D98A2B] to-[#5B2C83] bg-clip-text text-transparent font-black">
+                <span className="bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F77737] bg-clip-text text-transparent font-black">
                   {cms.titleHighlight}
                 </span>
               </>
             }
-            description={(cms.description ?? "Tag {handle} to get featured. Real snackers, real love.").replace("{handle}", handle)}
+            description={(cms.description ?? "Click any reel to watch & follow directly on {handle}.").replace("{handle}", handle)}
             className="max-w-xl"
           />
           <Button
             asChild
             size="lg"
-            className="hidden shrink-0 sm:inline-flex bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F77737] hover:brightness-110 text-white font-extrabold shadow-md hover:shadow-lg transition-all duration-300 border-0 rounded-full px-6"
+            className="hidden shrink-0 sm:inline-flex bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F77737] hover:brightness-110 text-white font-extrabold shadow-md hover:shadow-xl transition-all duration-300 border-0 rounded-full px-7 py-3"
           >
-            <a href={profileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-              <InstagramIcon className="size-5" /> Follow {handle}
+            <a href={profileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm">
+              <InstagramIcon className="size-5" /> Follow {handle} on Instagram
             </a>
           </Button>
         </div>
 
-        {/* Instagram Posts & Reels Grid */}
+        {/* Authentic 9:16 Instagram Reel Grid */}
         <div
           className={cn(
-            "mt-10 grid grid-cols-2 gap-3.5 sm:gap-5",
+            "mt-10 grid grid-cols-2 gap-4 sm:gap-6",
             posts.length <= 2 && "sm:grid-cols-2",
             posts.length === 3 && "sm:grid-cols-3",
             posts.length === 4 && "sm:grid-cols-2 lg:grid-cols-4",
@@ -140,17 +156,17 @@ export function InstagramGallery() {
           {posts.map((post, i) => (
             <motion.a
               key={i}
-              href={post.link || profileUrl}
+              href={post.targetUrl}
               target="_blank"
               rel="noopener noreferrer"
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-40px" }}
-              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1], delay: (i % 6) * 0.06 }}
-              className="group relative aspect-square overflow-hidden rounded-2xl sm:rounded-3xl bg-gray-900 shadow-md border border-purple-100/80 hover:shadow-2xl hover:border-purple-300 transition-all duration-500"
-              aria-label={post.caption ? `Instagram post: ${post.caption}` : "Instagram post"}
+              transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1], delay: (i % 6) * 0.06 }}
+              className="group relative aspect-[9/16] w-full overflow-hidden rounded-3xl bg-gray-950 shadow-lg border border-purple-200/50 hover:shadow-2xl hover:border-purple-400 transition-all duration-500 cursor-pointer block"
+              aria-label={post.caption ? `Watch Instagram reel: ${post.caption}` : "Watch Instagram reel"}
             >
-              {/* Media Element: Video or High-Res Image */}
+              {/* Media Content: Video or High-Res Image Poster */}
               {post.video ? (
                 <video
                   src={post.video}
@@ -158,45 +174,86 @@ export function InstagramGallery() {
                   loop
                   muted
                   playsInline
-                  className="size-full object-cover transition-transform duration-700 group-hover:scale-110"
+                  className="size-full object-cover transition-transform duration-700 group-hover:scale-105"
                 />
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={post.imgSrc}
-                  alt={post.caption ?? `Yamora Wafers Instagram post ${i + 1}`}
+                  alt={post.caption ?? `Yamora Wafers Instagram Reel ${i + 1}`}
                   loading="lazy"
-                  className="size-full object-cover transition-transform duration-700 group-hover:scale-110"
+                  className="size-full object-cover transition-transform duration-700 group-hover:scale-105"
                 />
               )}
 
-              {/* Reel Indicator Pill */}
-              {post.isVideo && (
-                <div className="absolute left-3 top-3 z-10 flex items-center gap-1 rounded-full bg-black/60 backdrop-blur-md px-2.5 py-1 text-[10px] font-bold text-white shadow-xs">
-                  <Play className="size-2.5 fill-white text-white" />
-                  <span>REEL</span>
-                </div>
-              )}
-
-              {/* Top Right Instagram Icon Badge */}
-              <div className="absolute right-3 top-3 z-10 rounded-full bg-black/50 backdrop-blur-md p-2 text-white/90 group-hover:bg-gradient-to-tr group-hover:from-[#833AB4] group-hover:to-[#FD1D1D] group-hover:scale-110 group-hover:text-white transition-all duration-300 shadow-sm">
-                <InstagramIcon className="size-3.5" />
+              {/* Reel Header Pill (Top Left) */}
+              <div className="absolute left-3 top-3 z-20 flex items-center gap-2 rounded-full bg-black/60 backdrop-blur-md px-3 py-1.5 text-white shadow-sm border border-white/10">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/logo.png" alt="" className="size-4 rounded-full ring-1 ring-purple-400 object-cover" />
+                <span className="text-[10px] font-extrabold tracking-wide uppercase">REEL</span>
               </div>
 
-              {/* Bottom Gradient Hover Overlay */}
-              <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/90 via-black/40 to-transparent p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                <div className="flex items-center justify-between gap-2 mb-1.5">
-                  <span className="inline-flex items-center gap-1 text-[11px] font-extrabold text-rose-400">
-                    <Heart className="size-3 fill-rose-500 text-rose-500" />
-                    {post.likes.toLocaleString()}
-                  </span>
-                  <span className="text-[10px] font-bold text-amber-300 flex items-center gap-0.5">
-                    View <ExternalLink className="size-2.5 ml-0.5" />
-                  </span>
+              {/* Top Right Direct Instagram Link Icon */}
+              <div className="absolute right-3 top-3 z-20 flex items-center justify-center rounded-full bg-black/50 backdrop-blur-md p-2 text-white/90 group-hover:bg-gradient-to-tr group-hover:from-[#833AB4] group-hover:to-[#FD1D1D] group-hover:scale-110 group-hover:text-white transition-all duration-300 shadow-sm">
+                <InstagramIcon className="size-4" />
+              </div>
+
+              {/* Play Pulse Overlay on Hover */}
+              <div className="absolute inset-0 z-10 grid place-items-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/20 backdrop-blur-[1px]">
+                <div className="grid size-12 place-items-center rounded-full bg-white/90 text-purple-900 shadow-xl group-hover:scale-110 transition-transform duration-300">
+                  <Play className="size-6 fill-purple-900 ml-0.5" />
                 </div>
-                <p className="line-clamp-2 text-xs font-medium text-white/95 leading-relaxed">
-                  {post.caption}
-                </p>
+              </div>
+
+              {/* Bottom Authentic Instagram Reel Interface Overlay */}
+              <div className="absolute inset-0 z-20 flex flex-col justify-end bg-gradient-to-t from-black/95 via-black/50 to-transparent p-3.5 text-white">
+                <div className="flex items-end justify-between gap-2">
+                  {/* Left Column: Account, Caption & Audio */}
+                  <div className="min-w-0 flex-1 space-y-1.5">
+                    {/* User Handle & Verified Badge */}
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-black tracking-tight text-white drop-shadow-xs">{handle}</span>
+                      <CheckCircle2 className="size-3.5 fill-blue-500 text-white shrink-0" />
+                    </div>
+
+                    {/* Caption */}
+                    {post.caption && (
+                      <p className="line-clamp-2 text-[11px] font-medium text-white/90 leading-snug drop-shadow-xs">
+                        {post.caption}
+                      </p>
+                    )}
+
+                    {/* Audio Track */}
+                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-white/80">
+                      <Music2 className="size-3 animate-spin-slow shrink-0" />
+                      <span className="truncate">original audio - yamorawafers</span>
+                    </div>
+                  </div>
+
+                  {/* Right Column: Floating Engagement Action Stack */}
+                  <div className="flex flex-col items-center gap-3 shrink-0 pb-1">
+                    {/* Heart & Likes */}
+                    <div className="flex flex-col items-center">
+                      <div className="grid size-8 place-items-center rounded-full bg-white/10 backdrop-blur-md group-hover:bg-rose-600 group-hover:text-white transition-colors duration-300">
+                        <Heart className="size-4 fill-white text-white group-hover:scale-110 transition-transform" />
+                      </div>
+                      <span className="mt-0.5 text-[9px] font-extrabold text-white">{post.likes.toLocaleString()}</span>
+                    </div>
+
+                    {/* Comment */}
+                    <div className="flex flex-col items-center">
+                      <div className="grid size-8 place-items-center rounded-full bg-white/10 backdrop-blur-md">
+                        <MessageCircle className="size-4 text-white" />
+                      </div>
+                      <span className="mt-0.5 text-[9px] font-extrabold text-white">{post.comments}</span>
+                    </div>
+
+                    {/* Direct External Link Icon */}
+                    <div className="grid size-8 place-items-center rounded-full bg-gradient-to-tr from-[#833AB4] to-[#FD1D1D] text-white shadow-sm group-hover:scale-110 transition-transform">
+                      <ExternalLink className="size-3.5" />
+                    </div>
+                  </div>
+                </div>
               </div>
             </motion.a>
           ))}
@@ -207,10 +264,10 @@ export function InstagramGallery() {
           <Button
             asChild
             size="lg"
-            className="w-full bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F77737] text-white font-extrabold shadow-md border-0 rounded-full py-3.5"
+            className="w-full bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F77737] text-white font-extrabold shadow-lg border-0 rounded-full py-4 text-sm"
           >
             <a href={profileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2">
-              <InstagramIcon className="size-5" /> Follow {handle}
+              <InstagramIcon className="size-5" /> Follow {handle} on Instagram
             </a>
           </Button>
         </div>
