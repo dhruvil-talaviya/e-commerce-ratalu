@@ -106,6 +106,7 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
+import Script from "next/script";
 import { TrackingScripts } from "@/components/common/tracking-scripts";
 
 export default async function RootLayout({
@@ -117,6 +118,21 @@ export default async function RootLayout({
 
   return (
     <html lang="en" className={`${fraunces.variable} ${plusJakartaSans.variable} ${inter.variable} ${manrope.variable} ${notoSansDevanagari.variable} ${notoSansGujarati.variable}`}>
+      <head>
+        {/* Google Analytics GA4 */}
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-8RQGBPV32Y"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics-ga4" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-8RQGBPV32Y');
+          `}
+        </Script>
+      </head>
       <body className="bg-background text-foreground">
         <OrganizationJsonLd />
         <WebsiteJsonLd />
