@@ -298,7 +298,7 @@ const DEFAULT_SETTINGS: StoreSettings = {
   seoDescription: "Handcrafted purple yam wafers in 6 bold flavours. No artificial preservatives. Free shipping above ₹599.",
   seoKeywords: "yamora wafers, ratalu wafers, purple yam chips, indian snacks, healthy chips",
   ogImage: "",
-  googleAnalyticsId: "",
+  googleAnalyticsId: "G-8RQGBPV32Y",
   googleTagManagerId: "",
   facebookPixelId: "",
   metaVerification: "",

@@ -5,17 +5,19 @@ import Script from "next/script";
 import { useStoreSettings } from "@/components/common/settings-provider";
 
 export function TrackingScripts() {
-  const { settings, hydrated } = useStoreSettings();
+  const { settings } = useStoreSettings();
 
-  if (!hydrated) return null;
+  const gaId = settings?.googleAnalyticsId || process.env.NEXT_PUBLIC_GA_ID || "G-8RQGBPV32Y";
+  const gtmId = settings?.googleTagManagerId || process.env.NEXT_PUBLIC_GTM_ID;
+  const fbPixelId = settings?.facebookPixelId || process.env.NEXT_PUBLIC_FB_PIXEL_ID;
 
   return (
     <>
-      {/* Google Analytics */}
-      {settings.googleAnalyticsId && (
+      {/* Google Analytics GA4 */}
+      {gaId && (
         <>
           <Script
-            src={`https://www.googletagmanager.com/gtag/js?id=${settings.googleAnalyticsId}`}
+            src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
             strategy="afterInteractive"
           />
           <Script id="google-analytics" strategy="afterInteractive">
@@ -23,7 +25,7 @@ export function TrackingScripts() {
               window.dataLayer = window.dataLayer || [];
               function gtag(){dataLayer.push(arguments);}
               gtag('js', new Date());
-              gtag('config', '${settings.googleAnalyticsId}');
+              gtag('config', '${gaId}');
             `}
           </Script>
         </>

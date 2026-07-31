@@ -148,7 +148,7 @@ const SettingsSchema = new mongoose.Schema({
   seoDescription: { type: String, default: 'Handcrafted purple yam wafers in 6 bold flavours. No artificial preservatives. Free shipping above ₹599.' },
   seoKeywords: { type: String, default: 'yamora wafers, ratalu wafers, purple yam chips, indian snacks, healthy chips' },
   ogImage: { type: String, default: '' },
-  googleAnalyticsId: { type: String, default: '' },
+  googleAnalyticsId: { type: String, default: 'G-8RQGBPV32Y' },
   googleTagManagerId: { type: String, default: '' },
   facebookPixelId: { type: String, default: '' },
   metaVerification: { type: String, default: '' },
