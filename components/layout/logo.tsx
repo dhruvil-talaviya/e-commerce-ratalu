@@ -86,6 +86,8 @@ function YamoraSymbol({
  *  1. Uploaded SVG / Image from admin settings
  *  2. Fallback vector YamoraSymbol SVG badge
  */
+import { motion } from "motion/react";
+
 export function Logo({
   className,
   onDark = false,
@@ -101,32 +103,50 @@ export function Logo({
   const logoSrc = sanitizeMediaUrl(rawLogo);
   const hasLogo = logoSrc.length > 0;
   const name = settings?.storeName?.trim() || "Yamora Wafers";
-  const isSvg = isSvgUrl(logoSrc);
 
   return (
     <Link
       href="/"
       className={cn(
-        "group inline-flex items-center shrink-0 transition-transform duration-300 hover:scale-[1.03]",
+        "group relative inline-flex items-center shrink-0 transition-all duration-300",
         className
       )}
       aria-label={`${name} — home`}
     >
-      {hasLogo ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={logoSrc}
-          alt={`${name} logo`}
-          className="h-10 sm:h-12 lg:h-13 w-auto max-w-[240px] object-contain"
-        />
-      ) : (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src="/logo.png"
-          alt={`${name} logo`}
-          className="h-10 sm:h-12 lg:h-13 w-auto max-w-[240px] object-contain rounded-full shadow-xs"
-        />
-      )}
+      <motion.div
+        animate={{
+          y: [0, -3, 0],
+          scale: [1, 1.015, 1],
+        }}
+        transition={{
+          duration: 3.8,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+        whileHover={{
+          scale: 1.08,
+          rotate: [0, -1.5, 1.5, 0],
+          transition: { duration: 0.35, ease: "easeOut" },
+        }}
+        whileTap={{ scale: 0.95 }}
+        className="relative flex items-center"
+      >
+        {hasLogo ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={logoSrc}
+            alt={`${name} logo`}
+            className="h-12 sm:h-15 lg:h-18 w-auto max-w-[280px] sm:max-w-[340px] lg:max-w-[400px] object-contain transition-all duration-300 group-hover:drop-shadow-[0_4px_16px_rgba(91,44,131,0.25)]"
+          />
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src="/logo.png"
+            alt={`${name} logo`}
+            className="h-12 sm:h-15 lg:h-18 w-auto max-w-[280px] sm:max-w-[340px] lg:max-w-[400px] object-contain rounded-full shadow-sm transition-all duration-300 group-hover:drop-shadow-[0_4px_16px_rgba(91,44,131,0.3)]"
+          />
+        )}
+      </motion.div>
     </Link>
   );
 }
