@@ -127,32 +127,19 @@ export function ProductCard({
             )}
           </div>
 
-          {/* Wishlist Button with Likes */}
-          {(() => {
-            const baseLikes = flavor.likesCount || 0;
-            // eslint-disable-next-line react-hooks/rules-of-hooks
-            const initiallyWished = React.useRef(wished).current;
-            const currentLikes = Math.max(0, baseLikes + (wished ? (initiallyWished ? 0 : 1) : (initiallyWished ? -1 : 0)));
-
-            return (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggle(flavor.id);
-                }}
-                aria-label={wished ? "Unlike product" : "Like product"}
-                aria-pressed={wished}
-                className="absolute right-2.5 top-2.5 sm:right-4 sm:top-4 flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-[#555555] shadow-xs backdrop-blur transition-all active:scale-95 hover:text-red-500 z-10 border border-[#e8d9eb]"
-              >
-                <Heart className={cn("size-3.5 sm:size-4 transition-colors", wished && "fill-red-500 text-red-500")} />
-                {currentLikes > 0 && (
-                  <span className={cn("text-[11px] font-extrabold leading-none", wished ? "text-red-600" : "text-[#2D2D2D]")}>
-                    {currentLikes}
-                  </span>
-                )}
-              </button>
-            );
-          })()}
+          {/* Wishlist Toggle Button (Customer Account Only, no public counter) */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              toggle(flavor.id);
+            }}
+            aria-label={wished ? "Unlike product" : "Like product"}
+            aria-pressed={wished}
+            className="absolute right-2.5 top-2.5 sm:right-4 sm:top-4 grid size-8 sm:size-9 place-items-center rounded-full bg-white/95 text-[#555555] shadow-xs backdrop-blur transition-all active:scale-90 hover:text-red-500 z-10 border border-[#e8d9eb]"
+          >
+            <Heart className={cn("size-4 sm:size-4.5 transition-colors", wished ? "fill-red-500 text-red-500" : "text-[#555555]")} />
+          </button>
         </div>
 
         {/* Body Content */}
