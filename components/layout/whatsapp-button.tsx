@@ -20,6 +20,7 @@ export function WhatsAppButton() {
   const [showHint, setShowHint] = React.useState(false);
   const pathname = usePathname();
   const onProductPage = /^\/shop\/[^/]+\/?$/.test(pathname || "");
+  const onCheckoutPage = pathname === "/checkout";
 
   // Nudge the tooltip open once, a few seconds after load (desktop only feel).
   React.useEffect(() => {
@@ -32,6 +33,7 @@ export function WhatsAppButton() {
   }, []);
 
   if (!hydrated) return null;
+  if (onCheckoutPage) return null;
   if (!settings.whatsappEnabled) return null;
 
   const wNo = `${settings.whatsappCountryCode || "91"}${settings.whatsappNumber || "9825000000"}`;

@@ -556,30 +556,30 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="container-px mx-auto max-w-6xl py-6 sm:py-12">
+    <div className="px-3.5 sm:px-6 mx-auto max-w-6xl py-4 sm:py-10 w-full min-w-0">
       {/* Checkout Header */}
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center justify-between border-b border-purple-100/60 pb-3.5">
         <div>
-          <h1 className="font-serif text-2xl sm:text-3xl font-extrabold text-[#4A1942]">Checkout</h1>
-          <p className="text-xs text-gray-500 mt-1 font-medium">Review your items and complete your order</p>
+          <h1 className="font-serif text-xl sm:text-3xl font-extrabold text-[#4A1942]">Checkout</h1>
+          <p className="text-xs text-gray-500 mt-0.5 font-medium">Review your items and complete your order</p>
         </div>
-        <Link href="/shop" className="text-xs font-bold text-purple-700 hover:underline flex items-center gap-1">
+        <Link href="/shop" className="text-xs font-bold text-purple-700 hover:underline flex items-center gap-1 self-start sm:self-auto">
           <ArrowLeft className="size-3.5" /> Continue Shopping
         </Link>
       </div>
 
-      <div className="grid gap-5 sm:gap-8 lg:grid-cols-[1.4fr_1fr]">
+      <div className="grid gap-5 sm:gap-8 lg:grid-cols-[1.4fr_1fr] w-full min-w-0">
 
         {/* LEFT COLUMN: AUTH / PROFILE / ADDRESS & PAYMENT */}
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-5 sm:gap-6 w-full min-w-0">
 
           {/* 1. NOT LOGGED IN GATE */}
           {!isLoggedIn ? (
-            <div className="bg-white border border-gray-200 rounded-3xl p-6 sm:p-8 shadow-sm text-center">
+            <div className="bg-white border border-gray-200 rounded-2xl sm:rounded-3xl p-5 sm:p-8 shadow-sm text-center">
               <div className="mx-auto grid size-14 place-items-center rounded-2xl bg-purple-50 text-purple-700 mb-4">
                 <User className="size-7" />
               </div>
-              <h2 className="text-xl font-bold text-gray-900">Sign in to Checkout</h2>
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900">Sign in to Checkout</h2>
               <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto">
                 Please sign in with your email address or Google account to save delivery details and track your orders.
               </p>
@@ -592,10 +592,10 @@ export default function CheckoutPage() {
           ) : needsProfileCompletion ? (
 
             /* 2. FIRST-TIME CHECKOUT PROFILE & ADDRESS COMPLETION */
-            <form onSubmit={handleProfileCompletionSubmit} className="bg-white border border-purple-200 rounded-3xl p-6 sm:p-8 shadow-sm flex flex-col gap-5">
+            <form onSubmit={handleProfileCompletionSubmit} className="bg-white border border-purple-200 rounded-2xl sm:rounded-3xl p-4 sm:p-7 shadow-sm flex flex-col gap-4.5 w-full min-w-0">
               <div className="border-b border-gray-100 pb-3">
-                <h2 className="text-lg font-extrabold text-[#4A1942]">Complete Your Profile &amp; Delivery Address</h2>
-                <p className="text-xs text-gray-500 mt-1 font-medium">Please enter your contact details and address to continue to payment.</p>
+                <h2 className="text-base sm:text-lg font-extrabold text-[#4A1942]">Complete Your Profile &amp; Delivery Address</h2>
+                <p className="text-xs text-gray-500 mt-0.5 font-medium">Please enter your contact details and address to continue to payment.</p>
               </div>
 
               {profileError && (
@@ -606,18 +606,18 @@ export default function CheckoutPage() {
               )}
 
               {/* Personal Info */}
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
+              <div className="grid gap-3 sm:grid-cols-2 w-full min-w-0">
+                <div className="w-full min-w-0">
                   <label className="block text-xs font-bold text-gray-700 mb-1">Full Name</label>
                   <Input
                     required
                     value={profileName}
                     onChange={(e) => setProfileName(e.target.value)}
                     placeholder="Dhruvil Talaviya"
-                    className="h-10.5 text-sm rounded-xl"
+                    className="h-10 text-sm rounded-xl w-full"
                   />
                 </div>
-                <div>
+                <div className="w-full min-w-0">
                   <label className="block text-xs font-bold text-gray-700 mb-1">Mobile Number</label>
                   <Input
                     required
@@ -625,48 +625,48 @@ export default function CheckoutPage() {
                     maxLength={10}
                     value={profilePhone}
                     onChange={(e) => setProfilePhone(e.target.value.replace(/\D/g, ""))}
-                    placeholder=""
-                    className="h-10.5 text-sm rounded-xl"
+                    placeholder="10-digit mobile number"
+                    className="h-10 text-sm rounded-xl w-full"
                   />
                 </div>
               </div>
 
               {/* Complete Address */}
-              <div className="space-y-3 pt-2">
+              <div className="space-y-3 pt-1 w-full min-w-0">
                 <h3 className="text-xs font-extrabold text-purple-800 uppercase tracking-wider">Delivery Address Details</h3>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div>
+                <div className="grid gap-3 sm:grid-cols-2 w-full min-w-0">
+                  <div className="w-full min-w-0">
                     <label className="block text-xs font-bold text-gray-700 mb-1">House / Flat / Block No.</label>
-                    <Input required value={houseNo} onChange={(e) => setHouseNo(e.target.value)} placeholder="" className="h-10 text-sm rounded-xl" />
+                    <Input required value={houseNo} onChange={(e) => setHouseNo(e.target.value)} placeholder="House/Flat No." className="h-10 text-sm rounded-xl w-full" />
                   </div>
-                  <div>
+                  <div className="w-full min-w-0">
                     <label className="block text-xs font-bold text-gray-700 mb-1">Street / Road Name</label>
-                    <Input required value={street} onChange={(e) => setStreet(e.target.value)} placeholder="" className="h-10 text-sm rounded-xl" />
+                    <Input required value={street} onChange={(e) => setStreet(e.target.value)} placeholder="Street/Road Name" className="h-10 text-sm rounded-xl w-full" />
                   </div>
                 </div>
 
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div>
+                <div className="grid gap-3 sm:grid-cols-2 w-full min-w-0">
+                  <div className="w-full min-w-0">
                     <label className="block text-xs font-bold text-gray-700 mb-1">Area / Locality</label>
-                    <Input required value={area} onChange={(e) => setArea(e.target.value)} placeholder="" className="h-10 text-sm rounded-xl" />
+                    <Input required value={area} onChange={(e) => setArea(e.target.value)} placeholder="Area/Locality" className="h-10 text-sm rounded-xl w-full" />
                   </div>
-                  <div>
+                  <div className="w-full min-w-0">
                     <label className="block text-xs font-bold text-gray-700 mb-1">Landmark (Optional)</label>
-                    <Input value={landmark} onChange={(e) => setLandmark(e.target.value)} placeholder="" className="h-10 text-sm rounded-xl" />
+                    <Input value={landmark} onChange={(e) => setLandmark(e.target.value)} placeholder="Nearby landmark" className="h-10 text-sm rounded-xl w-full" />
                   </div>
                 </div>
 
-                <div className="grid gap-3 sm:grid-cols-3">
-                  <div>
+                <div className="grid gap-3 grid-cols-1 sm:grid-cols-3 w-full min-w-0">
+                  <div className="w-full min-w-0">
                     <label className="block text-xs font-bold text-gray-700 mb-1">PIN Code *</label>
-                    <div className="relative">
+                    <div className="relative w-full">
                       <Input
                         required
                         inputMode="numeric"
                         value={pinCode}
                         onChange={(e) => setPinCode(e.target.value.replace(/\D/g, "").substring(0, 6))}
                         placeholder="6-digit PIN"
-                        className="h-10 text-sm rounded-xl pr-8 font-numbers"
+                        className="h-10 text-sm rounded-xl pr-8 font-numbers w-full"
                       />
                       <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2">
                         {pinStatus === "loading" && <Loader2 className="size-4 animate-spin text-purple-500" />}
@@ -676,7 +676,7 @@ export default function CheckoutPage() {
                     </div>
                   </div>
 
-                  <div>
+                  <div className="w-full min-w-0">
                     <label className="block text-xs font-bold text-gray-700 mb-1">State *</label>
                     <select
                       required
@@ -692,9 +692,9 @@ export default function CheckoutPage() {
                     </select>
                   </div>
 
-                  <div>
+                  <div className="w-full min-w-0">
                     <label className="block text-xs font-bold text-gray-700 mb-1">City / District *</label>
-                    <Input required value={city} onChange={(e) => setCity(e.target.value)} placeholder="City" className="h-10 text-sm rounded-xl" />
+                    <Input required value={city} onChange={(e) => setCity(e.target.value)} placeholder="City" className="h-10 text-sm rounded-xl w-full" />
                   </div>
                 </div>
 
@@ -707,7 +707,7 @@ export default function CheckoutPage() {
                         type="button"
                         onClick={() => setAddressType(t)}
                         className={cn(
-                          "px-4 py-1.5 rounded-xl text-xs font-bold border transition-colors",
+                          "px-4 py-1.5 rounded-xl text-xs font-bold border transition-colors cursor-pointer",
                           addressType === t ? "bg-[#4A1942] text-white border-[#4A1942]" : "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100"
                         )}
                       >
@@ -718,7 +718,7 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
-              <Button type="submit" disabled={profileSaving} size="lg" className="w-full h-11 bg-[#4A1942] hover:bg-[#381132] font-bold text-sm mt-2">
+              <Button type="submit" disabled={profileSaving} size="lg" className="w-full h-11 bg-[#4A1942] hover:bg-[#381132] font-bold text-sm mt-2 rounded-xl">
                 {profileSaving ? <Loader2 className="size-4 animate-spin" /> : "Save Profile & Continue to Payment"}
               </Button>
             </form>
@@ -882,10 +882,10 @@ export default function CheckoutPage() {
         </div>
 
         {/* RIGHT COLUMN: ORDER SUMMARY & DELIVERY INSTRUCTIONS */}
-        <div className="flex flex-col gap-6">
-          <div className="bg-white border border-gray-200 rounded-3xl p-5 sm:p-6 shadow-sm sticky top-24 space-y-6">
+        <div className="flex flex-col gap-6 w-full min-w-0">
+          <div className="bg-white border border-gray-200 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm sticky top-24 space-y-5 w-full min-w-0 overflow-hidden">
             <div>
-              <h3 className="font-serif font-extrabold text-base text-gray-900 border-b border-gray-100 pb-3 mb-4">
+              <h3 className="font-serif font-extrabold text-base text-gray-900 border-b border-gray-100 pb-3 mb-3">
                 Order Summary ({items.length} items)
               </h3>
               
@@ -896,75 +896,75 @@ export default function CheckoutPage() {
                       <p className="font-bold text-gray-800 truncate">{item.flavorName}</p>
                       <p className="text-[11px] text-gray-500 font-medium">{item.packLabel} × {item.quantity}</p>
                     </div>
-                    <span className="font-extrabold text-gray-900">{formatINR(item.unitPrice * item.quantity)}</span>
+                    <span className="font-extrabold text-gray-900 shrink-0 text-right">{formatINR(item.unitPrice * item.quantity)}</span>
                   </div>
                 ))}
               </div>
 
-              <div className="border-t border-gray-100 mt-4 pt-4 space-y-2 text-xs">
-                <div className="flex justify-between text-gray-600 font-medium">
+              <div className="border-t border-gray-100 mt-4 pt-3 space-y-2 text-xs">
+                <div className="flex items-center justify-between text-gray-600 font-medium">
                   <span>Subtotal</span>
-                  <span>{formatINR(totals.subtotal)}</span>
+                  <span className="font-bold text-gray-800">{formatINR(totals.subtotal)}</span>
                 </div>
                 {totals.discount > 0 && (
-                  <div className="flex justify-between text-emerald-600 font-bold">
+                  <div className="flex items-center justify-between text-emerald-600 font-bold">
                     <span>Coupon Discount</span>
                     <span>- {formatINR(totals.discount)}</span>
                   </div>
                 )}
-                <div className="flex justify-between text-gray-600 font-medium">
+                <div className="flex items-center justify-between text-gray-600 font-medium">
                   <span>Shipping</span>
-                  <span>{totals.shipping === 0 ? "FREE" : formatINR(totals.shipping)}</span>
+                  <span className="font-bold text-gray-800">{totals.shipping === 0 ? "FREE" : formatINR(totals.shipping)}</span>
                 </div>
-                <div className="border-t border-gray-200 pt-3 flex justify-between text-sm font-extrabold text-gray-900">
+                <div className="border-t border-gray-200 pt-3 flex items-center justify-between text-sm font-extrabold text-gray-900">
                   <span>Total Amount</span>
-                  <span className="text-[#4A1942] text-base">{formatINR(totals.total)}</span>
+                  <span className="text-[#4A1942] text-base shrink-0 font-bold">{formatINR(totals.total)}</span>
                 </div>
               </div>
             </div>
 
-            {/* Delivery Instructions & Return Policy Section (Editable from Admin Settings / Website Builder) */}
-            <div className="rounded-2xl border border-amber-200/60 bg-gradient-to-br from-amber-50/50 via-purple-50/30 to-white p-4 text-left">
-              <h4 className="text-xs font-black uppercase tracking-wider text-[#4A1942] mb-3 flex items-center gap-1.5">
-                <Truck className="size-4 text-purple-700" />
-                <span>Delivery & Policy Instructions</span>
+            {/* Delivery Instructions & Return Policy Section */}
+            <div className="rounded-xl sm:rounded-2xl border border-amber-200/60 bg-gradient-to-br from-amber-50/50 via-purple-50/30 to-white p-3.5 sm:p-4 text-left w-full min-w-0">
+              <h4 className="text-xs font-black uppercase tracking-wider text-[#4A1942] mb-2.5 flex items-center gap-1.5">
+                <Truck className="size-4 text-purple-700 shrink-0" />
+                <span>Delivery &amp; Policy Instructions</span>
               </h4>
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-2.5 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-2.5 text-xs w-full min-w-0">
                 {/* Delivery Timeline */}
-                <div className="flex items-start gap-2.5 rounded-xl bg-white/80 p-2.5 border border-purple-100/50 shadow-2xs">
+                <div className="flex items-start gap-2.5 rounded-xl bg-white/80 p-2.5 border border-purple-100/50 shadow-2xs w-full min-w-0">
                   <div className="p-1 rounded-md bg-purple-100 text-purple-700 shrink-0 mt-0.5">
                     <Truck className="size-3.5" />
                   </div>
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <p className="font-extrabold text-gray-900 text-[11px]">Estimated Delivery</p>
-                    <p className="text-[11px] text-gray-600 font-medium">
-                      Delivered within <span className="font-bold text-purple-900">{settings?.estimatedDeliveryDays || "4-5 Business Days"}</span>
+                    <p className="text-[11px] text-gray-600 font-medium leading-tight">
+                      Delivered within <span className="font-bold text-purple-900">{settings?.estimatedDeliveryDays || "3–5 Business Days"}</span>
                     </p>
                   </div>
                 </div>
 
                 {/* Return Policy */}
-                <div className="flex items-start gap-2.5 rounded-xl bg-white/80 p-2.5 border border-amber-200/50 shadow-2xs">
+                <div className="flex items-start gap-2.5 rounded-xl bg-white/80 p-2.5 border border-amber-200/50 shadow-2xs w-full min-w-0">
                   <div className="p-1 rounded-md bg-amber-100 text-amber-800 shrink-0 mt-0.5">
                     <RotateCcw className="size-3.5" />
                   </div>
-                  <div>
-                    <p className="font-extrabold text-gray-900 text-[11px]">Return & Refund Policy</p>
-                    <p className="text-[11px] text-gray-600 font-medium">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-extrabold text-gray-900 text-[11px]">Return &amp; Refund Policy</p>
+                    <p className="text-[11px] text-gray-600 font-medium leading-tight">
                       <span className="font-bold text-amber-900">Non-Returnable</span> (Fresh Food Hygiene Policy)
                     </p>
                   </div>
                 </div>
 
                 {/* Security Guarantee */}
-                <div className="flex items-start gap-2.5 rounded-xl bg-white/80 p-2.5 border border-emerald-100/60 shadow-2xs">
+                <div className="flex items-start gap-2.5 rounded-xl bg-white/80 p-2.5 border border-emerald-100/60 shadow-2xs w-full min-w-0">
                   <div className="p-1 rounded-md bg-emerald-100 text-emerald-700 shrink-0 mt-0.5">
                     <ShieldCheck className="size-3.5" />
                   </div>
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <p className="font-extrabold text-gray-900 text-[11px]">100% Protected Checkout</p>
-                    <p className="text-[11px] text-gray-600 font-medium">
+                    <p className="text-[11px] text-gray-600 font-medium leading-tight">
                       Encrypted payments secured by Razorpay
                     </p>
                   </div>
