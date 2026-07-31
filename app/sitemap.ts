@@ -1,41 +1,65 @@
 import type { MetadataRoute } from "next";
-import { getStoreSettingsServer } from "@/lib/settings-server";
 import { SITE } from "@/lib/constants";
 
 const POLICIES = ["shipping", "privacy", "terms", "refunds", "fssai"];
 const API_ORIGIN = process.env.BACKEND_ORIGIN || "https://e-commerce-ratalu-api.onrender.com";
 
-interface Flavor {
+interface ProductItem {
+  slug: string;
+  updatedAt?: string;
+}
+
+interface ComboItem {
   slug: string;
   updatedAt?: string;
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const settings = await getStoreSettingsServer();
-  const baseUrl = settings?.seoTitle ? "https://rataluwafers.com" : SITE.url;
+  const baseUrl = "https://yamorawafers.com";
 
-  let flavors: Flavor[] = [];
+  let products: ProductItem[] = [];
+  let combos: ComboItem[] = [];
+
   try {
     const res = await fetch(`${API_ORIGIN}/api/v1/products`, {
       next: { revalidate: 60 },
     });
     if (res.ok) {
       const json = await res.json();
-      flavors = json?.data ?? [];
+      products = json?.data ?? [];
     }
   } catch (err) {
-    console.error("Sitemap flavor fetch failed:", err);
+    console.error("Sitemap product fetch failed:", err);
+  }
+
+  try {
+    const res = await fetch(`${API_ORIGIN}/api/v1/combos`, {
+      next: { revalidate: 60 },
+    });
+    if (res.ok) {
+      const json = await res.json();
+      combos = json?.data ?? [];
+    }
+  } catch (err) {
+    console.error("Sitemap combo fetch failed:", err);
   }
 
   const now = new Date();
+
   const staticRoutes: MetadataRoute.Sitemap = [
-    { url: baseUrl, lastModified: now, changeFrequency: "weekly", priority: 1 },
+    { url: baseUrl, lastModified: now, changeFrequency: "weekly", priority: 1.0 },
+    { url: `${baseUrl}/shop`, lastModified: now, changeFrequency: "daily", priority: 0.9 },
     { url: `${baseUrl}/products`, lastModified: now, changeFrequency: "daily", priority: 0.9 },
-    { url: `${baseUrl}/shop`, lastModified: now, changeFrequency: "daily", priority: 0.8 },
+    { url: `${baseUrl}/combos`, lastModified: now, changeFrequency: "daily", priority: 0.8 },
     { url: `${baseUrl}/best-sellers`, lastModified: now, changeFrequency: "daily", priority: 0.8 },
-    { url: `${baseUrl}/categories`, lastModified: now, changeFrequency: "weekly", priority: 0.7 },
+    { url: `${baseUrl}/categories`, lastModified: now, changeFrequency: "weekly", priority: 0.8 },
     { url: `${baseUrl}/offers`, lastModified: now, changeFrequency: "daily", priority: 0.7 },
-    { url: `${baseUrl}/contact`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
+    { url: `${baseUrl}/our-story`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${baseUrl}/why-us`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${baseUrl}/reviews`, lastModified: now, changeFrequency: "weekly", priority: 0.7 },
+    { url: `${baseUrl}/faq`, lastModified: now, changeFrequency: "monthly", priority: 0.6 },
+    { url: `${baseUrl}/contact`, lastModified: now, changeFrequency: "monthly", priority: 0.6 },
+    { url: `${baseUrl}/track-order`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
   ];
 
   const policyRoutes: MetadataRoute.Sitemap = POLICIES.map((slug) => ({
@@ -45,12 +69,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.3,
   }));
 
-  const flavorRoutes: MetadataRoute.Sitemap = flavors.map((f) => ({
-    url: `${baseUrl}/shop/${f.slug}`,
-    lastModified: f.updatedAt ? new Date(f.updatedAt) : now,
+  const productRoutes: MetadataRoute.Sitemap = products.map((p) => ({
+    url: `${baseUrl}/shop/${p.slug}`,
+    lastModified: p.updatedAt ? new Date(p.updatedAt) : now,
     changeFrequency: "weekly",
-    priority: 0.6,
+    priority: 0.8,
   }));
 
-  return [...staticRoutes, ...policyRoutes, ...flavorRoutes];
+  const comboRoutes: MetadataRoute.Sitemap = combos.map((c) => ({
+    url: `${baseUrl}/combos/${c.slug}`,
+    lastModified: c.updatedAt ? new Date(c.updatedAt) : now,
+    changeFrequency: "weekly",
+    priority: 0.8,
+  }));
+
+  return [...staticRoutes, ...productRoutes, ...comboRoutes, ...policyRoutes];
 }
