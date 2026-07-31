@@ -179,7 +179,9 @@ exports.getPaymentSettings = async (req, res, next) => {
       keyId: settings.razorpayKeyId || process.env.RAZORPAY_KEY_ID || '',
       keySecretMasked: effectiveKeySecret ? maskSecret(effectiveKeySecret) : '',
       webhookSecretMasked: effectiveWebhookSecret ? maskSecret(effectiveWebhookSecret) : '',
-      webhookUrl: settings.razorpayWebhookUrl || `${process.env.BACKEND_ORIGIN || 'https://e-commerce-ratalu.onrender.com'}/api/v1/payment/webhook`,
+      webhookUrl: (settings.razorpayWebhookUrl && settings.razorpayWebhookUrl.endsWith('/webhook'))
+        ? settings.razorpayWebhookUrl
+        : `${process.env.BACKEND_ORIGIN || 'https://e-commerce-ratalu.onrender.com'}/api/v1/payment/webhook`,
 
       merchantName: settings.razorpayMerchantName || 'Yamora Chips',
       brandLogo: settings.razorpayBrandLogo || settings.storeLogo || '',

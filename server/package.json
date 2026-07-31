@@ -12,8 +12,7 @@
     "migrate:admin": "node src/scripts/reset-admin.js",
     "migrate:purge-admin-customer": "node src/scripts/purge-admin-customer.js",
     "seed:cms": "node src/scripts/seed-cms.js",
-    "seed:product-content": "node src/scripts/seed-product-content.js",
-    "seed:orders": "node src/scripts/seed-orders.js"
+    "seed:product-content": "node src/scripts/seed-product-content.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
