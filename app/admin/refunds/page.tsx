@@ -803,17 +803,6 @@ function RefundDetail({
                     Reject
                   </Button>
                 </div>
-
-                {confirm === "reject" && (
-                  <div className="mt-3">
-                    <input
-                      value={rejectReason}
-                      onChange={(e) => setRejectReason(e.target.value)}
-                      placeholder="Why are you rejecting this? The customer will see it."
-                      className="w-full rounded-lg border border-red-200 px-2.5 py-1.5 text-xs focus:border-red-400 focus:outline-none"
-                    />
-                  </div>
-                )}
               </Card>
             )}
           </div>
@@ -847,13 +836,36 @@ function RefundDetail({
 
       <ConfirmDialog
         open={confirm === "reject"}
-        onClose={() => setConfirm(null)}
-        onConfirm={() => act("reject", { reason: rejectReason }, "Request rejected")}
-        busy={busy || !rejectReason.trim()}
-        title="Reject this request?"
-        description="The customer will be notified with the reason you gave. No money will move."
-        confirmLabel="Reject"
-      />
+        onClose={() => {
+          setConfirm(null);
+          setRejectReason("");
+        }}
+        onConfirm={() => {
+          if (!rejectReason.trim()) {
+            toast.error("Please enter a rejection reason for the customer");
+            return;
+          }
+          act("reject", { reason: rejectReason.trim() }, "Request rejected");
+        }}
+        busy={busy}
+        tone="danger"
+        title="Reject this refund request?"
+        description="Please provide a clear reason for the customer. No money will be moved."
+        confirmLabel="Reject Request"
+      >
+        <div className="mt-3">
+          <label className="block text-[11px] font-bold text-gray-700 mb-1">
+            Rejection Reason <span className="text-red-500">*</span>
+          </label>
+          <textarea
+            rows={3}
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+            placeholder="e.g. Returned item packaging was damaged, or request exceeded return window."
+            className="w-full rounded-xl border border-gray-300 p-2.5 text-xs text-gray-900 focus:border-red-500 focus:outline-none"
+          />
+        </div>
+      </ConfirmDialog>
 
       {preview && (
         <Modal open onClose={() => setPreview(null)} title="Evidence" width="max-w-2xl">

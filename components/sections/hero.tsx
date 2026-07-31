@@ -38,6 +38,9 @@ interface HeroContent extends Record<string, unknown> {
   showStats: boolean;
 }
 
+const DEFAULT_HERO_VIDEO =
+  "https://res.cloudinary.com/duhcdxdvy/video/upload/v1785234971/yamora/homepage/bxuek3nfq3shaze9qytt.mp4";
+
 const HERO_FALLBACK: HeroContent = {
   intervalSeconds: 5,
   slides: [
@@ -45,31 +48,19 @@ const HERO_FALLBACK: HeroContent = {
       id: "slide-1",
       enabled: true,
       badge: "Organic Purple Yam · Kettle Crisp Gold",
-      headingLine1: "Crispy. Natural.",
-      headingLine2: "Irresistible Yam Wafers.",
+      headingLine1: "Welcome to the",
+      headingLine2: "yamora chips",
       description:
-        "Made from hand-selected fresh Ratalu (Purple Yam), kettle-cooked into perfectly crispy wafers with unforgettable flavours.",
+        "Made from hand-selected fresh Ratalu, kettle-cooked into perfectly crispy wafers with unforgettable flavours. Small-batch, no artificial colours, delivered fresh.",
       primaryCta: { label: "Shop Now", href: "/shop" },
       secondaryCta: { label: "Explore Flavours", href: "#flavours" },
-      overlayOpacity: 50,
-      layout: "split",
-    },
-    {
-      id: "slide-2",
-      enabled: true,
-      badge: "Signature Collection",
-      headingLine1: "Handcrafted Snacks.",
-      headingLine2: "Delivered Fresh Daily.",
-      description:
-        "Experience artisan flavours cooked in cold-pressed oil with authentic Indian spices. Perfect for every craving.",
-      primaryCta: { label: "Best Sellers", href: "#best-sellers" },
-      secondaryCta: { label: "Our Story", href: "/our-story" },
+      video: DEFAULT_HERO_VIDEO,
       overlayOpacity: 50,
       layout: "split",
     },
   ],
-  stats: [{ value: 100, suffix: "%", decimals: 0, label: "Natural Ratalu" }],
-  showStats: true,
+  stats: [],
+  showStats: false,
 };
 
 export function Hero() {
@@ -113,13 +104,13 @@ export function Hero() {
   const slide = slides[currentIndex] || slides[0];
 
   // Separate background video and foreground image
-  const videoUrl = sanitizeMediaUrl(slide?.video || settings?.homepageHeroVideo || "");
+  const videoUrl = sanitizeMediaUrl(slide?.video || settings?.homepageHeroVideo || DEFAULT_HERO_VIDEO);
   const imageUrl = sanitizeMediaUrl(slide?.image || "");
   const overlayOpacity = ((slide?.overlayOpacity ?? 50) / 100).toFixed(2);
 
   const stats = React.useMemo(() => {
-    const source = cms.stats ?? HERO_FALLBACK.stats;
-    return source
+    const source = cms.stats && cms.stats.length > 0 ? cms.stats : HERO_FALLBACK.stats;
+    const mapped = source
       .map((s) => {
         const label = String(s.label ?? "").toLowerCase();
         if (label.includes("rating")) {
@@ -132,7 +123,11 @@ export function Hero() {
         return s;
       })
       .filter((s): s is NonNullable<typeof s> => Boolean(s));
+
+    return mapped;
   }, [cms.stats, siteStats]);
+
+  const showStats = cms.showStats === true && stats.length > 0;
 
   const badgeCount = siteStats?.customerCount ?? 0;
   const heroFlavor = FLAVORS[currentIndex % FLAVORS.length];
@@ -311,7 +306,7 @@ export function Hero() {
                 </motion.div>
 
                 {/* Stats bar */}
-                {cms.showStats !== false && stats.length > 0 && (
+                {showStats && stats.length > 0 && (
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}

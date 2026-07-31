@@ -54,20 +54,34 @@ const HOMEPAGE = [
     type: 'hero',
     sortOrder: 1,
     content: {
-      // Multiple slides supported; the storefront renders slide[0] and rotates
-      // through the rest when more than one is enabled.
       slides: [
         {
           id: 'slide-1',
           enabled: true,
-          badge: 'Loved by {count}+ snackers',
+          badge: 'Organic Purple Yam · Kettle Crisp Gold',
           badgeCount: 2000,
           headingLine1: 'Crispy. Natural.',
-          headingLine2: 'Irresistible.',
+          headingLine2: 'Irresistible Yam Wafers.',
           description:
-            'Made from hand-selected fresh Ratalu, kettle-cooked into perfectly crispy wafers with unforgettable flavours. Small-batch, no artificial colours, delivered fresh.',
+            'Made from hand-selected fresh Ratalu (Purple Yam), kettle-cooked into perfectly crispy wafers with unforgettable flavours.',
           primaryCta: { label: 'Shop Now', href: '/shop' },
           secondaryCta: { label: 'Explore Flavours', href: '#flavours' },
+          alignment: 'left',
+          backgroundImage: '',
+          mobileImage: '',
+          overlay: '',
+          height: 'auto'
+        },
+        {
+          id: 'slide-2',
+          enabled: true,
+          badge: 'Signature Collection',
+          headingLine1: 'Handcrafted Snacks.',
+          headingLine2: 'Delivered Fresh Daily.',
+          description:
+            'Experience artisan flavours cooked in cold-pressed oil with authentic Indian spices. Perfect for every craving.',
+          primaryCta: { label: 'Best Sellers', href: '#best-sellers' },
+          secondaryCta: { label: 'Our Story', href: '/our-story' },
           alignment: 'left',
           backgroundImage: '',
           mobileImage: '',
@@ -76,9 +90,7 @@ const HOMEPAGE = [
         }
       ],
       stats: [
-        { value: 4.9, suffix: '★', decimals: 1, label: 'Avg. rating' },
-        { value: 6, suffix: '', decimals: 0, label: 'Bold flavours' },
-        { value: 100, suffix: '%', decimals: 0, label: 'Natural' }
+        { value: 98, suffix: '%', decimals: 0, label: 'Natural Ratalu' }
       ],
       showStats: true
     }
