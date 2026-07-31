@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Faq } from "@/components/sections/faq";
 import { PageHeader } from "@/components/common/page-header";
+import { getPageContent } from "@/lib/cms-server";
+import { CmsProvider } from "@/components/cms/cms-provider";
 
 export const metadata: Metadata = {
   title: "Frequently Asked Questions",
@@ -8,9 +10,11 @@ export const metadata: Metadata = {
   alternates: { canonical: "/faq" },
 };
 
-export default function FaqPage() {
+export default async function FaqPage() {
+  const cms = await getPageContent("faqs");
+
   return (
-    <>
+    <CmsProvider initial={cms} page="faqs">
       <PageHeader
         eyebrow="Help Center"
         title={
@@ -24,6 +28,6 @@ export default function FaqPage() {
       <div className="pb-12">
         <Faq />
       </div>
-    </>
+    </CmsProvider>
   );
 }

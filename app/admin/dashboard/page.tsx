@@ -3907,12 +3907,14 @@ function HomepageTab({
   const [mediaFolders, setMediaFolders] = React.useState<Record<string, string>>({});
   const [uploadingMedia, setUploadingMedia] = React.useState(false);
 
-  // Static visual pages editable content (Home, About, Our Story, Why Us, Policies, Careers)
+  // Static visual pages editable content (Home, About, Our Story, Why Us, FAQs, Contact, Policies, Careers)
   const [pagesList] = React.useState([
     { key: "home", label: "Homepage Hero & Banners" },
     { key: "about", label: "About Us Details" },
     { key: "story", label: "Our Story Content" },
     { key: "whyus", label: "Why Choose Us" },
+    { key: "faqs", label: "FAQ Page & Questions" },
+    { key: "contact", label: "Contact Us Page" },
     { key: "careers", label: "Careers & Jobs Content" },
     { key: "privacy", label: "Privacy Policy Document" },
     { key: "terms", label: "Terms of Service" },
@@ -5070,6 +5072,10 @@ function HomepageTab({
                           initialTitle = settings.aboutTitle || "About Us";
                           initialSub = "India's finest purple yam snacks";
                           initialBody = settings.aboutDescription || "## Our Brand Story\n\nDelivering irresistible crunchy snacks nationwide.";
+                        } else if (p.key === "faqs") {
+                          initialTitle = "Frequently Asked Questions";
+                          initialSub = "Everything you need to know before you order.";
+                          initialBody = "## How fast do you ship, and where do you deliver?\n\nWe ship pan-India via trusted courier partners. Orders placed before 2 PM IST are dispatched the same day.\n\n## How long do the wafers stay fresh?\n\nBest enjoyed within 3 months of manufacturing date printed on the pack.\n\n## What is your returns and refund policy?\n\nIf a pack arrives damaged, write to us within 7 days of delivery for a replacement or refund.";
                         } else if (p.key === "contact") {
                           initialTitle = settings.contactTitle || "Get in Touch";
                           initialSub = settings.contactDescription || "We would love to hear from you";
