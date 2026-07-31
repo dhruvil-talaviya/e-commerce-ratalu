@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="500" height="500">
   <!-- Transparent Outer Background for Clean Favicon Display -->
   
-  <!-- Outer Purple & Inner Gold Rings -->
-  <circle cx="250" cy="250" r="230" stroke="#3D1E53" stroke-width="7" fill="none"/>
+  <!-- Outer Purple Ring with Cream Inner Fill & Inner Gold Ring -->
+  <circle cx="250" cy="250" r="230" fill="#FFF8EC" stroke="#3D1E53" stroke-width="7"/>
   <circle cx="250" cy="250" r="215" stroke="#D98A2B" stroke-width="4.5" fill="none"/>
 
   <!-- Top Wafers Bucket (Purple & Gold Wafers) -->

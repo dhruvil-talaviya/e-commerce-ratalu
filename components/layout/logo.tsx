@@ -31,8 +31,7 @@ function YamoraSymbol({
       className={className}
       aria-hidden
     >
-      <circle cx="250" cy="250" r="240" fill={onDark ? "#3D1E53" : "#FDF8EF"} />
-      <circle cx="250" cy="250" r="230" stroke={onDark ? "#FFFFFF" : "#3D1E53"} strokeWidth="7" fill="none" />
+      <circle cx="250" cy="250" r="230" fill={onDark ? "#3D1E53" : "#FFF8EC"} stroke={onDark ? "#FFFFFF" : "#3D1E53"} strokeWidth="7" />
       <circle cx="250" cy="250" r="215" stroke={goldColor} strokeWidth="4.5" fill="none" />
 
       <g transform="translate(0, 5)">
