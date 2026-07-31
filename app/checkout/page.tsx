@@ -382,6 +382,12 @@ export default function CheckoutPage() {
         description: `Order ${co.orderId}`,
         order_id: co.rzpOrderId,
         handler: function (response: any) {
+          // Immediately clear cart & redirect to order-success
+          setOrderId(co.orderId);
+          clear();
+          window.location.href = `/order-success?orderId=${co.orderId}`;
+
+          // Fire background verification
           apiFetch("/payment/verify", {
             method: "POST",
             body: {
@@ -390,20 +396,7 @@ export default function CheckoutPage() {
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
             },
-          })
-            .then(() => {
-              window.scrollTo(0, 0);
-              setOrderId(co.orderId);
-              clear();
-              router.push(`/order-success?orderId=${co.orderId}`);
-            })
-            .catch((err: any) => {
-              const msg = err.message || "Payment verification failed.";
-              setCheckoutError(msg);
-              setPaymentFailed(true);
-              setPlacing(false);
-              router.push(`/payment-failed?orderId=${co.orderId}&reason=${encodeURIComponent(msg)}`);
-            });
+          }).catch(() => {});
         },
         prefill: {
           name: user?.name || "",

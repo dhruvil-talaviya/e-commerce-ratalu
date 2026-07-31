@@ -20,7 +20,7 @@ export function WhatsAppButton() {
   const [showHint, setShowHint] = React.useState(false);
   const pathname = usePathname();
   const onProductPage = /^\/shop\/[^/]+\/?$/.test(pathname || "");
-  const onCheckoutPage = pathname === "/checkout";
+  const onCheckoutPage = pathname === "/checkout" || pathname === "/order-success";
 
   // Nudge the tooltip open once, a few seconds after load (desktop only feel).
   React.useEffect(() => {

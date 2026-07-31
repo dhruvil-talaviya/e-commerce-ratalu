@@ -177,59 +177,59 @@ function OrderSuccessContent() {
           </div>
 
           {/* Live Order Stepper Timeline */}
-          <div className="mt-8 rounded-2xl border border-purple-100 bg-gradient-to-r from-purple-50/60 via-amber-50/30 to-purple-50/60 p-5 shadow-xs">
-            <div className="flex items-center justify-between border-b border-purple-200/40 pb-3 mb-4">
+          <div className="mt-8 rounded-2xl border border-purple-100 bg-gradient-to-r from-purple-50/60 via-amber-50/30 to-purple-50/60 p-4 sm:p-5 shadow-xs">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-purple-200/40 pb-3 mb-4">
               <div className="flex items-center gap-2">
-                <Clock className="size-4 text-purple-700" />
-                <span className="text-xs font-extrabold uppercase tracking-wider text-purple-900">
+                <Clock className="size-4 text-purple-700 shrink-0" />
+                <span className="text-xs sm:text-sm font-extrabold text-purple-900">
                   Live Fulfillment Tracker
                 </span>
               </div>
-              <span className="text-[11px] font-bold text-amber-800 bg-amber-100/80 px-2.5 py-0.5 rounded-full border border-amber-200">
+              <span className="text-[10px] sm:text-[11px] font-bold text-amber-800 bg-amber-100/80 px-2.5 py-0.5 rounded-full border border-amber-200">
                 Est. Delivery: 3–5 Business Days
               </span>
             </div>
 
             {/* Visual Stepper */}
-            <div className="relative flex items-center justify-between px-2 sm:px-6">
+            <div className="relative grid grid-cols-4 gap-1 sm:gap-3 items-start px-1 sm:px-4">
               {/* Connecting Background Line */}
-              <div className="absolute left-6 right-6 top-4 h-1 bg-gray-200 -z-0" />
-              <div className="absolute left-6 w-1/3 top-4 h-1 bg-emerald-500 -z-0 transition-all" />
+              <div className="absolute left-6 right-6 top-4 h-0.5 bg-gray-200 -z-0" />
+              <div className="absolute left-6 w-1/4 top-4 h-0.5 bg-emerald-500 -z-0 transition-all" />
 
               {/* Step 1: Paid */}
-              <div className="relative z-10 flex flex-col items-center text-center">
-                <div className="flex size-9 items-center justify-center rounded-full bg-emerald-500 text-white font-extrabold text-xs shadow-md shadow-emerald-500/20 ring-4 ring-white">
+              <div className="relative z-10 flex flex-col items-center text-center min-w-0">
+                <div className="flex size-8 sm:size-9 items-center justify-center rounded-full bg-emerald-500 text-white font-extrabold text-xs shadow-md shadow-emerald-500/20 ring-4 ring-white shrink-0">
                   ✓
                 </div>
-                <span className="mt-2 text-xs font-extrabold text-emerald-700">Paid &amp; Placed</span>
-                <span className="text-[10px] text-gray-500">Confirmed</span>
+                <p className="mt-1.5 text-[10px] sm:text-xs font-bold text-emerald-700 leading-tight">Paid &amp; Placed</p>
+                <span className="text-[9px] sm:text-[10px] text-gray-500 leading-tight">Confirmed</span>
               </div>
 
               {/* Step 2: Packing */}
-              <div className="relative z-10 flex flex-col items-center text-center">
-                <div className="flex size-9 items-center justify-center rounded-full bg-[#5B2C83] text-white font-extrabold text-xs shadow-md shadow-purple-900/20 ring-4 ring-white">
+              <div className="relative z-10 flex flex-col items-center text-center min-w-0">
+                <div className="flex size-8 sm:size-9 items-center justify-center rounded-full bg-[#5B2C83] text-white font-extrabold text-xs shadow-md shadow-purple-900/20 ring-4 ring-white shrink-0">
                   2
                 </div>
-                <span className="mt-2 text-xs font-extrabold text-[#5B2C83]">Kitchen Packing</span>
-                <span className="text-[10px] text-purple-600 font-bold">In Progress</span>
+                <p className="mt-1.5 text-[10px] sm:text-xs font-bold text-[#5B2C83] leading-tight">Kitchen Packing</p>
+                <span className="text-[9px] sm:text-[10px] text-purple-600 font-bold leading-tight">In Progress</span>
               </div>
 
               {/* Step 3: Shipped */}
-              <div className="relative z-10 flex flex-col items-center text-center opacity-60">
-                <div className="flex size-9 items-center justify-center rounded-full bg-gray-200 text-gray-700 font-bold text-xs ring-4 ring-white">
+              <div className="relative z-10 flex flex-col items-center text-center opacity-70 min-w-0">
+                <div className="flex size-8 sm:size-9 items-center justify-center rounded-full bg-gray-200 text-gray-700 font-bold text-xs ring-4 ring-white shrink-0">
                   3
                 </div>
-                <span className="mt-2 text-xs font-bold text-gray-700">Dispatched</span>
-                <span className="text-[10px] text-gray-500">Shiprocket</span>
+                <p className="mt-1.5 text-[10px] sm:text-xs font-bold text-gray-700 leading-tight">Dispatched</p>
+                <span className="text-[9px] sm:text-[10px] text-gray-500 leading-tight">Shiprocket</span>
               </div>
 
               {/* Step 4: Delivered */}
-              <div className="relative z-10 flex flex-col items-center text-center opacity-40">
-                <div className="flex size-9 items-center justify-center rounded-full bg-gray-200 text-gray-600 font-bold text-xs ring-4 ring-white">
+              <div className="relative z-10 flex flex-col items-center text-center opacity-50 min-w-0">
+                <div className="flex size-8 sm:size-9 items-center justify-center rounded-full bg-gray-200 text-gray-600 font-bold text-xs ring-4 ring-white shrink-0">
                   4
                 </div>
-                <span className="mt-2 text-xs font-semibold text-gray-600">Delivered</span>
-                <span className="text-[10px] text-gray-400">At Doorstep</span>
+                <p className="mt-1.5 text-[10px] sm:text-xs font-semibold text-gray-600 leading-tight">Delivered</p>
+                <span className="text-[9px] sm:text-[10px] text-gray-400 leading-tight">At Doorstep</span>
               </div>
             </div>
           </div>
@@ -237,13 +237,13 @@ function OrderSuccessContent() {
           {order && (
             <div className="mt-8 space-y-6">
               {/* Ordered Items Summary */}
-              <div className="rounded-2xl border border-gray-200/80 bg-gray-50/60 p-5 shadow-2xs">
+              <div className="rounded-2xl border border-gray-200/80 bg-gray-50/60 p-4 sm:p-5 shadow-2xs">
                 <div className="flex items-center justify-between border-b border-gray-200/70 pb-3 mb-3">
-                  <h2 className="text-xs font-extrabold uppercase tracking-wider text-gray-700 flex items-center gap-2">
-                    <Package className="size-4 text-purple-600" />
+                  <h2 className="text-xs sm:text-sm font-bold text-gray-800 flex items-center gap-2">
+                    <Package className="size-4 text-purple-600 shrink-0" />
                     <span>Items Ordered ({order.items.reduce((s, i) => s + i.quantity, 0)})</span>
                   </h2>
-                  <span className="text-[11px] font-bold text-purple-700 bg-purple-50 px-2.5 py-0.5 rounded-full border border-purple-100">
+                  <span className="text-[10px] sm:text-[11px] font-bold text-purple-700 bg-purple-50 px-2.5 py-0.5 rounded-full border border-purple-100">
                     Small-Batch Fresh
                   </span>
                 </div>
@@ -252,12 +252,12 @@ function OrderSuccessContent() {
                   {order.items.map((item, idx) => (
                     <li key={idx} className="py-3 flex items-center justify-between text-xs sm:text-sm">
                       <div className="min-w-0 pr-3">
-                        <p className="font-extrabold text-gray-900">
+                        <p className="font-bold text-gray-900">
                           {item.quantity}× {item.flavorName}
                         </p>
                         <p className="text-[11px] text-gray-500 font-medium">{item.packLabel}</p>
                       </div>
-                      <span className="font-extrabold text-gray-900 shrink-0 text-sm">
+                      <span className="font-bold text-gray-900 shrink-0 text-sm">
                         {formatINR(item.unitPrice * item.quantity)}
                       </span>
                     </li>
@@ -285,7 +285,7 @@ function OrderSuccessContent() {
                   <div className="flex justify-between text-gray-600 font-medium">
                     <span>Delivery &amp; Packaging</span>
                     {order.totals?.shipping === 0 || !order.totals?.shipping ? (
-                      <span className="font-extrabold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                      <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
                         FREE
                       </span>
                     ) : (
@@ -303,7 +303,7 @@ function OrderSuccessContent() {
                   {/* Net Total Highlight Card */}
                   <div className="mt-3 flex items-center justify-between rounded-xl bg-purple-900 p-3.5 text-white shadow-md">
                     <div>
-                      <p className="text-[11px] uppercase tracking-wider text-purple-200 font-bold">Total Amount Paid</p>
+                      <p className="text-xs font-bold text-purple-200">Total Amount Paid</p>
                       <p className="text-[10px] text-purple-300">All Taxes &amp; Delivery Included</p>
                     </div>
                     <span className="text-xl font-extrabold text-emerald-400 tracking-tight">
@@ -319,11 +319,11 @@ function OrderSuccessContent() {
                 {order.address && (
                   <div className="rounded-2xl border border-purple-100 bg-purple-50/30 p-4 sm:p-5 flex flex-col justify-between">
                     <div>
-                      <h3 className="text-xs font-extrabold uppercase tracking-wider text-purple-900 mb-2.5 flex items-center gap-1.5">
-                        <MapPin className="size-4 text-purple-700" /> Shipping Address
+                      <h3 className="text-xs sm:text-sm font-bold text-purple-950 mb-2 flex items-center gap-1.5">
+                        <MapPin className="size-4 text-purple-700 shrink-0" /> Shipping Address
                       </h3>
                       {order.address.tag && (
-                        <span className="inline-block rounded-md bg-purple-100 px-2 py-0.5 text-[10px] font-extrabold text-purple-800 uppercase tracking-wider mb-1.5 border border-purple-200">
+                        <span className="inline-block rounded-md bg-purple-100 px-2 py-0.5 text-[10px] font-bold text-purple-800 mb-1.5 border border-purple-200">
                           {order.address.tag}
                         </span>
                       )}
@@ -334,7 +334,7 @@ function OrderSuccessContent() {
                         {order.address.addressLine}
                       </p>
                       <p className="text-xs font-semibold text-gray-600 mt-1">
-                        {order.address.city}, {order.address.state} — <span className="font-mono font-extrabold text-gray-900">{order.address.pincode}</span>
+                        {order.address.city}, {order.address.state} — <span className="font-mono font-bold text-gray-900">{order.address.pincode}</span>
                       </p>
                     </div>
                   </div>
@@ -343,20 +343,20 @@ function OrderSuccessContent() {
                 {/* Customer Details & Payment Card */}
                 <div className="rounded-2xl border border-purple-100 bg-purple-50/30 p-4 sm:p-5 flex flex-col justify-between">
                   <div>
-                    <h3 className="text-xs font-extrabold uppercase tracking-wider text-purple-900 mb-2.5 flex items-center gap-1.5">
-                      <User className="size-4 text-purple-700" /> Customer Info
+                    <h3 className="text-xs sm:text-sm font-bold text-purple-950 mb-2 flex items-center gap-1.5">
+                      <User className="size-4 text-purple-700 shrink-0" /> Customer Info
                     </h3>
                     <p className="text-xs font-bold text-gray-900">{order.userName || "Valued Customer"}</p>
                     {order.userPhone && (
                       <p className="text-xs text-gray-600 font-medium flex items-center gap-1 mt-1">
-                        <Phone className="size-3 text-purple-600" /> {order.userPhone}
+                        <Phone className="size-3 text-purple-600 shrink-0" /> {order.userPhone}
                       </p>
                     )}
                     <div className="mt-3 pt-2.5 border-t border-purple-100/60 flex items-center justify-between text-xs">
                       <span className="text-gray-500 font-medium flex items-center gap-1">
-                        <CreditCard className="size-3.5 text-purple-700" /> Payment:
+                        <CreditCard className="size-3.5 text-purple-700 shrink-0" /> Payment:
                       </span>
-                      <span className="font-extrabold text-purple-900 bg-white px-2.5 py-0.5 rounded-full border border-purple-200 shadow-2xs">
+                      <span className="font-bold text-purple-900 bg-white px-2.5 py-0.5 rounded-full border border-purple-200 shadow-2xs">
                         {order.payment?.method || order.method || "Razorpay Online"}
                       </span>
                     </div>
