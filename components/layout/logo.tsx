@@ -108,42 +108,41 @@ export function Logo({
     <Link
       href="/"
       className={cn(
-        "group relative inline-flex items-center shrink-0 transition-all duration-300",
+        "group relative inline-flex items-center shrink-0 outline-none focus:outline-none focus-visible:outline-none ring-0 focus:ring-0",
         className
       )}
       aria-label={`${name} — home`}
     >
       <motion.div
         animate={{
-          y: [0, -3, 0],
-          scale: [1, 1.015, 1],
+          y: [0, -3.5, 0],
+          rotate: [0, 0.8, -0.8, 0],
         }}
         transition={{
-          duration: 3.8,
+          duration: 4,
           repeat: Infinity,
           ease: "easeInOut",
         }}
         whileHover={{
-          scale: 1.08,
-          rotate: [0, -1.5, 1.5, 0],
-          transition: { duration: 0.35, ease: "easeOut" },
+          scale: 1.07,
+          transition: { duration: 0.25, ease: "easeOut" },
         }}
         whileTap={{ scale: 0.95 }}
-        className="relative flex items-center"
+        className="relative flex items-center justify-center overflow-hidden rounded-full border-2 border-[#5B2C83]/30 bg-white p-1 shadow-md transition-all duration-300 group-hover:border-[#D4A017] group-hover:shadow-[0_0_22px_rgba(91,44,131,0.35)] ring-0 outline-none select-none"
       >
         {hasLogo ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={logoSrc}
             alt={`${name} logo`}
-            className="h-12 sm:h-15 lg:h-18 w-auto max-w-[280px] sm:max-w-[340px] lg:max-w-[400px] object-contain transition-all duration-300 group-hover:drop-shadow-[0_4px_16px_rgba(91,44,131,0.25)]"
+            className="size-12 sm:size-15 lg:size-17 object-contain rounded-full transition-transform duration-300 group-hover:scale-105"
           />
         ) : (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src="/logo.png"
             alt={`${name} logo`}
-            className="h-12 sm:h-15 lg:h-18 w-auto max-w-[280px] sm:max-w-[340px] lg:max-w-[400px] object-contain rounded-full shadow-sm transition-all duration-300 group-hover:drop-shadow-[0_4px_16px_rgba(91,44,131,0.3)]"
+            className="size-12 sm:size-15 lg:size-17 object-contain rounded-full transition-transform duration-300 group-hover:scale-105"
           />
         )}
       </motion.div>
