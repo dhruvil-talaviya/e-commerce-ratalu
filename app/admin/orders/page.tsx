@@ -1512,6 +1512,10 @@ function OrderDetail({
             variant="secondary"
             size="sm"
             onClick={async () => {
+              if (order.status === "Cancelled" || order.status === "Refund Completed" || order.status === "Refund Approved") {
+                toast.warning("Cannot create shipment for a cancelled or refunded order.");
+                return;
+              }
               try {
                 await apiFetch("/admin/logistics/shipments/create", {
                   method: "POST",

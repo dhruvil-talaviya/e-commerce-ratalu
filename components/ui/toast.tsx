@@ -42,6 +42,9 @@ function emit() {
 }
 
 function push(type: ToastType, title: string, opts?: ToastOptions): number {
+  const isDuplicate = items.some((i) => i.title === title && i.type === type && i.description === opts?.description);
+  if (isDuplicate) return -1;
+
   const id = ++counter;
   const item: ToastItem = {
     id,
