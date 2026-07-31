@@ -69,12 +69,11 @@ export const metadata: Metadata = {
   applicationName: SITE.name,
   icons: {
     icon: [
-      { url: "/icon.png?v=5", type: "image/png" },
-      { url: "/favicon.png?v=5", type: "image/png" },
-      { url: "/logo.png?v=5", type: "image/png" }
+      { url: "/icon.svg?v=7", type: "image/svg+xml" },
+      { url: "/icon.png?v=7", type: "image/png" }
     ],
-    shortcut: "/icon.png?v=5",
-    apple: "/apple-icon.png?v=5",
+    shortcut: "/icon.svg?v=7",
+    apple: "/icon.svg?v=7",
   },
   alternates: { canonical: "/" },
   openGraph: {

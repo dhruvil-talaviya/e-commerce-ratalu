@@ -115,34 +115,34 @@ export function Logo({
     >
       <motion.div
         animate={{
-          y: [0, -3.5, 0],
-          rotate: [0, 0.8, -0.8, 0],
+          y: [0, -3, 0],
+          scale: [1, 1.015, 1],
         }}
         transition={{
-          duration: 4,
+          duration: 3.8,
           repeat: Infinity,
           ease: "easeInOut",
         }}
         whileHover={{
-          scale: 1.07,
+          scale: 1.08,
           transition: { duration: 0.25, ease: "easeOut" },
         }}
         whileTap={{ scale: 0.95 }}
-        className="relative flex items-center justify-center overflow-hidden rounded-full border-2 border-[#5B2C83]/30 bg-white p-1 shadow-md transition-all duration-300 group-hover:border-[#D4A017] group-hover:shadow-[0_0_22px_rgba(91,44,131,0.35)] ring-0 outline-none select-none"
+        className="relative flex items-center justify-center border-none bg-transparent p-0 shadow-none outline-none select-none"
       >
         {hasLogo ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={logoSrc}
             alt={`${name} logo`}
-            className="size-12 sm:size-15 lg:size-17 object-contain rounded-full transition-transform duration-300 group-hover:scale-105"
+            className="h-12 sm:h-15 lg:h-18 w-auto max-w-[280px] sm:max-w-[340px] lg:max-w-[400px] object-contain transition-transform duration-300 group-hover:scale-105"
           />
         ) : (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src="/logo.png"
             alt={`${name} logo`}
-            className="size-12 sm:size-15 lg:size-17 object-contain rounded-full transition-transform duration-300 group-hover:scale-105"
+            className="h-12 sm:h-15 lg:h-18 w-auto max-w-[280px] sm:max-w-[340px] lg:max-w-[400px] object-contain transition-transform duration-300 group-hover:scale-105"
           />
         )}
       </motion.div>
