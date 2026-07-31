@@ -513,13 +513,13 @@ function SectionEditor({
           <Eye className="size-3.5" />
           Preview
         </Button>
-        <Button variant="secondary" onClick={save} disabled={saving || !dirty}>
+        <Button variant="secondary" onClick={save} disabled={saving}>
           {saving ? "Saving…" : "Save draft"}
         </Button>
         <Button
           variant="primary"
           onClick={publish}
-          disabled={saving || !isSuperAdmin || (!dirty && !section.hasUnpublishedChanges)}
+          disabled={saving || !isSuperAdmin}
           title={isSuperAdmin ? undefined : "Only a Super Admin can publish"}
         >
           <Rocket className="size-3.5" />

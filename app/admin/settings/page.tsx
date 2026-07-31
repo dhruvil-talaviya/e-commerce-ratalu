@@ -51,7 +51,7 @@ function Badge({ className, children }: { className?: string; children: React.Re
   );
 }
 
-type SettingsTab = "shipping" | "shiprocket" | "razorpay" | "checkout" | "brand" | "tax" | "security";
+type SettingsTab = "shipping" | "shiprocket" | "razorpay" | "checkout" | "seo" | "brand" | "tax" | "security";
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = React.useState<SettingsTab>("shipping");
@@ -59,7 +59,7 @@ export default function SettingsPage() {
   return (
     <AdminShell
       title="Settings & Integrations"
-      description="Manage shipping rules, Razorpay payments, Shiprocket fulfillment, checkout rules, and store identity."
+      description="Manage shipping rules, Razorpay payments, Shiprocket fulfillment, checkout rules, Global SEO, and store identity."
     >
       <div className="flex flex-col gap-6">
         {/* Navigation Tabs */}
@@ -69,6 +69,7 @@ export default function SettingsPage() {
             { id: "shiprocket", label: "Shiprocket Logistics", icon: Package },
             { id: "razorpay", label: "Payments & Razorpay", icon: CreditCard },
             { id: "checkout", label: "Checkout & Order Flow", icon: Sliders },
+            { id: "seo", label: "Global SEO & Analytics", icon: Globe },
             { id: "brand", label: "Brand Profile", icon: Store },
             { id: "tax", label: "GST & Tax", icon: Receipt },
             { id: "security", label: "Security", icon: ShieldCheck },
@@ -81,7 +82,7 @@ export default function SettingsPage() {
                 type="button"
                 onClick={() => setActiveTab(tab.id as SettingsTab)}
                 className={cn(
-                  "flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-colors",
+                  "flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-colors cursor-pointer",
                   active
                     ? "bg-[#5B2C83] text-white shadow-md shadow-[#5B2C83]/20"
                     : "bg-white text-gray-600 border border-gray-200 hover:border-gray-300 hover:bg-gray-50"
@@ -99,6 +100,7 @@ export default function SettingsPage() {
         {activeTab === "shiprocket" && <ShiprocketCard />}
         {activeTab === "razorpay" && <RazorpayCard />}
         {activeTab === "checkout" && <CheckoutSettingsCard />}
+        {activeTab === "seo" && <SeoSettingsCard />}
         {activeTab === "brand" && <BrandCard />}
         {activeTab === "tax" && <TaxCard />}
         {activeTab === "security" && <SecurityCard />}
@@ -591,7 +593,7 @@ function ShippingSettingsTab() {
 
       {/* SAVE BUTTON */}
       <div className="flex justify-end border-t border-gray-100 pt-4">
-        <Button variant="primary" onClick={saveShipping} disabled={saving || !isDirty}>
+        <Button variant="primary" onClick={saveShipping} disabled={saving}>
           {saving ? "Saving All Shipping Rules…" : "Save Shipping Configuration"}
         </Button>
       </div>
@@ -929,7 +931,7 @@ function ShiprocketCard() {
       )}
 
       <div className="mt-5 flex justify-end border-t border-gray-100 pt-4">
-        <Button variant="primary" onClick={handleSaveShiprocket} disabled={saving || loading || !isDirty}>
+        <Button variant="primary" onClick={handleSaveShiprocket} disabled={saving || loading}>
           {saving ? "Saving Shiprocket Settings…" : "Save Shiprocket Configuration"}
         </Button>
       </div>
@@ -1256,7 +1258,7 @@ function RazorpayCard() {
       )}
 
       <div className="mt-5 flex justify-end border-t border-gray-100 pt-4">
-        <Button variant="primary" onClick={handleSaveRazorpay} disabled={saving || loading || !isDirty}>
+        <Button variant="primary" onClick={handleSaveRazorpay} disabled={saving || loading}>
           {saving ? "Saving Razorpay Settings…" : "Save Razorpay Configuration"}
         </Button>
       </div>
@@ -1376,7 +1378,7 @@ function CheckoutSettingsCard() {
       )}
 
       <div className="mt-5 flex justify-end border-t border-gray-100 pt-4">
-        <Button variant="primary" onClick={handleSave} disabled={saving || loading || !isDirty}>
+        <Button variant="primary" onClick={handleSave} disabled={saving || loading}>
           {saving ? "Saving Checkout Rules…" : "Save Checkout Configuration"}
         </Button>
       </div>
@@ -1433,6 +1435,179 @@ function Labeled({ label, hint, children }: { label: string; hint?: string; chil
       {children}
       {hint && <span className="text-[11px] text-gray-400">{hint}</span>}
     </label>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* GLOBAL SEO & HEAD INTEGRATIONS CARD                                 */
+/* ------------------------------------------------------------------ */
+
+function SeoSettingsCard() {
+  const [loading, setLoading] = React.useState(true);
+  const [saving, setSaving] = React.useState(false);
+  const [form, setForm] = React.useState<any>({
+    seoTitle: "Yamora Wafers — India's Finest Purple Yam Snacks",
+    seoDescription: "Handcrafted purple yam wafers in 6 bold flavours. No artificial preservatives. Free shipping above ₹599.",
+    seoKeywords: "yamora wafers, ratalu wafers, purple yam chips, indian snacks, healthy chips",
+    ogImage: "",
+    googleAnalyticsId: "",
+    googleTagManagerId: "",
+    facebookPixelId: "",
+    googleSearchConsoleVerification: "",
+    robotsTxt: "User-agent: *\nAllow: /\nSitemap: https://yamorawafers.com/sitemap.xml",
+  });
+
+  React.useEffect(() => {
+    apiFetch<any>("/admin/settings")
+      .then((s) => {
+        if (s) {
+          setForm({
+            seoTitle: s.seoTitle ?? "Yamora Wafers — India's Finest Purple Yam Snacks",
+            seoDescription: s.seoDescription ?? "Handcrafted purple yam wafers in 6 bold flavours. No artificial preservatives. Free shipping above ₹599.",
+            seoKeywords: s.seoKeywords ?? "yamora wafers, ratalu wafers, purple yam chips, indian snacks, healthy chips",
+            ogImage: s.ogImage ?? "",
+            googleAnalyticsId: s.googleAnalyticsId ?? "",
+            googleTagManagerId: s.googleTagManagerId ?? "",
+            facebookPixelId: s.facebookPixelId ?? "",
+            googleSearchConsoleVerification: s.googleSearchConsoleVerification ?? "",
+            robotsTxt: s.robotsTxt ?? "User-agent: *\nAllow: /\nSitemap: https://yamorawafers.com/sitemap.xml",
+          });
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await apiFetch("/admin/settings", {
+        method: "PUT",
+        body: form,
+      });
+      toast.success("Global SEO & Integration Settings Saved", {
+        description: "Meta tags, Analytics IDs, and Search Console verification updated."
+      });
+    } catch (err: any) {
+      toast.error("Could not save SEO settings", { description: err.message });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) return <Skeleton className="h-64 w-full" />;
+
+  return (
+    <Card className="p-6">
+      <div className="mb-4 flex items-center justify-between border-b border-gray-100 pb-3">
+        <div className="flex items-center gap-3">
+          <span className="grid size-10 place-items-center rounded-xl bg-purple-50 text-[#5B2C83]">
+            <Globe className="size-5" />
+          </span>
+          <div>
+            <h2 className="text-sm font-bold text-[#111827]">Global SEO, Meta Tags &amp; Analytics Integrations</h2>
+            <p className="text-xs text-[#6B7280]">
+              Configure meta titles, OpenGraph images, Google Analytics, Search Console, and Webmaster indexing.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-5">
+        {/* SEO Meta Information */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Labeled label="Default Meta Title">
+            <input
+              value={form.seoTitle}
+              onChange={(e) => setForm({ ...form, seoTitle: e.target.value })}
+              placeholder="e.g. Yamora Wafers — India's Finest Purple Yam Snacks"
+              className={INPUT}
+            />
+          </Labeled>
+          <Labeled label="SEO Keywords (Comma Separated)">
+            <input
+              value={form.seoKeywords}
+              onChange={(e) => setForm({ ...form, seoKeywords: e.target.value })}
+              placeholder="e.g. yamora wafers, ratalu wafers, purple yam chips"
+              className={INPUT}
+            />
+          </Labeled>
+        </div>
+
+        <Labeled label="Default Meta Description">
+          <textarea
+            rows={2}
+            value={form.seoDescription}
+            onChange={(e) => setForm({ ...form, seoDescription: e.target.value })}
+            placeholder="Search engine preview description..."
+            className={cn(INPUT, "resize-y")}
+          />
+        </Labeled>
+
+        <MediaField
+          label="Open Graph / Social Sharing Preview Image (og:image)"
+          value={form.ogImage}
+          onChange={(url) => setForm({ ...form, ogImage: url })}
+          accept="image/*"
+          hint="1200x630px image displayed when site link is shared on WhatsApp, Facebook, or Twitter"
+        />
+
+        {/* Analytics & Webmaster Tools */}
+        <div className="rounded-xl border border-purple-100 bg-purple-50/30 p-4">
+          <p className="text-xs font-bold text-gray-800 mb-3">Analytics &amp; Webmaster Verification Keys</p>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Labeled label="Google Analytics Measurement ID">
+              <input
+                value={form.googleAnalyticsId}
+                onChange={(e) => setForm({ ...form, googleAnalyticsId: e.target.value })}
+                placeholder="G-XXXXXXXXXX"
+                className={cn(INPUT, "font-mono")}
+              />
+            </Labeled>
+            <Labeled label="Google Tag Manager Container ID">
+              <input
+                value={form.googleTagManagerId}
+                onChange={(e) => setForm({ ...form, googleTagManagerId: e.target.value })}
+                placeholder="GTM-XXXXXXX"
+                className={cn(INPUT, "font-mono")}
+              />
+            </Labeled>
+            <Labeled label="Meta / Facebook Pixel ID">
+              <input
+                value={form.facebookPixelId}
+                onChange={(e) => setForm({ ...form, facebookPixelId: e.target.value })}
+                placeholder="Pixel ID e.g. 123456789"
+                className={cn(INPUT, "font-mono")}
+              />
+            </Labeled>
+            <Labeled label="Google Search Console Verification Tag">
+              <input
+                value={form.googleSearchConsoleVerification}
+                onChange={(e) => setForm({ ...form, googleSearchConsoleVerification: e.target.value })}
+                placeholder="google-site-verification=..."
+                className={cn(INPUT, "font-mono")}
+              />
+            </Labeled>
+          </div>
+        </div>
+
+        {/* Robots.txt */}
+        <Labeled label="Robots.txt Content" hint="Controls search engine crawler permissions">
+          <textarea
+            rows={3}
+            value={form.robotsTxt}
+            onChange={(e) => setForm({ ...form, robotsTxt: e.target.value })}
+            className={cn(INPUT, "font-mono text-xs resize-y")}
+          />
+        </Labeled>
+      </div>
+
+      <div className="mt-5 flex justify-end border-t border-gray-100 pt-4">
+        <Button variant="primary" onClick={handleSave} disabled={saving}>
+          {saving ? "Saving Global SEO Settings…" : "Save Global SEO Settings"}
+        </Button>
+      </div>
+    </Card>
   );
 }
 
@@ -1506,7 +1681,7 @@ function BrandCard() {
         </Labeled>
       </div>
       <div className="mt-4 flex justify-end">
-        <Button variant="primary" onClick={save} disabled={saving || !isDirty}>
+        <Button variant="primary" onClick={save} disabled={saving}>
           {saving ? "Saving..." : "Save Brand Profile"}
         </Button>
       </div>
@@ -1579,7 +1754,7 @@ function TaxCard() {
         </Labeled>
       </div>
       <div className="mt-4 flex justify-end">
-        <Button variant="primary" onClick={save} disabled={saving || !isDirty}>
+        <Button variant="primary" onClick={save} disabled={saving}>
           {saving ? "Saving..." : "Save GST Settings"}
         </Button>
       </div>
