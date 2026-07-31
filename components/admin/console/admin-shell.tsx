@@ -156,23 +156,10 @@ function AdminShellInner({
   React.useEffect(() => {
     if (!isAdmin) return;
 
-    if (pathname === "/admin/orders" || (pathname === "/admin/dashboard" && currentTab === "orders")) {
-      localStorage.setItem("admin_orders_last_seen", new Date().toISOString());
-      setNewOrdersCount(0);
-      return;
-    }
-
     const checkNewOrders = async () => {
       try {
-        let lastSeen = localStorage.getItem("admin_orders_last_seen");
-        if (!lastSeen) {
-          // If never set before, set lastSeen to 1 hour ago so new orders trigger badge
-          lastSeen = new Date(Date.now() - 3600 * 1000).toISOString();
-          localStorage.setItem("admin_orders_last_seen", lastSeen);
-        }
-
         const env = await apiFetchEnvelope<unknown>(
-          `/admin/orders?dateFrom=${encodeURIComponent(lastSeen)}&limit=1`
+          "/admin/orders?status=Pending,Pending Confirmation,Confirmed,Preparing&limit=1"
         );
         const meta = env.meta as { total?: number } | undefined;
         setNewOrdersCount(meta?.total ?? 0);
@@ -184,7 +171,7 @@ function AdminShellInner({
     checkNewOrders();
     const timer = setInterval(checkNewOrders, 5000);
     return () => clearInterval(timer);
-  }, [isAdmin, pathname, currentTab]);
+  }, [isAdmin]);
 
   // Restore the collapsed preference (client-only, so no hydration mismatch).
   React.useEffect(() => {
@@ -271,7 +258,7 @@ function AdminShellInner({
                 key={item.href}
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                title={collapsed ? item.label : undefined}
+                title={collapsed ? `${item.label} (${newOrdersCount} pending)` : undefined}
                 className={cn(
                   "relative mb-0.5 flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-semibold",
                   TRANSITION,
@@ -281,10 +268,15 @@ function AdminShellInner({
                   collapsed && "justify-center px-0"
                 )}
               >
-                <div className="relative flex items-center justify-center">
+                <div className="relative flex items-center justify-center overflow-visible">
                   <Icon className="size-4 shrink-0" />
-                  {collapsed && showOrderBadge && (
-                    <span className="absolute -top-1.5 -right-2 flex size-4 items-center justify-center rounded-full bg-red-600 text-[9px] font-bold text-white shadow-sm animate-pulse">
+                  {showOrderBadge && (
+                    <span
+                      className={cn(
+                        "absolute flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 text-[9px] font-black text-white shadow-md ring-2 ring-white animate-pulse z-30 px-1",
+                        collapsed ? "-top-2.5 -right-3" : "-top-1.5 -right-2"
+                      )}
+                    >
                       {newOrdersCount > 99 ? "99+" : newOrdersCount}
                     </span>
                   )}
