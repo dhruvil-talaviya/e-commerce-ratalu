@@ -795,54 +795,70 @@ export default function CheckoutPage() {
                     />
                   </div>
                 ) : selectedAddress ? (
-                  <div className="flex flex-col gap-3">
-                    <div className="relative group rounded-2xl border border-purple-200/70 bg-gradient-to-br from-purple-50/40 via-white to-amber-50/20 p-4 sm:p-4.5 transition-all">
-                      <div className="flex items-center justify-between">
-                        {selectedAddress.fullName ? (
-                          <p className="font-extrabold text-sm text-[#4A1942]">{selectedAddress.fullName}</p>
-                        ) : null}
-                        <Badge variant="primary" size="sm" className="bg-[#4A1942] text-white text-[11px] font-bold px-2.5 py-0.5 ml-auto">
+                  <div className="flex flex-col gap-3.5">
+                    {/* Active Address Card */}
+                    <div className="relative group rounded-2xl border border-purple-200/80 bg-gradient-to-br from-purple-50/60 via-white to-purple-50/30 p-4 sm:p-5 shadow-2xs hover:shadow-xs transition-all">
+                      <div className="flex items-center justify-between gap-2 border-b border-purple-100/70 pb-2.5">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="grid size-7 shrink-0 place-items-center rounded-lg bg-purple-100/80 text-[#4A1942]">
+                            <User className="size-3.5" />
+                          </div>
+                          <span className="font-extrabold text-sm text-[#4A1942] truncate">
+                            {selectedAddress.fullName || user?.name || "Customer"}
+                          </span>
+                        </div>
+                        <Badge variant="primary" size="sm" className="bg-[#4A1942] text-white text-[10px] sm:text-[11px] font-extrabold px-3 py-0.5 rounded-full shrink-0">
                           {selectedAddress.addressType || "Home"}
                         </Badge>
                       </div>
-                      {selectedAddress.phone ? (
-                        <p className="text-xs font-bold text-gray-500 mt-1 flex items-center gap-1">
-                          <Phone className="size-3 text-purple-600 shrink-0" />
-                          <span>{selectedAddress.phone}</span>
+
+                      <div className="mt-2.5 space-y-1.5">
+                        {(selectedAddress.phone || user?.phone) && (
+                          <p className="text-xs font-bold text-gray-600 flex items-center gap-1.5 font-numbers">
+                            <Phone className="size-3.5 text-purple-600 shrink-0" />
+                            <span>{selectedAddress.phone || user?.phone}</span>
+                          </p>
+                        )}
+                        <p className="text-xs text-gray-700 leading-relaxed font-medium pt-0.5">
+                          {selectedAddress.houseNo ? `${selectedAddress.houseNo}, ` : ""}
+                          {selectedAddress.street ? `${selectedAddress.street}, ` : ""}
+                          {selectedAddress.area ? `${selectedAddress.area}, ` : ""}
+                          {selectedAddress.landmark ? `(Landmark: ${selectedAddress.landmark}), ` : ""}
+                          {selectedAddress.city}, {selectedAddress.state} - <span className="font-bold text-gray-900 font-numbers">{selectedAddress.pinCode || selectedAddress.pincode}</span>
                         </p>
-                      ) : null}
-                      <p className="text-xs text-gray-700 mt-2.5 leading-relaxed font-medium">
-                        {selectedAddress.houseNo ? `${selectedAddress.houseNo}, ` : ""}
-                        {selectedAddress.street ? `${selectedAddress.street}, ` : ""}
-                        {selectedAddress.area ? `${selectedAddress.area}, ` : ""}
-                        {selectedAddress.landmark ? `(Landmark: ${selectedAddress.landmark}), ` : ""}
-                        {selectedAddress.city}, {selectedAddress.state} - {selectedAddress.pinCode || selectedAddress.pincode}
-                      </p>
+                      </div>
                     </div>
 
-                    {/* Choose Other Address button — shown ONLY if user has MULTIPLE saved addresses (> 1) */}
+                    {/* Choose Other Address toggle button — shown ONLY if user has MULTIPLE saved addresses (> 1) */}
                     {addresses.length > 1 && (
-                      <div className="flex items-center justify-between gap-2 border-t border-gray-100 pt-2.5">
+                      <div className="pt-1">
                         <button
                           type="button"
                           onClick={() => setShowAddressPicker(!showAddressPicker)}
-                          className="inline-flex items-center gap-1.5 rounded-xl border border-purple-200 bg-purple-50/70 px-3 py-1.5 text-xs font-bold text-purple-800 hover:bg-purple-100 hover:border-purple-300 transition-all cursor-pointer shadow-2xs"
+                          className="w-full sm:w-auto inline-flex items-center justify-between sm:justify-start gap-2.5 rounded-xl border border-purple-200 bg-purple-50/80 hover:bg-purple-100 hover:border-purple-300 px-3.5 py-2 text-xs font-extrabold text-[#4A1942] transition-all cursor-pointer shadow-2xs group"
                         >
-                          <MapPin className="size-3.5 text-purple-600" />
-                          <span>{showAddressPicker ? "Hide Saved Addresses" : `Choose Other Address (${addresses.length - 1} available)`}</span>
-                          <ChevronDown className={cn("size-3.5 text-purple-600 transition-transform duration-200", showAddressPicker && "rotate-180")} />
+                          <span className="flex items-center gap-2">
+                            <MapPin className="size-3.5 text-purple-700 shrink-0 group-hover:scale-110 transition-transform" />
+                            <span>{showAddressPicker ? "Hide Saved Addresses" : `Choose Other Address (${addresses.length - 1} available)`}</span>
+                          </span>
+                          <ChevronDown className={cn("size-3.5 text-purple-700 transition-transform duration-200 shrink-0", showAddressPicker && "rotate-180")} />
                         </button>
                       </div>
                     )}
 
-                    {/* Address Picker Grid — open when showAddressPicker is true */}
+                    {/* Address Selection Grid — open when showAddressPicker is true */}
                     {showAddressPicker && addresses.length > 1 && (
-                      <div className="mt-1 space-y-2 rounded-2xl border border-purple-200 bg-purple-50/30 p-3.5 animate-in fade-in duration-200">
-                        <p className="text-xs font-extrabold text-[#4A1942] mb-2 flex items-center justify-between">
-                          <span>Select Delivery Location</span>
-                          <span className="text-[10px] text-purple-600 font-medium">{addresses.length} saved addresses</span>
-                        </p>
-                        <div className="grid gap-2.5 sm:grid-cols-2">
+                      <div className="space-y-2.5 rounded-2xl border border-purple-200/90 bg-purple-50/40 p-4 transition-all animate-in fade-in slide-in-from-top-1 duration-200">
+                        <div className="flex items-center justify-between border-b border-purple-100 pb-2">
+                          <p className="text-xs font-extrabold text-[#4A1942] flex items-center gap-1.5">
+                            <MapPin className="size-3.5 text-purple-600" />
+                            <span>Select Delivery Location</span>
+                          </p>
+                          <span className="text-[10px] font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-md">
+                            {addresses.length} addresses
+                          </span>
+                        </div>
+                        <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
                           {addresses.map((addr) => {
                             const addrId = String(addr.id || addr._id);
                             const selectedId = String(selectedAddress.id || selectedAddress._id);
@@ -856,21 +872,25 @@ export default function CheckoutPage() {
                                   toast.success("Delivery address selected");
                                 }}
                                 className={cn(
-                                  "relative flex cursor-pointer flex-col justify-between rounded-xl border p-3 transition-all text-left",
+                                  "relative flex cursor-pointer flex-col justify-between rounded-xl border p-3.5 transition-all text-left group",
                                   isCurrent
-                                    ? "border-purple-600 bg-purple-100/60 ring-1 ring-purple-500 shadow-2xs"
-                                    : "border-gray-200 bg-white hover:border-purple-300 hover:bg-purple-50/40"
+                                    ? "border-purple-600 bg-white ring-2 ring-purple-500/20 shadow-sm"
+                                    : "border-gray-200 bg-white hover:border-purple-300 hover:bg-purple-50/30 hover:shadow-2xs"
                                 )}
                               >
                                 <div>
-                                  <div className="flex items-center justify-between">
-                                    <span className="font-extrabold text-xs text-[#4A1942] truncate">{addr.fullName}</span>
+                                  <div className="flex items-center justify-between gap-1.5 mb-1">
+                                    <span className="font-extrabold text-xs text-[#4A1942] truncate">
+                                      {addr.fullName || user?.name || "Customer"}
+                                    </span>
                                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-100 text-purple-800 shrink-0">
                                       {addr.addressType || "Home"}
                                     </span>
                                   </div>
-                                  <p className="text-[11px] text-gray-500 font-semibold mt-0.5">{addr.phone}</p>
-                                  <p className="text-xs text-gray-700 mt-1.5 leading-snug font-medium line-clamp-2">
+                                  {(addr.phone || user?.phone) && (
+                                    <p className="text-[11px] text-gray-500 font-bold font-numbers">{addr.phone || user?.phone}</p>
+                                  )}
+                                  <p className="text-xs text-gray-600 mt-1.5 leading-relaxed font-medium line-clamp-3">
                                     {addr.houseNo ? `${addr.houseNo}, ` : ""}
                                     {addr.street ? `${addr.street}, ` : ""}
                                     {addr.area ? `${addr.area}, ` : ""}
@@ -878,13 +898,14 @@ export default function CheckoutPage() {
                                   </p>
                                 </div>
                                 {isCurrent ? (
-                                  <div className="mt-2 text-[10px] font-extrabold text-purple-700 uppercase tracking-wider flex items-center gap-1">
-                                    <CheckCircle2 className="size-3 text-purple-600" />
-                                    <span>Selected</span>
+                                  <div className="mt-2.5 pt-2 border-t border-purple-100 text-[10px] font-extrabold text-purple-700 uppercase tracking-wider flex items-center gap-1">
+                                    <CheckCircle2 className="size-3.5 text-purple-600 shrink-0" />
+                                    <span>Active Address</span>
                                   </div>
                                 ) : (
-                                  <div className="mt-2 text-[10px] font-bold text-purple-600 hover:underline">
-                                    Click to select
+                                  <div className="mt-2.5 pt-2 border-t border-gray-100 text-[10px] font-bold text-purple-600 group-hover:text-purple-800 group-hover:underline flex items-center justify-between">
+                                    <span>Click to select</span>
+                                    <ArrowLeft className="size-3 rotate-180 opacity-0 group-hover:opacity-100 transition-opacity" />
                                   </div>
                                 )}
                               </div>
