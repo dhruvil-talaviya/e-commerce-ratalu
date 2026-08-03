@@ -130,8 +130,7 @@ export function Logo({
         }
         whileTap={{ scale: 0.95 }}
         className={cn(
-          "h-16 lg:h-20 w-auto max-w-[280px] sm:max-w-[360px] object-contain border-none outline-none ring-0 shadow-none",
-          !onDark && "mix-blend-multiply"
+          "h-16 lg:h-20 w-auto max-w-[280px] sm:max-w-[360px] object-contain border-none outline-none ring-0 shadow-none"
         )}
       />
     </Link>

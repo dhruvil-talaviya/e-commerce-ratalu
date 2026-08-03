@@ -1624,26 +1624,35 @@ function BrandCard() {
     apiFetch<Record<string, unknown>>("/admin/settings")
       .then((s) => {
         const loaded = {
-          storeName: (s.storeName as string) ?? "Yamora Chips",
+          storeName: (s.storeName as string) ?? "Yamora Wafers",
           storeTagline: (s.storeTagline as string) ?? "",
           storeDescription: (s.storeDescription as string) ?? "",
+          supportEmail: (s.supportEmail as string) ?? "",
+          customerCareNumber: (s.customerCareNumber as string) ?? "",
+          businessAddress: (s.businessAddress as string) ?? "",
           storeLogo: (s.storeLogo as string) ?? "",
+          storeLogoDark: (s.storeLogoDark as string) ?? "",
           storeFavicon: (s.storeFavicon as string) ?? "",
         };
         setForm(loaded);
         setInitialForm(JSON.stringify(loaded));
       })
       .catch(() => {
-        const fallback = { storeName: "Yamora Chips", storeTagline: "", storeDescription: "", storeLogo: "", storeFavicon: "" };
+        const fallback = {
+          storeName: "Yamora Wafers",
+          storeTagline: "",
+          storeDescription: "",
+          supportEmail: "",
+          customerCareNumber: "",
+          businessAddress: "",
+          storeLogo: "",
+          storeLogoDark: "",
+          storeFavicon: "",
+        };
         setForm(fallback);
         setInitialForm(JSON.stringify(fallback));
       });
   }, []);
-
-  const isDirty = React.useMemo(() => {
-    if (!initialForm || !form) return false;
-    return JSON.stringify(form) !== initialForm;
-  }, [form, initialForm]);
 
   const save = async () => {
     if (!form) return;
@@ -1651,7 +1660,7 @@ function BrandCard() {
     try {
       await apiFetch("/admin/settings", { method: "PUT", body: form });
       setInitialForm(JSON.stringify(form));
-      toast.success("Brand settings saved");
+      toast.success("Brand & Profile settings saved");
     } catch (err: any) {
       toast.error("Could not save", { description: err.message });
     } finally {
@@ -1663,26 +1672,95 @@ function BrandCard() {
 
   return (
     <Card className="p-6">
-      <div className="mb-4 flex items-center gap-3 border-b border-gray-100 pb-3">
-        <span className="grid size-10 place-items-center rounded-xl bg-purple-50 text-[#5B2C83]">
-          <Store className="size-5" />
-        </span>
-        <div>
-          <h2 className="text-sm font-bold text-[#111827]">Brand Identity &amp; Profile</h2>
-          <p className="text-xs text-[#6B7280]">Store name, tagline and brand logos.</p>
+      <div className="mb-4 flex items-center justify-between border-b border-gray-100 pb-3">
+        <div className="flex items-center gap-3">
+          <span className="grid size-10 place-items-center rounded-xl bg-purple-50 text-[#5B2C83]">
+            <Store className="size-5" />
+          </span>
+          <div>
+            <h2 className="text-sm font-bold text-[#111827]">Brand Identity &amp; Contact Profile</h2>
+            <p className="text-xs text-[#6B7280]">Manage store name, logos, favicon, support email, and contact number.</p>
+          </div>
         </div>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Labeled label="Store Name">
-          <input value={form.storeName} onChange={(e) => setForm({ ...form, storeName: e.target.value })} className={INPUT} />
+
+      <div className="flex flex-col gap-5">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Labeled label="Store Name">
+            <input
+              value={form.storeName}
+              onChange={(e) => setForm({ ...form, storeName: e.target.value })}
+              className={INPUT}
+              placeholder="Yamora Wafers"
+            />
+          </Labeled>
+          <Labeled label="Tagline">
+            <input
+              value={form.storeTagline}
+              onChange={(e) => setForm({ ...form, storeTagline: e.target.value })}
+              className={INPUT}
+              placeholder="India's Finest Purple Yam Wafers"
+            />
+          </Labeled>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Labeled label="Customer Support Email">
+            <input
+              type="email"
+              value={form.supportEmail}
+              onChange={(e) => setForm({ ...form, supportEmail: e.target.value })}
+              className={INPUT}
+              placeholder="support@yamorawafers.com"
+            />
+          </Labeled>
+          <Labeled label="Customer Care Phone / WhatsApp">
+            <input
+              value={form.customerCareNumber}
+              onChange={(e) => setForm({ ...form, customerCareNumber: e.target.value })}
+              className={INPUT}
+              placeholder="+91 91041 18363"
+            />
+          </Labeled>
+        </div>
+
+        <Labeled label="Registered Business Address">
+          <input
+            value={form.businessAddress}
+            onChange={(e) => setForm({ ...form, businessAddress: e.target.value })}
+            className={INPUT}
+            placeholder="Plot No. 12, Industrial Estate, Surat, Gujarat 395006"
+          />
         </Labeled>
-        <Labeled label="Tagline">
-          <input value={form.storeTagline} onChange={(e) => setForm({ ...form, storeTagline: e.target.value })} className={INPUT} />
-        </Labeled>
+
+        <div className="grid gap-4 sm:grid-cols-3">
+          <MediaField
+            label="Primary Header Logo"
+            value={form.storeLogo}
+            onChange={(url) => setForm({ ...form, storeLogo: url })}
+            accept="image/*"
+            hint="Displayed on navigation header & admin login"
+          />
+          <MediaField
+            label="Dark Footer Logo"
+            value={form.storeLogoDark}
+            onChange={(url) => setForm({ ...form, storeLogoDark: url })}
+            accept="image/*"
+            hint="Displayed on dark footer backgrounds"
+          />
+          <MediaField
+            label="Browser Tab Favicon"
+            value={form.storeFavicon}
+            onChange={(url) => setForm({ ...form, storeFavicon: url })}
+            accept="image/*"
+            hint="Displayed on Google Chrome browser tabs"
+          />
+        </div>
       </div>
-      <div className="mt-4 flex justify-end">
+
+      <div className="mt-6 flex justify-end border-t border-gray-100 pt-4">
         <Button variant="primary" onClick={save} disabled={saving}>
-          {saving ? "Saving..." : "Save Brand Profile"}
+          {saving ? "Saving Profile..." : "Save Brand Profile"}
         </Button>
       </div>
     </Card>
