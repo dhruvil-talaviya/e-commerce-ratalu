@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
 import { cn, sanitizeMediaUrl } from "@/lib/utils";
 import { useStoreSettings } from "@/components/common/settings-provider";
@@ -100,6 +101,7 @@ export function Logo({
   zoomOnHover = true,
 }: LogoProps) {
   const { settings } = useStoreSettings();
+  const [imgError, setImgError] = React.useState(false);
 
   const lightLogo = settings?.storeLogo?.trim() || "/logo.png";
   const darkLogo = settings?.storeLogoDark?.trim() || lightLogo;
@@ -111,28 +113,24 @@ export function Logo({
     <Link
       href="/"
       className={cn(
-        "group relative inline-flex items-center shrink-0 border-none outline-none focus:outline-none focus-visible:ring-0 select-none overflow-visible bg-transparent",
+        "group relative inline-flex items-center shrink-0 border-none outline-none focus:outline-none focus-visible:ring-0 select-none overflow-hidden bg-transparent",
         className
       )}
       aria-label={`${name} — home`}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <motion.img
-        src={logoSrc}
-        alt={`${name} logo`}
-        whileHover={
-          zoomOnHover
-            ? {
-                scale: 1.08,
-                transition: { type: "spring", stiffness: 350, damping: 20 },
-              }
-            : undefined
-        }
-        whileTap={{ scale: 0.95 }}
-        className={cn(
-          "h-16 lg:h-20 w-auto max-w-[280px] sm:max-w-[360px] object-contain border-none outline-none ring-0 shadow-none"
-        )}
-      />
+      {!imgError ? (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img
+          src={logoSrc}
+          alt={`${name} logo`}
+          onError={() => setImgError(true)}
+          className={cn(
+            "h-14 sm:h-16 lg:h-18 w-auto max-w-[220px] sm:max-w-[280px] object-contain border-none outline-none ring-0 shadow-none transition-transform duration-300 group-hover:scale-105"
+          )}
+        />
+      ) : (
+        <YamoraSymbol size={size} onDark={onDark} />
+      )}
     </Link>
   );
 }
