@@ -214,7 +214,7 @@ export function Modal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center p-0 sm:p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div
         className="absolute inset-0 bg-gray-900/40 backdrop-blur-[2px]"
         onClick={onClose}
@@ -225,12 +225,9 @@ export function Modal({
         aria-modal="true"
         aria-label={title}
         className={cn(
-          /* Mobile: full-width bottom sheet; sm+: centered card */
-          "relative z-10 w-full flex flex-col",
-          "rounded-t-2xl sm:rounded-xl",
-          "bg-white shadow-xl",
-          "max-h-[92dvh] sm:max-h-[88vh]",
-          "pb-safe", /* safe-area for phones with home bar */
+          "relative z-10 w-full my-auto flex flex-col",
+          "rounded-2xl bg-white shadow-xl",
+          "max-h-[88vh]",
           width
         )}
       >

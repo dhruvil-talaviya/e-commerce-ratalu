@@ -19,17 +19,13 @@ const ModalContent = React.forwardRef<
 >(({ className, children, showClose = true, ...props }, ref) => (
   <DialogPrimitive.Portal>
     <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-purple-900/45 backdrop-blur-sm data-[state=open]:animate-[fade-in_0.25s_ease] data-[state=closed]:animate-[fade-out_0.2s_ease]" />
-    {/* Mobile: slide up from bottom; sm+: centred with side padding */}
-    <div className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4">
+    {/* Screen-centered modal box */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <DialogPrimitive.Content
         ref={ref}
         className={cn(
-          /* Full-width bottom sheet on mobile, capped card on sm+ */
-          "relative flex w-full flex-col",
-          "max-h-[92dvh] sm:max-h-[88vh]",
-          "rounded-t-3xl sm:rounded-3xl sm:max-w-lg",
-          "bg-[var(--color-cream)] shadow-[var(--shadow-lift)] outline-none",
-          "pb-safe", /* safe-area-inset-bottom for phones with a home bar */
+          "relative flex w-full max-w-lg my-auto flex-col max-h-[88vh]",
+          "rounded-3xl bg-[var(--color-cream)] shadow-[var(--shadow-lift)] outline-none",
           "data-[state=open]:animate-[modal-in_0.3s_var(--ease-premium)] data-[state=closed]:animate-[fade-out_0.2s_ease]",
           className
         )}
