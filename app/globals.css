@@ -519,3 +519,15 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* ─── Safe-area modal utilities ─────────────────────────────────────── */
+/* pb-safe: adds bottom padding = iPhone home-bar safe-area inset       */
+/* Used on modal bottom-sheet containers so content clears the home bar */
+@layer utilities {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .overscroll-contain {
+    overscroll-behavior: contain;
+  }
+}

@@ -214,7 +214,7 @@ export function Modal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center">
+    <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center p-0 sm:p-4">
       <div
         className="absolute inset-0 bg-gray-900/40 backdrop-blur-[2px]"
         onClick={onClose}
@@ -225,11 +225,17 @@ export function Modal({
         aria-modal="true"
         aria-label={title}
         className={cn(
-          "relative z-10 w-full overflow-hidden rounded-t-2xl bg-white shadow-xl sm:rounded-xl",
+          /* Mobile: full-width bottom sheet; sm+: centered card */
+          "relative z-10 w-full flex flex-col",
+          "rounded-t-2xl sm:rounded-xl",
+          "bg-white shadow-xl",
+          "max-h-[92dvh] sm:max-h-[88vh]",
+          "pb-safe", /* safe-area for phones with home bar */
           width
         )}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-gray-100 px-5 py-4">
+        {/* Header */}
+        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-gray-100 px-5 py-4">
           <div className="min-w-0">
             <h2 className="text-sm font-bold text-[#111827]">{title}</h2>
             {description && <p className="mt-0.5 text-xs text-[#6B7280]">{description}</p>}
@@ -237,12 +243,13 @@ export function Modal({
           <button
             onClick={onClose}
             aria-label="Close"
-            className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+            className="shrink-0 rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
           >
             <X className="size-4" />
           </button>
         </div>
-        <div className="max-h-[85vh] overflow-y-auto px-5 py-4">{children}</div>
+        {/* Scrollable body */}
+        <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-4">{children}</div>
       </div>
     </div>
   );
@@ -273,17 +280,19 @@ export function ConfirmDialog({
     <Modal open={open} onClose={onClose} title={title} width="max-w-md">
       <p className="text-xs leading-relaxed text-[#6B7280]">{description}</p>
       {children}
-      <div className="mt-5 flex justify-end gap-2">
-        <Button variant="secondary" onClick={onClose} disabled={busy}>
+      {/* Stack buttons vertically on mobile, side-by-side on sm+ */}
+      <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <Button variant="secondary" onClick={onClose} disabled={busy} className="w-full sm:w-auto">
           Cancel
         </Button>
         <Button
           variant={tone === "danger" ? "danger" : "primary"}
           onClick={onConfirm}
           disabled={busy}
+          className="w-full sm:w-auto"
         >
           {busy ? (
-            <span className="flex items-center gap-1.5 text-white font-bold">
+            <span className="flex items-center justify-center gap-1.5 text-white font-bold">
               <span className="inline-block size-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
               Processing…
             </span>
