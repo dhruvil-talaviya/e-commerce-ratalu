@@ -191,7 +191,7 @@ function AccountView() {
     [router, pathname]
   );
 
-  const { user, isLoggedIn, logout } = useAccount();
+  const { user, isLoggedIn, logout, hydrated } = useAccount();
   const { count } = useWishlist();
   const { notifs, setNotifs, unread } = useNotifications(isLoggedIn);
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
@@ -209,14 +209,15 @@ function AccountView() {
     await logout();
   }, [logout, router]);
 
-  /**
-   * Signed out on /account? Stay here and let the login gate do its job.
-   *
-   * This used to redirect to `/?login=true`, which meant you never actually saw
-   * the "verify your mobile" step on the account page — you were bounced to the
-   * homepage first. The gate (rendered in the layout) covers this page whenever
-   * a signed-out visitor lands on it.
-   */
+  if (!hydrated) {
+    return (
+      <div className="container-px mx-auto max-w-6xl py-24 flex flex-col items-center justify-center text-center min-h-[50vh]">
+        <Loader2 className="size-8 animate-spin text-[#4A1942] mb-3" />
+        <p className="text-sm font-extrabold text-[#4A1942]">Loading your account...</p>
+      </div>
+    );
+  }
+
   if (!isLoggedIn) {
     return <InlineAuthForm />;
   }

@@ -10,7 +10,7 @@ import Link from "next/link";
 import { useGoogleAuth } from "@/lib/hooks/use-google-auth";
 
 function LoginGateContent() {
-  const { isLoggedIn, loginWithGoogle, loginWithEmailDirect } = useAccount();
+  const { isLoggedIn, hydrated, loginWithGoogle, loginWithEmailDirect } = useAccount();
   const [emailInput, setEmailInput] = React.useState("");
   const [showEmailForm, setShowEmailForm] = React.useState(false);
 
@@ -53,7 +53,7 @@ function LoginGateContent() {
     }
   }, [router, pathname]);
 
-  const showGate = !isAdminArea && (!isLoggedIn && (isProtectedPage || isLoginParam) && !dismissed);
+  const showGate = hydrated && !isAdminArea && (!isLoggedIn && (isProtectedPage || isLoginParam) && !dismissed);
 
   React.useEffect(() => {
     if (isLoginParam) {

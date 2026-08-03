@@ -69,7 +69,7 @@ const ALL_PAYMENT_OPTIONS: PayOption[] = [
 export default function CheckoutPage() {
   const { settings } = useStoreSettings();
   const { items, totals, clear, coupon } = useCart();
-  const { user, isLoggedIn, updateProfile, addAddress, updateAddress, deleteAddress, setDefaultAddress, setActiveAddress } = useAccount();
+  const { user, isLoggedIn, hydrated, updateProfile, addAddress, updateAddress, deleteAddress, setDefaultAddress, setActiveAddress } = useAccount();
   const { placeOrder } = useOrders();
   const router = useRouter();
 
@@ -569,7 +569,12 @@ export default function CheckoutPage() {
         <div className="flex flex-col gap-5 sm:gap-6 w-full min-w-0">
 
           {/* 1. NOT LOGGED IN GATE */}
-          {!isLoggedIn ? (
+          {!hydrated ? (
+            <div className="bg-white border border-gray-200 rounded-2xl sm:rounded-3xl p-8 sm:p-12 shadow-sm text-center flex flex-col items-center justify-center min-h-[260px]">
+              <Loader2 className="size-8 animate-spin text-[#4A1942] mb-3" />
+              <p className="text-sm font-extrabold text-[#4A1942]">Loading checkout details...</p>
+            </div>
+          ) : !isLoggedIn ? (
             <div className="bg-white border border-gray-200 rounded-2xl sm:rounded-3xl p-5 sm:p-8 shadow-sm text-center">
               <div className="mx-auto grid size-14 place-items-center rounded-2xl bg-purple-50 text-purple-700 mb-4">
                 <User className="size-7" />
