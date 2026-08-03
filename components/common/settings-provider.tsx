@@ -401,7 +401,18 @@ function DynamicFavicon({ settings }: { settings: StoreSettings }) {
 }
 
 export function StoreSettingsProvider({ children }: { children: React.ReactNode }) {
-  const [settings, setSettings] = React.useState<StoreSettings>(DEFAULT_SETTINGS);
+  const [settings, setSettings] = React.useState<StoreSettings>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const cached = localStorage.getItem(SETTINGS_CACHE_KEY);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          return { ...DEFAULT_SETTINGS, ...parsed };
+        }
+      } catch {}
+    }
+    return DEFAULT_SETTINGS;
+  });
   const [hydrated, setHydrated] = React.useState(false);
 
   const fetchSettings = React.useCallback(async () => {

@@ -41,6 +41,7 @@ interface CartContextValue {
   coupon: Coupon | null;
   couponError: string | null;
   totals: CartTotals;
+  hydrated: boolean;
   openCart: () => void;
   closeCart: () => void;
   setOpen: (open: boolean) => void;
@@ -71,7 +72,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
    */
   const isShopper = isLoggedIn && !isAdminSession(user);
   const { getFlavor } = useProducts();
-  const [items, setItems] = React.useState<CartItem[]>([]);
+  const [items, setItems] = React.useState<CartItem[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : null;
+      return Array.isArray(parsed?.items) ? parsed.items : [];
+    } catch {
+      return [];
+    }
+  });
   const [isOpen, setIsOpen] = React.useState(false);
   const [coupon, setCoupon] = React.useState<Coupon | null>(null);
   const [couponError, setCouponError] = React.useState<string | null>(null);
@@ -588,6 +598,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     coupon,
     couponError,
     totals,
+    hydrated,
     openCart: () => setIsOpen(true),
     closeCart: () => setIsOpen(false),
     setOpen: setIsOpen,
