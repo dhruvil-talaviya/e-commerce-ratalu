@@ -66,15 +66,6 @@ export const metadata: Metadata = {
   ],
   creator: SITE.name,
   applicationName: SITE.name,
-  icons: {
-    icon: [
-      { url: "/favicon.ico", sizes: "any" },
-      { url: "/favicon.png", type: "image/png", sizes: "192x192" },
-      { url: "/logo.png", type: "image/png" },
-    ],
-    shortcut: "/favicon.ico",
-    apple: "/favicon.png",
-  },
   alternates: { canonical: "/" },
   openGraph: {
     type: "website",
@@ -115,10 +106,13 @@ export default async function RootLayout({
   return (
     <html lang="en" className={`${fraunces.variable} ${plusJakartaSans.variable} ${inter.variable} ${manrope.variable} ${notoSansDevanagari.variable} ${notoSansGujarati.variable}`}>
       <head>
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="icon" type="image/png" sizes="192x192" href={faviconUrl} />
-        <link rel="shortcut icon" href={faviconUrl} />
-        <link rel="apple-touch-icon" href={faviconUrl} />
+      {/* Favicon — always points to the admin-uploaded image, decoded from Cloudinary if needed */}
+        {/* data-favicon-id attrs match DynamicFavicon upsert keys so client hydration
+            updates these exact elements rather than duplicating them */}
+        <link data-favicon-id="dyn-icon" rel="icon" type="image/png" sizes="192x192" href={faviconUrl} />
+        <link data-favicon-id="dyn-icon2" rel="icon" type="image/png" href={faviconUrl} />
+        <link data-favicon-id="dyn-shortcut" rel="shortcut icon" href={faviconUrl} />
+        <link data-favicon-id="dyn-apple" rel="apple-touch-icon" href={faviconUrl} />
         {/* Google Analytics GA4 */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-8RQGBPV32Y"

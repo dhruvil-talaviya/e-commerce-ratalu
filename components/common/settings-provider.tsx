@@ -392,6 +392,7 @@ function DynamicFavicon({ settings }: { settings: StoreSettings }) {
     };
 
     upsert("dyn-icon", "icon");
+    upsert("dyn-icon2", "icon");
     upsert("dyn-shortcut", "shortcut icon");
     upsert("dyn-apple", "apple-touch-icon");
   }, [settings?.storeFavicon, settings?.storeLogo]);
