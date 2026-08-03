@@ -214,6 +214,10 @@ const OrderSchema = new mongoose.Schema({
 
 // Auto-populate invoiceNumber and timeline on create & sync status fields
 OrderSchema.pre('save', function (next) {
+  if (this.cancelledAt && this.status !== 'Cancelled') {
+    this.status = 'Cancelled';
+    this.orderStatus = 'Cancelled';
+  }
   if (this.isModified('status') && !this.isModified('orderStatus')) {
     this.orderStatus = this.status;
   } else if (this.isModified('orderStatus') && !this.isModified('status')) {

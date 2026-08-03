@@ -452,6 +452,11 @@ function OrdersView() {
       header: "Status",
       sortable: true,
       cell: (o) => {
+        const isCancelled = o.status === "Cancelled" || Boolean((o as any).cancelledAt);
+        if (isCancelled) {
+          return <Badge tone="danger">Cancelled</Badge>;
+        }
+
         const isHold = (o.status as string) === "Pending Confirmation" || (o.status as string) === "Pending";
         const deadline = (o as any).cancellationDeadline || (o as any).cancellableUntil;
         const isExpired = deadline && new Date(deadline) <= new Date();
@@ -1147,21 +1152,24 @@ function OrderDetail({
 
   const timeline = [...(order.timeline ?? [])].reverse();
 
+  const isCancelled = order.status === "Cancelled" || Boolean((order as any).cancelledAt);
+  const effectiveStatus = isCancelled ? "Cancelled" : order.status;
+
   /**
    * Only the moves the lifecycle actually permits. The old dropdown listed every
    * status that had ever been imagined, half of which the database rejected.
    */
-  const moves = NEXT_STATUSES[order.status] ?? [];
+  const moves = isCancelled ? [] : (NEXT_STATUSES[effectiveStatus] ?? []);
   const forward = moves.filter((s) => s !== "Cancelled" && s !== "Returned");
   const exits = moves.filter((s) => s === "Cancelled" || s === "Returned");
 
-  const stepIndex = FULFILMENT_FLOW.indexOf(order.status as (typeof FULFILMENT_FLOW)[number]);
+  const stepIndex = FULFILMENT_FLOW.indexOf(effectiveStatus as (typeof FULFILMENT_FLOW)[number]);
   const derailed =
-    order.status === "Cancelled" ||
-    order.status === "Returned" ||
-    order.status.startsWith("Refund") ||
-    order.status === "Payment Failed" ||
-    order.status === "Expired";
+    effectiveStatus === "Cancelled" ||
+    effectiveStatus === "Returned" ||
+    effectiveStatus.startsWith("Refund") ||
+    effectiveStatus === "Payment Failed" ||
+    effectiveStatus === "Expired";
 
   const act = (status: string) => {
     if (status === REQUIRES_COURIER) {
@@ -1199,7 +1207,7 @@ function OrderDetail({
               >
                 <option value="">Select status...</option>
                 {['Pending', 'Confirmed', 'Preparing', 'Packed', 'Ready to Ship', 'Assigned to Logistics', 'Shipped', 'Out for Delivery', 'Delivered', 'Cancelled', 'Returned', 'Refund Requested', 'Refund Approved', 'Refund Completed', 'Payment Failed', 'Expired']
-                  .filter(s => s !== order.status)
+                  .filter(s => s !== effectiveStatus)
                   .map(s => (
                     <option key={s} value={s}>{s}</option>
                   ))}
@@ -1251,7 +1259,7 @@ function OrderDetail({
       {/* ── Visual Order Progress Timeline ───────────────────────────── */}
       <div className="mb-4">
         <OrderTimeline
-          orderStatus={order.status}
+          orderStatus={effectiveStatus}
           paymentStatus={order.payment?.status ?? "Pending"}
           fulfilmentStatus={(order as any).fulfilmentStatus}
           cancellationDeadline={(order as any).cancellationDeadline || (order as any).cancellableUntil}
@@ -1268,12 +1276,12 @@ function OrderDetail({
       {/* ── Status + what can happen next ─────────────────────────────── */}
       <div className="rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] p-3">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge tone={ORDER_STATUS[order.status]?.tone ?? "neutral"}>{order.status}</Badge>
+          <Badge tone={ORDER_STATUS[effectiveStatus]?.tone ?? "neutral"}>{effectiveStatus}</Badge>
           <Badge tone={PAYMENT_STATUS[order.payment?.status ?? "Pending"] ?? "neutral"}>
             {order.payment?.status ?? "Pending"} · {order.payment?.method || order.method}
           </Badge>
 
-          {((order.status as string) === "Pending Confirmation" || (order.status as string) === "Pending") && (
+          {!isCancelled && ((effectiveStatus as string) === "Pending Confirmation" || (effectiveStatus as string) === "Pending") && (
             <div className="flex items-center gap-2 ml-auto sm:ml-0 flex-wrap">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold">
                 <Clock className="size-3.5 text-amber-600 animate-pulse" />
@@ -1330,10 +1338,10 @@ function OrderDetail({
           </div>
         ) : (
           <p className="mt-3 border-t border-gray-200 pt-3 text-xs font-medium text-[#6B7280]">
-            {order.status === "Cancelled" && "This order has been cancelled. No further processing is required."}
-            {order.status === "Delivered" && "This order has been delivered successfully. No further actions are required."}
-            {order.status === "Returned" && "This order has been returned. No further actions are required."}
-            {!["Cancelled", "Delivered", "Returned"].includes(order.status) && `This order is in its final state (${order.status}).`}
+            {effectiveStatus === "Cancelled" && "This order has been cancelled. No further processing is required."}
+            {effectiveStatus === "Delivered" && "This order has been delivered successfully. No further actions are required."}
+            {effectiveStatus === "Returned" && "This order has been returned. No further actions are required."}
+            {!["Cancelled", "Delivered", "Returned"].includes(effectiveStatus) && `This order is in its final state (${effectiveStatus}).`}
           </p>
         )}
         {isSuperAdmin && (
@@ -1363,7 +1371,7 @@ function OrderDetail({
               "h-full rounded-full transition-all duration-200",
               derailed ? "bg-[#EF4444]" : "bg-[#5B2C83]"
             )}
-            style={{ width: `${ORDER_STATUS[order.status]?.progress ?? 10}%` }}
+            style={{ width: derailed ? "100%" : `${ORDER_STATUS[effectiveStatus]?.progress ?? 10}%` }}
           />
         </div>
 

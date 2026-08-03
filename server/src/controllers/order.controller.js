@@ -852,9 +852,17 @@ exports.getMyOrders = async (req, res, next) => {
       customerId: req.user._id,
       status: { $nin: ['Payment Pending', 'Payment Failed'] }
     }).sort({ createdAt: -1 });
+    const sanitizedOrders = orders.map((o) => {
+      const doc = o.toObject ? o.toObject() : o;
+      if (doc.cancelledAt && doc.status !== 'Cancelled') {
+        doc.status = 'Cancelled';
+        doc.orderStatus = 'Cancelled';
+      }
+      return doc;
+    });
     sendResponse(res, 200, {
       success: true,
-      data: orders
+      data: sanitizedOrders
     });
   } catch (error) {
     next(error);
@@ -880,6 +888,10 @@ exports.getOrderDetails = async (req, res, next) => {
     const refunds = await Refund.find({ orderId: order.id }).lean();
 
     const orderObj = order.toObject();
+    if (orderObj.cancelledAt && orderObj.status !== 'Cancelled') {
+      orderObj.status = 'Cancelled';
+      orderObj.orderStatus = 'Cancelled';
+    }
     orderObj.refunds = refunds || [];
 
     sendResponse(res, 200, {
@@ -1151,9 +1163,18 @@ exports.getAdminOrders = async (req, res, next) => {
       Order.countDocuments(filter)
     ]);
 
+    const sanitizedOrders = orders.map((o) => {
+      const doc = o.toObject ? o.toObject() : o;
+      if (doc.cancelledAt && doc.status !== 'Cancelled') {
+        doc.status = 'Cancelled';
+        doc.orderStatus = 'Cancelled';
+      }
+      return doc;
+    });
+
     sendResponse(res, 200, {
       success: true,
-      data: orders,
+      data: sanitizedOrders,
       pagination: {
         page: pageNum,
         limit: limitNum,
