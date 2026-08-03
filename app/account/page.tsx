@@ -62,6 +62,7 @@ import { useProducts } from "@/components/shop/product-provider";
 import { useOrders, type Order } from "@/components/shop/order-provider";
 import { getPack, DEFAULT_PACK_ID, PACK_SIZES } from "@/lib/data/products";
 import { apiFetch } from "@/lib/api";
+import { useStoreSettings } from "@/components/common/settings-provider";
 import { RefundRequestDialog } from "@/components/account/refund-request-dialog";
 import { SITE } from "@/lib/constants";
 import { useGoogleAuth } from "@/lib/hooks/use-google-auth";
@@ -476,7 +477,12 @@ function NotificationsPanel({
 /* ------------------------------------------------------------------ */
 
 function SupportPanel() {
+  const { settings } = useStoreSettings();
+  const email = settings?.supportEmail || SITE.email;
+  const phone = settings?.customerCareNumber || SITE.phone;
+  const phoneHref = `tel:${phone.replace(/\s+/g, "")}`;
   const [sent, setSent] = React.useState(false);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setSent(true);
@@ -488,8 +494,8 @@ function SupportPanel() {
     <div className="flex flex-col gap-6">
       <div className="grid gap-4 sm:grid-cols-3">
         {[
-          { icon: Mail, label: "Email us", value: SITE.email, href: `mailto:${SITE.email}` },
-          { icon: Phone, label: "Call us", value: SITE.phone, href: SITE.phoneHref },
+          { icon: Mail, label: "Email us", value: email, href: `mailto:${email}` },
+          { icon: Phone, label: "Call us", value: phone, href: phoneHref },
           { icon: LifeBuoy, label: "Help centre", value: "Browse FAQs", href: "/faq" },
         ].map((c) => {
           const Icon = c.icon;

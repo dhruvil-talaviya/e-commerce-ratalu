@@ -3,7 +3,7 @@ import { FLAVORS } from "@/lib/data/flavors";
 import { PACK_SIZES } from "@/lib/data/products";
 import { FAQS } from "@/lib/data/faq";
 import { getSiteStats } from "@/lib/stats-server";
-import { getPageContent } from "@/lib/cms-server";
+import { getPageContent, getStoreSettingsServer } from "@/lib/cms-server";
 
 /** Renders a JSON-LD script tag. */
 function JsonLd({ data }: { data: Record<string, unknown> }) {
@@ -16,24 +16,28 @@ function JsonLd({ data }: { data: Record<string, unknown> }) {
   );
 }
 
-export function OrganizationJsonLd() {
+export async function OrganizationJsonLd() {
+  const settings = await getStoreSettingsServer();
+  const name = settings?.storeName || SITE.name;
+  const email = settings?.supportEmail || SITE.email;
+  const phone = settings?.customerCareNumber || SITE.phone;
+  const address = settings?.businessAddress || SITE.address;
+  const logo = settings?.storeLogo || `${SITE.url}/logo.png`;
+
   return (
     <JsonLd
       data={{
         "@context": "https://schema.org",
         "@type": "Organization",
-        name: SITE.name,
+        name: name,
         legalName: SITE.legalName,
         url: SITE.url,
-        logo: `${SITE.url}/icon.png`,
-        email: SITE.email,
-        telephone: SITE.phone,
+        logo: logo,
+        email: email,
+        telephone: phone,
         address: {
           "@type": "PostalAddress",
-          streetAddress: "Unit 7, Artisan Foods Park",
-          addressLocality: "Rajkot",
-          addressRegion: "Gujarat",
-          postalCode: "360001",
+          streetAddress: address,
           addressCountry: "IN",
         },
         sameAs: Object.values(SITE.social),
