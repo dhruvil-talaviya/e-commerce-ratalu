@@ -2,7 +2,10 @@ import type { MetadataRoute } from "next";
 import { SITE } from "@/lib/constants";
 
 const POLICIES = ["shipping", "privacy", "terms", "refunds", "fssai"];
-const API_ORIGIN = process.env.BACKEND_ORIGIN || "https://e-commerce-ratalu-api.onrender.com";
+const API_ORIGIN =
+  process.env.BACKEND_ORIGIN ||
+  process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1\/?$/, "") ||
+  "http://localhost:5001";
 
 interface ProductItem {
   slug: string;
