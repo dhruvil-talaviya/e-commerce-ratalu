@@ -25,7 +25,8 @@ import {
   Lock,
   X,
   Truck,
-  RotateCcw
+  RotateCcw,
+  ChevronDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -88,6 +89,7 @@ export default function CheckoutPage() {
   
   const [profileSaving, setProfileSaving] = React.useState(false);
   const [profileError, setProfileError] = React.useState("");
+  const [showAddressPicker, setShowAddressPicker] = React.useState(false);
 
   // Keep state synced with user
   React.useEffect(() => {
@@ -793,28 +795,104 @@ export default function CheckoutPage() {
                     />
                   </div>
                 ) : selectedAddress ? (
-                  <div className="relative group rounded-2xl border border-purple-200/70 bg-gradient-to-br from-purple-50/40 via-white to-amber-50/20 p-4 sm:p-4.5 transition-all">
-                    <div className="flex items-center justify-between">
-                      {selectedAddress.fullName ? (
-                        <p className="font-extrabold text-sm text-[#4A1942]">{selectedAddress.fullName}</p>
+                  <div className="flex flex-col gap-3">
+                    <div className="relative group rounded-2xl border border-purple-200/70 bg-gradient-to-br from-purple-50/40 via-white to-amber-50/20 p-4 sm:p-4.5 transition-all">
+                      <div className="flex items-center justify-between">
+                        {selectedAddress.fullName ? (
+                          <p className="font-extrabold text-sm text-[#4A1942]">{selectedAddress.fullName}</p>
+                        ) : null}
+                        <Badge variant="primary" size="sm" className="bg-[#4A1942] text-white text-[11px] font-bold px-2.5 py-0.5 ml-auto">
+                          {selectedAddress.addressType || "Home"}
+                        </Badge>
+                      </div>
+                      {selectedAddress.phone ? (
+                        <p className="text-xs font-bold text-gray-500 mt-1 flex items-center gap-1">
+                          <Phone className="size-3 text-purple-600 shrink-0" />
+                          <span>{selectedAddress.phone}</span>
+                        </p>
                       ) : null}
-                      <Badge variant="primary" size="sm" className="bg-[#4A1942] text-white text-[11px] font-bold px-2.5 py-0.5 ml-auto">
-                        {selectedAddress.addressType || "Home"}
-                      </Badge>
-                    </div>
-                    {selectedAddress.phone ? (
-                      <p className="text-xs font-bold text-gray-500 mt-1 flex items-center gap-1">
-                        <Phone className="size-3 text-purple-600 shrink-0" />
-                        <span>{selectedAddress.phone}</span>
+                      <p className="text-xs text-gray-700 mt-2.5 leading-relaxed font-medium">
+                        {selectedAddress.houseNo ? `${selectedAddress.houseNo}, ` : ""}
+                        {selectedAddress.street ? `${selectedAddress.street}, ` : ""}
+                        {selectedAddress.area ? `${selectedAddress.area}, ` : ""}
+                        {selectedAddress.landmark ? `(Landmark: ${selectedAddress.landmark}), ` : ""}
+                        {selectedAddress.city}, {selectedAddress.state} - {selectedAddress.pinCode || selectedAddress.pincode}
                       </p>
-                    ) : null}
-                    <p className="text-xs text-gray-700 mt-2.5 leading-relaxed font-medium">
-                      {selectedAddress.houseNo ? `${selectedAddress.houseNo}, ` : ""}
-                      {selectedAddress.street ? `${selectedAddress.street}, ` : ""}
-                      {selectedAddress.area ? `${selectedAddress.area}, ` : ""}
-                      {selectedAddress.landmark ? `(Landmark: ${selectedAddress.landmark}), ` : ""}
-                      {selectedAddress.city}, {selectedAddress.state} - {selectedAddress.pinCode || selectedAddress.pincode}
-                    </p>
+                    </div>
+
+                    {/* Choose Other Address button — shown ONLY if user has MULTIPLE saved addresses (> 1) */}
+                    {addresses.length > 1 && (
+                      <div className="flex items-center justify-between gap-2 border-t border-gray-100 pt-2.5">
+                        <button
+                          type="button"
+                          onClick={() => setShowAddressPicker(!showAddressPicker)}
+                          className="inline-flex items-center gap-1.5 rounded-xl border border-purple-200 bg-purple-50/70 px-3 py-1.5 text-xs font-bold text-purple-800 hover:bg-purple-100 hover:border-purple-300 transition-all cursor-pointer shadow-2xs"
+                        >
+                          <MapPin className="size-3.5 text-purple-600" />
+                          <span>{showAddressPicker ? "Hide Saved Addresses" : `Choose Other Address (${addresses.length - 1} available)`}</span>
+                          <ChevronDown className={cn("size-3.5 text-purple-600 transition-transform duration-200", showAddressPicker && "rotate-180")} />
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Address Picker Grid — open when showAddressPicker is true */}
+                    {showAddressPicker && addresses.length > 1 && (
+                      <div className="mt-1 space-y-2 rounded-2xl border border-purple-200 bg-purple-50/30 p-3.5 animate-in fade-in duration-200">
+                        <p className="text-xs font-extrabold text-[#4A1942] mb-2 flex items-center justify-between">
+                          <span>Select Delivery Location</span>
+                          <span className="text-[10px] text-purple-600 font-medium">{addresses.length} saved addresses</span>
+                        </p>
+                        <div className="grid gap-2.5 sm:grid-cols-2">
+                          {addresses.map((addr) => {
+                            const addrId = String(addr.id || addr._id);
+                            const selectedId = String(selectedAddress.id || selectedAddress._id);
+                            const isCurrent = addrId === selectedId;
+                            return (
+                              <div
+                                key={addrId}
+                                onClick={async () => {
+                                  await setActiveAddress(addrId);
+                                  setShowAddressPicker(false);
+                                  toast.success("Delivery address selected");
+                                }}
+                                className={cn(
+                                  "relative flex cursor-pointer flex-col justify-between rounded-xl border p-3 transition-all text-left",
+                                  isCurrent
+                                    ? "border-purple-600 bg-purple-100/60 ring-1 ring-purple-500 shadow-2xs"
+                                    : "border-gray-200 bg-white hover:border-purple-300 hover:bg-purple-50/40"
+                                )}
+                              >
+                                <div>
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-extrabold text-xs text-[#4A1942] truncate">{addr.fullName}</span>
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-100 text-purple-800 shrink-0">
+                                      {addr.addressType || "Home"}
+                                    </span>
+                                  </div>
+                                  <p className="text-[11px] text-gray-500 font-semibold mt-0.5">{addr.phone}</p>
+                                  <p className="text-xs text-gray-700 mt-1.5 leading-snug font-medium line-clamp-2">
+                                    {addr.houseNo ? `${addr.houseNo}, ` : ""}
+                                    {addr.street ? `${addr.street}, ` : ""}
+                                    {addr.area ? `${addr.area}, ` : ""}
+                                    {addr.city}, {addr.state} - {addr.pinCode || addr.pincode}
+                                  </p>
+                                </div>
+                                {isCurrent ? (
+                                  <div className="mt-2 text-[10px] font-extrabold text-purple-700 uppercase tracking-wider flex items-center gap-1">
+                                    <CheckCircle2 className="size-3 text-purple-600" />
+                                    <span>Selected</span>
+                                  </div>
+                                ) : (
+                                  <div className="mt-2 text-[10px] font-bold text-purple-600 hover:underline">
+                                    Click to select
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="text-xs text-gray-500 italic">No delivery address selected. Please add an address.</div>

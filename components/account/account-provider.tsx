@@ -199,43 +199,32 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
 
   const forgotPassword = React.useCallback(async (email: string) => {
     try {
-      const res = await fetch("/api/v1/auth/forgot-password", {
+      const res = await apiFetch<any>("/auth/forgot-password", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email })
+        body: { email }
       });
-      const json = await res.json();
-      if (!res.ok || !json.success) {
-        return { success: false, message: json.message || "Error generating reset link" };
-      }
-      return { success: true, message: json.message, resetToken: json.data?.resetToken };
-    } catch {
-      return { success: false, message: "Network error requesting password reset" };
+      return { success: true, message: res?.message || "Password reset instructions sent", resetToken: res?.resetToken };
+    } catch (err: any) {
+      return { success: false, message: err.message || "Failed to process request" };
     }
   }, []);
 
-  const resetPassword = React.useCallback(async (token: string, newPassword: string, confirmPassword: string) => {
+  const resetPassword = React.useCallback(async (token: string, newPassword: string) => {
     try {
-      const res = await fetch("/api/v1/auth/reset-password", {
+      const res = await apiFetch<any>("/auth/reset-password", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, newPassword, confirmPassword })
+        body: { token, newPassword }
       });
-      const json = await res.json();
-      if (!res.ok || !json.success) {
-        return { success: false, message: json.message || "Reset failed" };
-      }
-      return { success: true, message: json.message };
-    } catch {
-      return { success: false, message: "Network error resetting password" };
+      return { success: true, message: res.message || "Password reset successfully" };
+    } catch (err: any) {
+      return { success: false, message: err.message || "Failed to reset password" };
     }
   }, []);
 
   const logout = React.useCallback(async () => {
     try {
-      await fetch("/api/v1/auth/logout", { method: "POST" });
+      await apiFetch("/auth/logout", { method: "POST" });
     } catch {
-      // Ignore
     } finally {
       clearTokens();
       setUser(null);
@@ -248,10 +237,9 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
         method: "PUT",
         body: details
       });
-      setUser(updated);
+      setUser(cleanUser(updated));
       return { success: true, message: "Profile updated successfully!" };
-    } catch (err: any) {
-      // Fallback local state update
+    } catch {
       setUser((prev) => (prev ? { ...prev, ...details } : null));
       return { success: true, message: "Profile updated locally!" };
     }
@@ -263,62 +251,59 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
         method: "POST",
         body: address
       });
+      const freshProfile = await apiFetch<any>("/auth/profile").catch(() => null);
+      if (freshProfile && (freshProfile.email || freshProfile.name)) {
+        setUser(cleanUser(freshProfile));
+      } else {
+        setUser((prev) => {
+          if (!prev) return null;
+          const currentList = Array.isArray(prev.addresses) ? prev.addresses : [];
+          const id = String(resData?.id || resData?._id || `addr_${Date.now()}`);
+          const newAddr = { ...address, ...resData, id, _id: id };
+          const updated = [newAddr, ...currentList.filter((a) => String(a.id || a._id) !== id)];
+          return { ...prev, addresses: updated, activeAddressId: id };
+        });
+      }
+    } catch {
       setUser((prev) => {
         if (!prev) return null;
         const currentList = Array.isArray(prev.addresses) ? prev.addresses : [];
-        let updated: SavedAddress[] = [];
-        if (Array.isArray(resData)) {
-          updated = resData;
-        } else if (resData && typeof resData === "object") {
-          const id = resData.id || resData._id;
-          const exists = currentList.findIndex((a) => (a.id || a._id) === id);
-          if (exists >= 0) {
-            updated = [...currentList];
-            updated[exists] = resData;
-          } else {
-            updated = [resData, ...currentList];
-          }
-        } else {
-          updated = currentList;
-        }
-        const activeId = resData?.id || resData?._id || updated[0]?.id || updated[0]?._id;
-        return { ...prev, addresses: updated, activeAddressId: activeId };
-      });
-    } catch (err) {
-      setUser((prev) => {
-        if (!prev) return null;
-        const currentList = Array.isArray(prev.addresses) ? prev.addresses : [];
-        const newAddr = { ...address, id: `addr_${Date.now()}`, _id: `addr_${Date.now()}` };
+        const id = `addr_${Date.now()}`;
+        const newAddr = { ...address, id, _id: id };
         const updated = [newAddr, ...currentList];
-        return { ...prev, addresses: updated, activeAddressId: newAddr.id };
+        return { ...prev, addresses: updated, activeAddressId: id };
       });
     }
   }, []);
 
   const updateAddress = React.useCallback(async (id: string, address: any) => {
     try {
-      const resData = await apiFetch<any>(`/user/addresses/${id}`, {
+      await apiFetch<any>(`/user/addresses/${id}`, {
         method: "PUT",
-        body: JSON.stringify(address)
+        body: address
       });
-      setUser((prev) => {
-        if (!prev) return null;
-        const currentList = Array.isArray(prev.addresses) ? prev.addresses : [];
-        if (Array.isArray(resData)) {
-          return { ...prev, addresses: resData };
-        }
-        return {
-          ...prev,
-          addresses: currentList.map((a) => ((a.id === id || a._id === id) ? { ...a, ...address, ...(resData || {}) } : a))
-        };
-      });
+      const freshProfile = await apiFetch<any>("/auth/profile").catch(() => null);
+      if (freshProfile && (freshProfile.email || freshProfile.name)) {
+        setUser(cleanUser(freshProfile));
+      } else {
+        setUser((prev) => {
+          if (!prev) return null;
+          const currentList = Array.isArray(prev.addresses) ? prev.addresses : [];
+          const targetId = String(id);
+          return {
+            ...prev,
+            addresses: currentList.map((a) => (String(a.id || a._id) === targetId ? { ...a, ...address, id: targetId, _id: targetId } : a))
+          };
+        });
+      }
     } catch {
       setUser((prev) => {
         if (!prev) return null;
         const currentList = Array.isArray(prev.addresses) ? prev.addresses : [];
+        const targetId = String(id);
         return {
           ...prev,
-          addresses: currentList.map((a) => ((a.id === id || a._id === id) ? { ...a, ...address } : a))
+          addresses: currentList.map((a) => (String(a.id || a._id) === targetId ? { ...a, ...address } : a))
         };
       });
     }
@@ -326,25 +311,35 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
 
   const deleteAddress = React.useCallback(async (id: string) => {
     try {
-      const resData = await apiFetch<any>(`/user/addresses/${id}`, {
+      await apiFetch<any>(`/user/addresses/${id}`, {
         method: "DELETE"
       });
-      setUser((prev) => {
-        if (!prev) return null;
-        const currentList = Array.isArray(prev.addresses) ? prev.addresses : [];
-        if (Array.isArray(resData)) return { ...prev, addresses: resData };
-        return {
-          ...prev,
-          addresses: currentList.filter((a) => a.id !== id && a._id !== id)
-        };
-      });
+      const freshProfile = await apiFetch<any>("/auth/profile").catch(() => null);
+      if (freshProfile && (freshProfile.email || freshProfile.name)) {
+        setUser(cleanUser(freshProfile));
+      } else {
+        setUser((prev) => {
+          if (!prev) return null;
+          const currentList = Array.isArray(prev.addresses) ? prev.addresses : [];
+          const targetId = String(id);
+          const filtered = currentList.filter((a) => String(a.id || a._id) !== targetId);
+          return {
+            ...prev,
+            addresses: filtered,
+            activeAddressId: prev.activeAddressId === targetId ? (filtered[0]?.id || null) : prev.activeAddressId
+          };
+        });
+      }
     } catch {
       setUser((prev) => {
         if (!prev) return null;
         const currentList = Array.isArray(prev.addresses) ? prev.addresses : [];
+        const targetId = String(id);
+        const filtered = currentList.filter((a) => String(a.id || a._id) !== targetId);
         return {
           ...prev,
-          addresses: currentList.filter((a) => a.id !== id && a._id !== id)
+          addresses: filtered,
+          activeAddressId: prev.activeAddressId === targetId ? (filtered[0]?.id || null) : prev.activeAddressId
         };
       });
     }
@@ -358,12 +353,13 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
       setUser((prev) => {
         if (!prev) return null;
         const currentList = Array.isArray(prev.addresses) ? prev.addresses : [];
+        const targetId = String(id);
         return {
           ...prev,
-          activeAddressId: id,
+          activeAddressId: targetId,
           addresses: currentList.map((a) => ({
             ...a,
-            isDefault: a.id === id || a._id === id
+            isDefault: String(a.id || a._id) === targetId
           }))
         };
       });
@@ -371,12 +367,13 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
       setUser((prev) => {
         if (!prev) return null;
         const currentList = Array.isArray(prev.addresses) ? prev.addresses : [];
+        const targetId = String(id);
         return {
           ...prev,
-          activeAddressId: id,
+          activeAddressId: targetId,
           addresses: currentList.map((a) => ({
             ...a,
-            isDefault: a.id === id || a._id === id
+            isDefault: String(a.id || a._id) === targetId
           }))
         };
       });
