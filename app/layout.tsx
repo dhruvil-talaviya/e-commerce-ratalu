@@ -68,11 +68,12 @@ export const metadata: Metadata = {
   applicationName: SITE.name,
   icons: {
     icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon.png", type: "image/png", sizes: "192x192" },
       { url: "/logo.png", type: "image/png" },
-      { url: "/icon.png", type: "image/png" },
     ],
-    shortcut: "/logo.png",
-    apple: "/logo.png",
+    shortcut: "/favicon.ico",
+    apple: "/favicon.png",
   },
   alternates: { canonical: "/" },
   openGraph: {
@@ -109,12 +110,13 @@ export default async function RootLayout({
     getStoreSettingsServer(),
   ]);
 
-  const faviconUrl = settings?.storeFavicon?.trim() || settings?.storeLogo?.trim() || "/logo.png";
+  const faviconUrl = settings?.storeFavicon?.trim() || settings?.storeLogo?.trim() || "/favicon.png";
 
   return (
     <html lang="en" className={`${fraunces.variable} ${plusJakartaSans.variable} ${inter.variable} ${manrope.variable} ${notoSansDevanagari.variable} ${notoSansGujarati.variable}`}>
       <head>
-        <link rel="icon" href={faviconUrl} />
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" type="image/png" sizes="192x192" href={faviconUrl} />
         <link rel="shortcut icon" href={faviconUrl} />
         <link rel="apple-touch-icon" href={faviconUrl} />
         {/* Google Analytics GA4 */}
