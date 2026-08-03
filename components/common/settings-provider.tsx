@@ -355,7 +355,7 @@ const SETTINGS_CACHE_KEY = "ratalu_store_settings_v1";
 
 function DynamicFavicon({ settings }: { settings: StoreSettings }) {
   React.useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || !document?.head) return;
     const rawFavicon = settings?.storeFavicon?.trim() || settings?.storeLogo?.trim() || "/logo.png";
     let targetUrl = rawFavicon;
 
@@ -365,13 +365,7 @@ function DynamicFavicon({ settings }: { settings: StoreSettings }) {
         const cloudName = parts[3];
         const v1Index = parts.lastIndexOf("v1");
         if (v1Index !== -1 && parts[v1Index + 1]) {
-          const decode = (str: string) => {
-            if (typeof window !== "undefined" && typeof window.atob === "function") {
-              return window.atob(str);
-            }
-            return Buffer.from(str, "base64").toString("utf-8");
-          };
-          const publicId = decode(parts[v1Index + 1]);
+          const publicId = window.atob(parts[v1Index + 1]);
           if (publicId) targetUrl = `https://res.cloudinary.com/${cloudName}/image/upload/${publicId}.png`;
         }
       } catch (e) {}
@@ -379,11 +373,17 @@ function DynamicFavicon({ settings }: { settings: StoreSettings }) {
 
     if (!targetUrl) return;
 
-    // Remove ALL existing favicon links (including static SVG/PNG links)
-    const existingLinks = document.querySelectorAll<HTMLLinkElement>(
-      "link[rel*='icon'], link[rel='shortcut icon'], link[rel='apple-touch-icon']"
-    );
-    existingLinks.forEach((el) => el.remove());
+    // Safely remove existing icon links — guard parentNode to avoid removeChild null crash
+    try {
+      const existingLinks = document.head.querySelectorAll<HTMLLinkElement>(
+        "link[rel~='icon'], link[rel='shortcut icon'], link[rel='apple-touch-icon']"
+      );
+      existingLinks.forEach((el) => {
+        if (el.parentNode === document.head) {
+          document.head.removeChild(el);
+        }
+      });
+    } catch (e) {}
 
     const isSvg = targetUrl.endsWith(".svg");
     const mimeType = isSvg ? "image/svg+xml" : "image/png";
