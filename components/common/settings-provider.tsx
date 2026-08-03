@@ -356,9 +356,10 @@ const SETTINGS_CACHE_KEY = "ratalu_store_settings_v1";
 function DynamicFavicon({ settings }: { settings: StoreSettings }) {
   React.useEffect(() => {
     if (typeof window === "undefined" || !document?.head) return;
-    const rawFavicon = settings?.storeFavicon?.trim() || settings?.storeLogo?.trim() || "/logo.png";
-    let targetUrl = rawFavicon;
 
+    let targetUrl = settings?.storeFavicon?.trim() || settings?.storeLogo?.trim() || "/logo.png";
+
+    // Decode Cloudinary Console URLs → public CDN URL
     if (targetUrl.includes("res-console.cloudinary.com")) {
       try {
         const parts = targetUrl.split("/");
@@ -373,38 +374,26 @@ function DynamicFavicon({ settings }: { settings: StoreSettings }) {
 
     if (!targetUrl) return;
 
-    // Safely remove existing icon links — guard parentNode to avoid removeChild null crash
-    try {
-      const existingLinks = document.head.querySelectorAll<HTMLLinkElement>(
-        "link[rel~='icon'], link[rel='shortcut icon'], link[rel='apple-touch-icon']"
-      );
-      existingLinks.forEach((el) => {
-        if (el.parentNode === document.head) {
-          document.head.removeChild(el);
-        }
-      });
-    } catch (e) {}
+    const mimeType = targetUrl.endsWith(".svg") ? "image/svg+xml" : "image/png";
 
-    const isSvg = targetUrl.endsWith(".svg");
-    const mimeType = isSvg ? "image/svg+xml" : "image/png";
+    // UPSERT: find-or-create by data-favicon-id.
+    // Never remove existing <link> nodes — removing nodes React doesn't own
+    // causes commitDeletionEffectsOnFiber crashes in React's fiber reconciler.
+    const upsert = (id: string, rel: string) => {
+      let el = document.head.querySelector<HTMLLinkElement>(`link[data-favicon-id="${id}"]`);
+      if (!el) {
+        el = document.createElement("link");
+        el.setAttribute("data-favicon-id", id);
+        el.rel = rel;
+        document.head.appendChild(el);
+      }
+      el.href = targetUrl;
+      el.type = mimeType;
+    };
 
-    // Append fresh link elements
-    const iconLink = document.createElement("link");
-    iconLink.rel = "icon";
-    iconLink.type = mimeType;
-    iconLink.href = targetUrl;
-    document.head.appendChild(iconLink);
-
-    const shortcutLink = document.createElement("link");
-    shortcutLink.rel = "shortcut icon";
-    shortcutLink.type = mimeType;
-    shortcutLink.href = targetUrl;
-    document.head.appendChild(shortcutLink);
-
-    const appleLink = document.createElement("link");
-    appleLink.rel = "apple-touch-icon";
-    appleLink.href = targetUrl;
-    document.head.appendChild(appleLink);
+    upsert("dyn-icon", "icon");
+    upsert("dyn-shortcut", "shortcut icon");
+    upsert("dyn-apple", "apple-touch-icon");
   }, [settings?.storeFavicon, settings?.storeLogo]);
 
   return null;
