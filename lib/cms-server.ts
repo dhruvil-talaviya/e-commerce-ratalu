@@ -9,7 +9,10 @@ import "server-only";
  * description the owner writes in the builder.
  */
 
-const API_ORIGIN = process.env.BACKEND_ORIGIN || "https://e-commerce-ratalu-api.onrender.com";
+const API_ORIGIN =
+  process.env.BACKEND_ORIGIN ||
+  process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1\/?$/, "") ||
+  "http://localhost:5001";
 
 export interface CmsPageData {
   page: string;
