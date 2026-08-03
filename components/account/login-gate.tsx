@@ -39,7 +39,7 @@ function LoginGateContent() {
   const [error, setError] = React.useState("");
   const [dismissed, setDismissed] = React.useState(false);
 
-  const isProtectedPage = pathname === "/account" || pathname === "/checkout";
+  const isProtectedPage = pathname === "/checkout";
   const isAdminArea = pathname?.startsWith("/admin") ?? false;
   const isLoginParam = searchParams?.get("login") === "true";
 

@@ -37,3 +37,16 @@ export async function getPageContent(page: string): Promise<CmsPageData> {
     return EMPTY;
   }
 }
+
+export async function getStoreSettingsServer(): Promise<Record<string, any> | null> {
+  try {
+    const res = await fetch(`${API_ORIGIN}/api/v1/admin/settings`, {
+      next: { revalidate: 10 },
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    return (json?.data as Record<string, any>) ?? null;
+  } catch {
+    return null;
+  }
+}

@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { Mail, Phone, MapPin, ChevronDown } from "lucide-react";
-import { Logo } from "./logo";
+import { Logo, YamoraSymbol } from "./logo";
 import { SITE } from "@/lib/constants";
 import { useStoreSettings } from "@/components/common/settings-provider";
 import { useLanguage } from "@/components/common/language-provider";
@@ -60,7 +60,7 @@ export function Footer() {
   ];
 
   return (
-    <footer className="relative mt-8 overflow-hidden sm:mt-24 bg-[#2E1148] text-white">
+    <footer className="relative mt-8 overflow-hidden sm:mt-16 bg-[#2E1148] text-white">
       {/* Top golden accent line */}
       <div className="h-1.5 w-full bg-gradient-to-r from-[#5B2C83] via-[#F4B400] to-[#5B2C83]" />
 
@@ -77,8 +77,8 @@ export function Footer() {
         <div className="grid gap-8 sm:gap-12 lg:grid-cols-[1.4fr_2fr]">
           {/* Brand & Contact */}
           <div>
-            <Logo onDark />
-            <p className="mt-3 sm:mt-5 max-w-sm text-xs sm:text-sm leading-relaxed text-[#D7C4F5]">
+            <Logo onDark size={90} />
+            <p className="mt-3 sm:mt-4 max-w-sm text-xs sm:text-sm leading-relaxed text-[#D7C4F5]">
               {t("footer_tagline")}
             </p>
 

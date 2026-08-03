@@ -30,6 +30,7 @@ import {
   X,
   ChevronRight,
   Globe,
+  Building2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAccount, isAdminSession } from "@/components/account/account-provider";
@@ -58,6 +59,12 @@ export const NAV_GROUPS: { heading: string; items: NavItem[] }[] = [
       { label: "Reach", href: "/admin/reach", icon: Gauge },
       { label: "Orders", href: "/admin/orders", icon: ShoppingCart },
       { label: "Refunds & Returns", href: "/admin/refunds", icon: RotateCcw },
+    ],
+  },
+  {
+    heading: "Finance & Other Business",
+    items: [
+      { label: "My Other Business", href: "/admin/other-business", icon: Building2 },
     ],
   },
   {

@@ -5,7 +5,6 @@ import { SITE } from "@/lib/constants";
 import { Providers } from "./providers";
 import { StorefrontLayoutWrapper } from "@/components/layout/storefront-layout-wrapper";
 import { OrganizationJsonLd, WebsiteJsonLd } from "@/components/seo/json-ld";
-import { getPageContent } from "@/lib/cms-server";
 
 const fraunces = Fraunces({
   variable: "--font-fraunces",
@@ -69,12 +68,11 @@ export const metadata: Metadata = {
   applicationName: SITE.name,
   icons: {
     icon: [
-      { url: "/logo.png?v=8", type: "image/png" },
-      { url: "/icon.png?v=8", type: "image/png" },
-      { url: "/favicon.png?v=8", type: "image/png" }
+      { url: "/logo.png", type: "image/png" },
+      { url: "/icon.png", type: "image/png" },
     ],
-    shortcut: "/logo.png?v=8",
-    apple: "/logo.png?v=8",
+    shortcut: "/logo.png",
+    apple: "/logo.png",
   },
   alternates: { canonical: "/" },
   openGraph: {
@@ -99,26 +97,26 @@ export const metadata: Metadata = {
   category: "food",
 };
 
-export const viewport: Viewport = {
-  themeColor: "#4A1942",
-  colorScheme: "light",
-  width: "device-width",
-  initialScale: 1,
-};
-
 import Script from "next/script";
 import { TrackingScripts } from "@/components/common/tracking-scripts";
+import { getPageContent, getStoreSettingsServer } from "@/lib/cms-server";
 
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  // Fetched on the server so Website Builder copy lands in the initial HTML —
-  // visible to crawlers, and no flash of fallback text on load.
-  const cms = await getPageContent("homepage");
+  const [cms, settings] = await Promise.all([
+    getPageContent("homepage"),
+    getStoreSettingsServer(),
+  ]);
+
+  const faviconUrl = settings?.storeFavicon?.trim() || settings?.storeLogo?.trim() || "/logo.png";
 
   return (
     <html lang="en" className={`${fraunces.variable} ${plusJakartaSans.variable} ${inter.variable} ${manrope.variable} ${notoSansDevanagari.variable} ${notoSansGujarati.variable}`}>
       <head>
+        <link rel="icon" href={faviconUrl} />
+        <link rel="shortcut icon" href={faviconUrl} />
+        <link rel="apple-touch-icon" href={faviconUrl} />
         {/* Google Analytics GA4 */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-8RQGBPV32Y"

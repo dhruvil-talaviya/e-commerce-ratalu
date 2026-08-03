@@ -17,6 +17,7 @@ const paymentRoutes = require('./payment.routes');
 
 // Mount routes
 router.use('/auth', authRoutes);
+router.use('/admin/other-business', require('./otherBusiness.routes'));
 router.use('/admin', adminRoutes);
 router.use('/user', require('./user.routes'));
 

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import { Star, Quote, Check, Send, Loader2, ShieldCheck, Sparkles, MessageSquare } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { PageHeader } from "@/components/common/page-header";
@@ -237,11 +238,15 @@ export default function ReviewsPage() {
               </div>
             </div>
 
-            {/* Right Column: Clean Vector Review Illustration */}
+            {/* Right Column: Clean Vector Review Illustration (Lazy Loaded Static Asset) */}
             <div className="lg:col-span-5 flex justify-center lg:justify-end">
-              <img
+              <Image
                 src="/images/review-illustration.png"
                 alt="Customer Reviews Illustration"
+                width={440}
+                height={320}
+                loading="lazy"
+                decoding="async"
                 className="w-full max-w-[180px] sm:max-w-[240px] lg:max-w-md h-auto object-contain drop-shadow-xl transition-transform duration-300 hover:scale-105"
               />
             </div>

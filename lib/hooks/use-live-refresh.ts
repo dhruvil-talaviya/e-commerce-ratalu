@@ -17,35 +17,27 @@ export function useLiveRefresh(
   refresh: () => void | Promise<void>,
   {
     enabled = true,
-    minIntervalMs = 2000,
-    refreshOnMount = false,
+    minIntervalMs = 15000,
   }: LiveRefreshOptions = {}
 ) {
-  const pathname = usePathname();
   const refreshRef = React.useRef(refresh);
   const lastRunRef = React.useRef(0);
-  const mountedRef = React.useRef(false);
 
   React.useEffect(() => {
     refreshRef.current = refresh;
-  }, [refresh]);
+  });
 
   const run = React.useCallback(() => {
     if (!enabled) return;
     const now = Date.now();
     if (now - lastRunRef.current < minIntervalMs) return;
     lastRunRef.current = now;
-    void refreshRef.current();
-  }, [enabled, minIntervalMs]);
-
-  React.useEffect(() => {
-    if (!mountedRef.current) {
-      mountedRef.current = true;
-      if (refreshOnMount) run();
-      return;
+    try {
+      void refreshRef.current();
+    } catch {
+      /* ignore background refresh errors */
     }
-    run();
-  }, [pathname, refreshOnMount, run]);
+  }, [enabled, minIntervalMs]);
 
   React.useEffect(() => {
     if (!enabled) return;

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import { motion, AnimatePresence } from "motion/react";
 import { Mail, Phone, MapPin, Send, Check, Loader2, Clock } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -91,11 +92,15 @@ function ContactView() {
         <div className="grid gap-8 lg:grid-cols-[1fr_1.3fr]">
           {/* Info */}
           <div className="flex flex-col gap-4">
-            {/* Customer Support Representative Illustration (Top Hero Graphic) */}
+            {/* Customer Support Representative Illustration (Lazy Loaded Static Asset) */}
             <div className="flex justify-center overflow-hidden rounded-3xl border border-purple-100 bg-gradient-to-b from-purple-50/60 to-white p-6 shadow-sm mb-1">
-              <img
+              <Image
                 src="/images/contact-illustration.png"
                 alt="Customer Support Representative"
+                width={280}
+                height={240}
+                loading="lazy"
+                decoding="async"
                 className="w-full max-w-[240px] sm:max-w-[280px] h-auto object-contain drop-shadow-md transition-transform duration-300 hover:scale-105"
               />
             </div>

@@ -353,6 +353,63 @@ const DEFAULT_SETTINGS: StoreSettings = {
 
 const SETTINGS_CACHE_KEY = "ratalu_store_settings_v1";
 
+function DynamicFavicon({ settings }: { settings: StoreSettings }) {
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const rawFavicon = settings?.storeFavicon?.trim() || settings?.storeLogo?.trim() || "/logo.png";
+    let targetUrl = rawFavicon;
+
+    if (targetUrl.includes("res-console.cloudinary.com")) {
+      try {
+        const parts = targetUrl.split("/");
+        const cloudName = parts[3];
+        const v1Index = parts.lastIndexOf("v1");
+        if (v1Index !== -1 && parts[v1Index + 1]) {
+          const decode = (str: string) => {
+            if (typeof window !== "undefined" && typeof window.atob === "function") {
+              return window.atob(str);
+            }
+            return Buffer.from(str, "base64").toString("utf-8");
+          };
+          const publicId = decode(parts[v1Index + 1]);
+          if (publicId) targetUrl = `https://res.cloudinary.com/${cloudName}/image/upload/${publicId}.png`;
+        }
+      } catch (e) {}
+    }
+
+    if (!targetUrl) return;
+
+    // Remove ALL existing favicon links (including static SVG/PNG links)
+    const existingLinks = document.querySelectorAll<HTMLLinkElement>(
+      "link[rel*='icon'], link[rel='shortcut icon'], link[rel='apple-touch-icon']"
+    );
+    existingLinks.forEach((el) => el.remove());
+
+    const isSvg = targetUrl.endsWith(".svg");
+    const mimeType = isSvg ? "image/svg+xml" : "image/png";
+
+    // Append fresh link elements
+    const iconLink = document.createElement("link");
+    iconLink.rel = "icon";
+    iconLink.type = mimeType;
+    iconLink.href = targetUrl;
+    document.head.appendChild(iconLink);
+
+    const shortcutLink = document.createElement("link");
+    shortcutLink.rel = "shortcut icon";
+    shortcutLink.type = mimeType;
+    shortcutLink.href = targetUrl;
+    document.head.appendChild(shortcutLink);
+
+    const appleLink = document.createElement("link");
+    appleLink.rel = "apple-touch-icon";
+    appleLink.href = targetUrl;
+    document.head.appendChild(appleLink);
+  }, [settings?.storeFavicon, settings?.storeLogo]);
+
+  return null;
+}
+
 export function StoreSettingsProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = React.useState<StoreSettings>(DEFAULT_SETTINGS);
   const [hydrated, setHydrated] = React.useState(false);
@@ -410,6 +467,8 @@ export function StoreSettingsProvider({ children }: { children: React.ReactNode 
         if (data.manufacturingProcessVideo) data.manufacturingProcessVideo = sanitize(data.manufacturingProcessVideo);
         if (data.customerTestimonialsVideo) data.customerTestimonialsVideo = sanitize(data.customerTestimonialsVideo);
         if (data.brandStoryVideo) data.brandStoryVideo = sanitize(data.brandStoryVideo);
+        if (data.storeFavicon) data.storeFavicon = sanitize(data.storeFavicon);
+        if (data.storeLogo) data.storeLogo = sanitize(data.storeLogo);
 
         const merged = { ...DEFAULT_SETTINGS, ...data };
         setSettings(merged);
@@ -465,7 +524,12 @@ export function StoreSettingsProvider({ children }: { children: React.ReactNode 
     [settings, hydrated, updateSettings, fetchSettings]
   );
 
-  return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;
+  return (
+    <SettingsContext.Provider value={value}>
+      <DynamicFavicon settings={settings} />
+      {children}
+    </SettingsContext.Provider>
+  );
 }
 
 export function useStoreSettings() {
