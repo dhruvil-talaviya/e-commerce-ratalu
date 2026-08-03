@@ -55,7 +55,14 @@ export default function ReachPage() {
     setLoading(true);
     setError(null);
     try {
-      setData(await apiFetch<Reach>("/admin/reach"));
+      const res = await apiFetch<any>("/admin/reach");
+      if (res && typeof res === "object" && !Array.isArray(res) && res.today) {
+        setData(res);
+      } else if (Array.isArray(res)) {
+        setError("Admin session expired. Please sign in again.");
+      } else {
+        setData(null);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load analytics");
     } finally {
@@ -71,6 +78,24 @@ export default function ReachPage() {
     if (!data?.topLikedProducts || data.topLikedProducts.length === 0) return 1;
     return Math.max(1, ...data.topLikedProducts.map((p) => p.likesCount));
   }, [data]);
+
+  const todayStats = data?.today ?? {
+    visitors: 0,
+    views: 0,
+    signups: 0,
+    orders: 0,
+    revenue: 0,
+    returningVisitors: 0,
+    conversionRate: 0,
+  };
+
+  const totalsStats = data?.totals ?? {
+    customers: 0,
+    likes: 0,
+    avgLikesPerProduct: 0,
+    engagementRate: 0,
+    accountsWithLikes: 0,
+  };
 
   return (
     <AdminShell
@@ -100,30 +125,30 @@ export default function ReachPage() {
           <div>
             <p className="mb-2.5 text-xs font-extrabold text-gray-400">Traffic & Conversions Today</p>
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              <Kpi icon={Users} tone="primary" label="Unique Visitors" value={data.today.visitors} />
-              <Kpi icon={Eye} tone="info" label="Page Views" value={data.today.views} />
-              <Kpi icon={UserPlus} tone="success" label="New Sign-ups" value={data.today.signups} />
-              <Kpi icon={ShoppingCart} tone="warning" label="Orders Today" value={data.today.orders} />
+              <Kpi icon={Users} tone="primary" label="Unique Visitors" value={todayStats.visitors} />
+              <Kpi icon={Eye} tone="info" label="Page Views" value={todayStats.views} />
+              <Kpi icon={UserPlus} tone="success" label="New Sign-ups" value={todayStats.signups} />
+              <Kpi icon={ShoppingCart} tone="warning" label="Orders Today" value={todayStats.orders} />
             </div>
             <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-3">
               <Kpi
                 icon={IndianRupee}
                 tone="success"
                 label="Revenue Today"
-                value={formatMoney(data.today.revenue)}
+                value={formatMoney(todayStats.revenue)}
               />
               <Kpi
                 icon={TrendingUp}
                 tone="primary"
                 label="Visitor → Order Rate"
-                value={`${data.today.conversionRate}%`}
+                value={`${todayStats.conversionRate}%`}
                 hint="Share of today's visitors who placed an order"
               />
               <Kpi
                 icon={Repeat}
                 tone="neutral"
                 label="Signed-in Visitors"
-                value={data.today.returningVisitors}
+                value={todayStats.returningVisitors}
                 hint="Logged-in users active today"
               />
             </div>
@@ -137,7 +162,7 @@ export default function ReachPage() {
                 icon={Heart}
                 tone="danger"
                 label="Total Product Likes"
-                value={data.totals.likes ?? 0}
+                value={totalsStats.likes ?? 0}
                 hint="1 user = 1 unique like per product"
               />
               <Kpi
@@ -151,15 +176,15 @@ export default function ReachPage() {
                 icon={BarChart3}
                 tone="info"
                 label="Avg. Likes / Flavor"
-                value={data.totals.avgLikesPerProduct ?? 0}
+                value={totalsStats.avgLikesPerProduct ?? 0}
                 hint="Average likes per active product"
               />
               <Kpi
                 icon={Sparkles}
                 tone="primary"
                 label="Customer Like Rate"
-                value={`${data.totals.engagementRate ?? 0}%`}
-                hint={`${data.totals.accountsWithLikes ?? 0} of ${data.totals.customers} customers saved likes`}
+                value={`${totalsStats.engagementRate ?? 0}%`}
+                hint={`${totalsStats.accountsWithLikes ?? 0} of ${totalsStats.customers} customers saved likes`}
               />
             </div>
           </div>
