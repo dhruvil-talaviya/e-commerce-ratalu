@@ -452,7 +452,12 @@ function OrdersView() {
       header: "Status",
       sortable: true,
       cell: (o) => {
-        const isCancelled = o.status === "Cancelled" || Boolean((o as any).cancelledAt);
+        const isCancelled =
+          o.status === "Cancelled" ||
+          (o.status as string) === "Refunded" ||
+          o.status === "Refund Completed" ||
+          o.payment?.status === "Refunded" ||
+          Boolean((o as any).cancelledAt);
         if (isCancelled) {
           return <Badge tone="danger">Cancelled</Badge>;
         }
@@ -1152,7 +1157,12 @@ function OrderDetail({
 
   const timeline = [...(order.timeline ?? [])].reverse();
 
-  const isCancelled = order.status === "Cancelled" || Boolean((order as any).cancelledAt);
+  const isCancelled =
+    order.status === "Cancelled" ||
+    (order.status as string) === "Refunded" ||
+    order.status === "Refund Completed" ||
+    order.payment?.status === "Refunded" ||
+    Boolean((order as any).cancelledAt);
   const effectiveStatus = isCancelled ? "Cancelled" : order.status;
 
   /**

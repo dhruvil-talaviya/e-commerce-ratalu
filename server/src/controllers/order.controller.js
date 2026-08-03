@@ -1163,9 +1163,18 @@ exports.getAdminOrders = async (req, res, next) => {
       Order.countDocuments(filter)
     ]);
 
+    // Auto-heal legacy MongoDB records where cancelledAt or Refunded payment status didn't sync order status
+    Order.updateMany(
+      {
+        $or: [{ cancelledAt: { $ne: null } }, { 'payment.status': 'Refunded' }],
+        status: { $nin: ['Cancelled', 'Refunded', 'Refund Completed'] }
+      },
+      { $set: { status: 'Cancelled', orderStatus: 'Cancelled' } }
+    ).catch(() => {});
+
     const sanitizedOrders = orders.map((o) => {
       const doc = o.toObject ? o.toObject() : o;
-      if (doc.cancelledAt && doc.status !== 'Cancelled') {
+      if ((doc.cancelledAt || doc.payment?.status === 'Refunded') && doc.status !== 'Cancelled' && doc.status !== 'Refunded') {
         doc.status = 'Cancelled';
         doc.orderStatus = 'Cancelled';
       }
