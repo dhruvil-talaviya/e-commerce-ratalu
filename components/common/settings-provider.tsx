@@ -414,18 +414,6 @@ export function StoreSettingsProvider({ children }: { children: React.ReactNode 
   const [settings, setSettings] = React.useState<StoreSettings>(DEFAULT_SETTINGS);
   const [hydrated, setHydrated] = React.useState(false);
 
-  // Read local cache immediately after mount to avoid SSR hydration mismatch
-  React.useEffect(() => {
-    try {
-      const cached = localStorage.getItem(SETTINGS_CACHE_KEY);
-      if (cached) {
-        setSettings((prev) => ({ ...prev, ...JSON.parse(cached) }));
-      }
-    } catch (e) {
-      // ignore
-    }
-  }, []);
-
   const fetchSettings = React.useCallback(async () => {
     try {
       const data = await apiFetch<StoreSettings>("/admin/settings");
@@ -450,7 +438,7 @@ export function StoreSettingsProvider({ children }: { children: React.ReactNode 
                 const publicId = decode(base64Segment);
                 if (publicId) {
                   const type = isVideo ? "video" : "image";
-                  const ext = isVideo ? "mp4" : "jpg";
+                  const ext = isVideo ? "mp4" : "png";
                   return `https://res.cloudinary.com/${cloudName}/${type}/upload/${publicId}.${ext}`;
                 }
               }
@@ -472,13 +460,6 @@ export function StoreSettingsProvider({ children }: { children: React.ReactNode 
 
         const merged = { ...DEFAULT_SETTINGS, ...data };
         setSettings(merged);
-        if (typeof window !== "undefined") {
-          try {
-            localStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify(merged));
-          } catch (e) {
-            // storage quota fallback
-          }
-        }
       }
     } catch (err) {
       console.warn("Failed to load store settings from server, using default settings:", err);
@@ -499,15 +480,7 @@ export function StoreSettingsProvider({ children }: { children: React.ReactNode 
         method: "PUT",
         body: updated
       });
-      setSettings(prev => {
-        const next = { ...prev, ...res };
-        if (typeof window !== "undefined") {
-          try {
-            localStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify(next));
-          } catch (e) {}
-        }
-        return next;
-      });
+      setSettings(prev => ({ ...prev, ...res }));
     } catch (err) {
       console.error("Failed to update store settings:", err);
       throw err;

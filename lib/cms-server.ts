@@ -44,11 +44,32 @@ export async function getPageContent(page: string): Promise<CmsPageData> {
 export async function getStoreSettingsServer(): Promise<Record<string, any> | null> {
   try {
     const res = await fetch(`${API_ORIGIN}/api/v1/admin/settings`, {
-      next: { revalidate: 10 },
+      cache: "no-store",
     });
     if (!res.ok) return null;
     const json = await res.json();
-    return (json?.data as Record<string, any>) ?? null;
+    const data = (json?.data as Record<string, any>) ?? null;
+    if (data) {
+      const sanitize = (url: string) => {
+        if (!url) return "";
+        const trimmed = url.trim();
+        if (trimmed.includes("res-console.cloudinary.com")) {
+          try {
+            const parts = trimmed.split("/");
+            const cloudName = parts[3];
+            const v1Index = parts.lastIndexOf("v1");
+            if (v1Index !== -1 && parts[v1Index + 1]) {
+              const publicId = Buffer.from(parts[v1Index + 1], "base64").toString("utf-8");
+              if (publicId) return `https://res.cloudinary.com/${cloudName}/image/upload/${publicId}.png`;
+            }
+          } catch (e) {}
+        }
+        return trimmed;
+      };
+      if (data.storeFavicon) data.storeFavicon = sanitize(data.storeFavicon);
+      if (data.storeLogo) data.storeLogo = sanitize(data.storeLogo);
+    }
+    return data;
   } catch {
     return null;
   }
