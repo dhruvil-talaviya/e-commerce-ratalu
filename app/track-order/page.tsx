@@ -93,7 +93,7 @@ export default function TrackOrderPage() {
               <div>
                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Order #{trackingData.orderId}</span>
                 <div className="flex items-center gap-3 mt-1">
-                  <h2 className="text-xl font-bold text-gray-900">{trackingData.courierName || "Shiprocket Express"}</h2>
+                  <h2 className="text-xl font-bold text-gray-900">{trackingData.courierName || "Courier Partner"}</h2>
                   {trackingData.awbCode && (
                     <span className="text-xs font-mono bg-purple-50 text-purple-700 px-2.5 py-1 rounded-md border border-purple-200 font-bold">
                       AWB: {trackingData.awbCode}

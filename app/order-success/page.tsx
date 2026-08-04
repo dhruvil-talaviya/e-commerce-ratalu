@@ -226,7 +226,7 @@ function OrderSuccessContent() {
                   3
                 </div>
                 <p className="mt-1.5 text-[10px] sm:text-xs font-bold text-gray-700 leading-tight">Dispatched</p>
-                <span className="text-[9px] sm:text-[10px] text-gray-500 leading-tight">Shiprocket</span>
+                <span className="text-[9px] sm:text-[10px] text-gray-500 leading-tight">Express Delivery</span>
               </div>
 
               {/* Step 4: Delivered */}

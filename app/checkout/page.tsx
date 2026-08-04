@@ -305,7 +305,7 @@ export default function CheckoutPage() {
           setServiceability({
             loading: false,
             serviceable: true,
-            courierName: res.courierName || "Shiprocket Express",
+            courierName: res.courierName || "Courier Partner",
             rate: res.shippingCharge || 0,
             etdDays: 3,
             message: res.isFree ? "Free Shipping Applied!" : `Standard Rate ₹${res.shippingCharge}`
