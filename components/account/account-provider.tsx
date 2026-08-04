@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { apiFetch, saveTokens, clearTokens } from "@/lib/api";
+import { apiFetch, saveTokens, clearTokens, getMemoryToken } from "@/lib/api";
 
 export interface SavedAddress {
   id: string;
@@ -108,6 +108,12 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
   React.useEffect(() => {
     const loadProfile = async () => {
       try {
+        const token = typeof window !== "undefined" ? getMemoryToken() : null;
+        if (!token) {
+          setUser(null);
+          setHydrated(true);
+          return;
+        }
         const profile = await apiFetch<UserProfile>("/auth/profile");
         if (profile && (profile.email || profile.name)) {
           setUser(cleanUser(profile));

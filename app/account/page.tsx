@@ -1778,9 +1778,11 @@ function LabeledInput({ label, ...props }: { label: string } & React.InputHTMLAt
 }
 
 function InlineAuthForm() {
-  const { loginWithGoogle } = useAccount();
+  const { loginWithGoogle, loginWithEmailDirect } = useAccount();
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState("");
+  const [showEmailForm, setShowEmailForm] = React.useState(false);
+  const [emailInput, setEmailInput] = React.useState("");
 
   const { signIn } = useGoogleAuth({
     onSuccess: async (googleUser) => {
@@ -1815,11 +1817,28 @@ function InlineAuthForm() {
     setTimeout(() => setLoading(false), 30000);
   };
 
+  const handleEmailSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!emailInput || !emailInput.includes("@")) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+    setError("");
+    setLoading(true);
+    const res = await loginWithEmailDirect(emailInput);
+    setLoading(false);
+    if (res.success) {
+      toast.success(res.message || "Signed in successfully!");
+    } else {
+      setError(res.message || "Failed to sign in. Please try again.");
+    }
+  };
+
   return (
     <div className="container-px mx-auto max-w-5xl py-8 sm:py-14 px-4">
       <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-center justify-center">
 
-        {/* ── Auth Card (Google OAuth Only) ──────────────────────────────────────── */}
+        {/* ── Auth Card (Google & Email Options) ──────────────────────────────────────── */}
         <div className="w-full lg:max-w-md mx-auto shrink-0">
           <div className="w-full rounded-3xl border border-amber-200/50 bg-white p-7 sm:p-10 shadow-xl text-center">
             {/* Logo & Welcome Header */}
@@ -1841,18 +1860,18 @@ function InlineAuthForm() {
               </div>
             )}
 
-            <div className="space-y-5 pt-2">
+            <div className="space-y-4 pt-2">
               <button
                 type="button"
                 onClick={handleGoogle}
                 disabled={loading}
-                className="group relative flex w-full items-center justify-center gap-3.5 h-13 rounded-2xl bg-gradient-to-r from-[#4A1942] to-[#5B2C83] hover:from-[#381132] hover:to-[#481f6d] text-sm sm:text-base font-extrabold text-white shadow-lg shadow-purple-900/20 transition-all duration-200 hover:shadow-xl active:scale-[0.99] cursor-pointer disabled:opacity-60 border border-amber-400/30"
+                className="group relative flex w-full items-center justify-center gap-3.5 h-12 rounded-2xl bg-gradient-to-r from-[#4A1942] to-[#5B2C83] hover:from-[#381132] hover:to-[#481f6d] text-sm font-extrabold text-white shadow-md transition-all duration-200 active:scale-[0.99] cursor-pointer disabled:opacity-60 border border-amber-400/30"
               >
                 {loading ? (
                   <Loader2 className="size-5 animate-spin text-white" />
                 ) : (
                   <>
-                    <div className="p-1.5 rounded-full bg-white flex items-center justify-center shadow-sm">
+                    <div className="p-1 rounded-full bg-white flex items-center justify-center shadow-xs">
                       <svg className="size-4 transition-transform duration-200 group-hover:scale-110" viewBox="0 0 24 24">
                         <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
                         <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
@@ -1865,7 +1884,35 @@ function InlineAuthForm() {
                 )}
               </button>
 
-              <p className="text-xs text-gray-500 font-medium leading-normal px-2">
+              {showEmailForm ? (
+                <form onSubmit={handleEmailSubmit} className="space-y-3 pt-1">
+                  <input
+                    type="email"
+                    placeholder="Enter your email address"
+                    value={emailInput}
+                    onChange={(e) => setEmailInput(e.target.value)}
+                    required
+                    className="w-full h-11 px-4 text-xs font-semibold text-gray-800 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-600 focus:bg-white transition-all"
+                  />
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full h-11 rounded-xl bg-purple-900 hover:bg-purple-950 text-white text-xs font-bold shadow-xs transition-all disabled:opacity-60 cursor-pointer"
+                  >
+                    {loading ? <Loader2 className="size-4 animate-spin mx-auto" /> : "Sign In with Email"}
+                  </button>
+                </form>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowEmailForm(true)}
+                  className="text-xs font-bold text-purple-700 hover:text-purple-900 hover:underline transition-all cursor-pointer block mx-auto pt-1"
+                >
+                  Or sign in with Email address &rarr;
+                </button>
+              )}
+
+              <p className="text-[11px] text-gray-500 font-medium leading-normal px-2 pt-2">
                 By continuing you agree to our{" "}
                 <Link href="/policies/terms" className="text-purple-900 font-bold underline hover:text-purple-950">
                   Terms
