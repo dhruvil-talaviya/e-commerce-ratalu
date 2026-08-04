@@ -1155,7 +1155,7 @@ function ShiprocketShippingModal({
         description: `AWB: ${awb || "Assigned"} via ${courier || "Shiprocket"}`,
       });
 
-      const freshOrder = await apiFetch<Order>(`/admin/orders/${order.id}`);
+      const freshOrder = await apiFetch<Order>(`/admin/orders/${order.id}`).catch(() => null);
       onDone(freshOrder || order);
     } catch (err: any) {
       toast.error(err.message || "Failed to create Shiprocket shipment");
