@@ -103,51 +103,53 @@ export function OrderTimeline({
   ];
 
   return (
-    <div className={cn("rounded-2xl border border-purple-100 bg-white p-4 sm:p-5 shadow-xs overflow-hidden", className)}>
+    <div className={cn("rounded-2xl border border-purple-100 bg-white p-3.5 sm:p-5 shadow-xs overflow-hidden", className)}>
       <h4 className="mb-3 sm:mb-4 text-[11px] font-bold uppercase tracking-wider text-purple-700">Order Progress Timeline</h4>
 
-      <div className="grid grid-cols-6 gap-1 relative">
-        {steps.map((step, idx) => {
-          const StepIcon = step.icon;
+      <div className="overflow-x-auto pb-1.5 scrollbar-none">
+        <div className="grid grid-cols-6 gap-1 relative min-w-[480px] sm:min-w-0">
+          {steps.map((step, idx) => {
+            const StepIcon = step.icon;
 
-          return (
-            <div key={step.id} className="relative flex flex-col items-center text-center min-w-0">
-              {/* Connector line */}
-              {idx < steps.length - 1 && (
+            return (
+              <div key={step.id} className="relative flex flex-col items-center text-center min-w-0">
+                {/* Connector line */}
+                {idx < steps.length - 1 && (
+                  <div
+                    className={cn(
+                      "absolute left-[50%] top-3.5 sm:top-4 h-0.5 w-full z-0 transition-colors",
+                      step.done ? "bg-purple-600" : "bg-gray-200"
+                    )}
+                  />
+                )}
+
+                {/* Icon Circle */}
                 <div
                   className={cn(
-                    "absolute left-[50%] top-3.5 sm:top-4 h-0.5 w-full z-0 transition-colors",
-                    step.done ? "bg-purple-600" : "bg-gray-200"
+                    "relative z-10 flex size-7 sm:size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-all shadow-xs",
+                    step.done
+                      ? "bg-purple-600 text-white ring-2 sm:ring-4 ring-purple-100"
+                      : step.inProgress
+                      ? "bg-amber-400 text-purple-950 ring-2 sm:ring-4 ring-amber-100 animate-pulse"
+                      : "bg-gray-100 text-gray-400 border border-gray-200"
                   )}
-                />
-              )}
+                >
+                  <StepIcon className="size-3.5 sm:size-4" />
+                </div>
 
-              {/* Icon Circle */}
-              <div
-                className={cn(
-                  "relative z-10 flex size-7 sm:size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-all shadow-xs",
-                  step.done
-                    ? "bg-purple-600 text-white ring-2 sm:ring-4 ring-purple-100"
-                    : step.inProgress
-                    ? "bg-amber-400 text-purple-950 ring-2 sm:ring-4 ring-amber-100 animate-pulse"
-                    : "bg-gray-100 text-gray-400 border border-gray-200"
-                )}
-              >
-                <StepIcon className="size-3.5 sm:size-4" />
-              </div>
-
-              {/* Text Info */}
-              <div className="mt-2 min-w-0 w-full px-0.5">
-                <p className={cn("text-[10px] sm:text-xs font-extrabold leading-tight break-words", step.done || step.inProgress ? "text-gray-900" : "text-gray-400")}>
-                  {step.title}
-                </p>
-                <div className="mt-0.5 text-[9px] sm:text-[10px] text-gray-500 font-medium leading-tight truncate">
-                  {step.subtitle}
+                {/* Text Info */}
+                <div className="mt-2 min-w-0 w-full px-0.5">
+                  <p className={cn("text-[10px] sm:text-xs font-extrabold leading-tight break-words", step.done || step.inProgress ? "text-gray-900" : "text-gray-400")}>
+                    {step.title}
+                  </p>
+                  <div className="mt-0.5 text-[9px] sm:text-[10px] text-gray-500 font-medium leading-tight truncate">
+                    {step.subtitle}
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </div>
   );

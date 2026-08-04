@@ -75,9 +75,28 @@ const AccountContext = React.createContext<AccountContextValue | null>(null);
 
 function cleanUser(raw: any): UserProfile | null {
   if (!raw) return null;
+  const rawAddresses = Array.isArray(raw.addresses) ? raw.addresses : [];
+  const addresses = rawAddresses.map((a: any) => {
+    const id = String(a.id || a._id || "");
+    return {
+      ...a,
+      id,
+      _id: id,
+      pinCode: a.pinCode || a.pincode || "",
+      pincode: a.pinCode || a.pincode || "",
+      addressType: a.addressType || a.tag || "Home",
+      tag: a.addressType || a.tag || "Home",
+    };
+  });
+
+  const activeAddressId = raw.activeAddressId
+    ? String(raw.activeAddressId)
+    : (addresses.find((a: any) => a.isDefault)?.id || addresses[0]?.id || null);
+
   return {
     ...raw,
-    addresses: Array.isArray(raw.addresses) ? raw.addresses : [],
+    addresses,
+    activeAddressId,
   };
 }
 

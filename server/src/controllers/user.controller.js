@@ -4,22 +4,40 @@ const sendResponse = require('../utils/response');
 
 // Validation helper
 const validateAddressInput = (body) => {
-  const { fullName, phone, houseNo, street, area, city, state, pinCode, addressType } = body;
+  let { fullName, phone, houseNo, street, area, city, state, pinCode, pincode, addressLine, addressType, tag } = body;
   
+  pinCode = pinCode || pincode;
+  addressType = addressType || tag || 'Home';
+
   if (!fullName || !fullName.trim()) return 'Full Name is required';
   if (!phone || !phone.trim()) return 'Mobile Number is required';
+
+  // If houseNo / street / area are missing but addressLine is present, synthesize them
+  if ((!houseNo || !houseNo.trim()) && addressLine && addressLine.trim()) {
+    const parts = addressLine.split(',').map(s => s.trim()).filter(Boolean);
+    houseNo = parts[0] || 'Flat/House';
+    street = parts[1] || parts[0] || 'Street';
+    area = parts.slice(2).join(', ') || parts[1] || parts[0] || 'Area';
+    body.houseNo = houseNo;
+    body.street = street;
+    body.area = area;
+  }
+
   if (!houseNo || !houseNo.trim()) return 'House / Flat No. is required';
   if (!street || !street.trim()) return 'Street / Road is required';
   if (!area || !area.trim()) return 'Area / Locality is required';
   if (!city || !city.trim()) return 'City is required';
   if (!state || !state.trim()) return 'State is required';
   if (!pinCode || !pinCode.trim()) return 'PIN Code is required';
+  
+  body.pinCode = String(pinCode).trim();
+  body.addressType = addressType;
 
-  if (!/^\d{10}$/.test(phone.trim())) {
+  if (!/^\d{10}$/.test(String(phone).trim())) {
     return 'Phone number must be exactly 10 digits';
   }
 
-  if (!/^\d{6}$/.test(pinCode.trim())) {
+  if (!/^\d{6}$/.test(String(pinCode).trim())) {
     return 'PIN Code must be exactly 6 digits';
   }
 
@@ -56,8 +74,8 @@ exports.addAddress = async (req, res, next) => {
 
     const {
       fullName, phone, houseNo, building, street, area,
-      landmark, city, state, country, pinCode,
-      latitude, longitude, accuracy, addressType, isDefault
+      landmark, city, state, country, pinCode, pincode,
+      latitude, longitude, accuracy, addressType, tag, isDefault
     } = req.body;
 
     const addresses = req.user.addresses || [];
@@ -71,23 +89,29 @@ exports.addAddress = async (req, res, next) => {
       });
     }
 
+    const finalPinCode = String(pinCode || pincode || '').trim();
+    const finalType = addressType || tag || 'Home';
+    const finalHouseNo = String(houseNo || 'House No').trim();
+    const finalStreet = String(street || 'Street').trim();
+    const finalArea = String(area || 'Locality').trim();
+
     // Add address
     req.user.addresses.push({
-      fullName: fullName.trim(),
-      phone: phone.trim(),
-      houseNo: houseNo.trim(),
-      building: (building || '').trim(),
-      street: street.trim(),
-      area: area.trim(),
-      landmark: (landmark || '').trim(),
-      city: city.trim(),
-      state: state.trim(),
+      fullName: String(fullName).trim(),
+      phone: String(phone).trim(),
+      houseNo: finalHouseNo,
+      building: String(building || '').trim(),
+      street: finalStreet,
+      area: finalArea,
+      landmark: String(landmark || '').trim(),
+      city: String(city).trim(),
+      state: String(state).trim(),
       country: country || 'India',
-      pinCode: pinCode.trim(),
+      pinCode: finalPinCode,
       latitude: latitude !== undefined ? latitude : null,
       longitude: longitude !== undefined ? longitude : null,
       accuracy: accuracy !== undefined ? accuracy : null,
-      addressType: addressType || 'Home',
+      addressType: finalType,
       isDefault: shouldBeDefault
     });
 
@@ -126,8 +150,8 @@ exports.updateAddress = async (req, res, next) => {
 
     const {
       fullName, phone, houseNo, building, street, area,
-      landmark, city, state, country, pinCode,
-      latitude, longitude, accuracy, addressType, isDefault
+      landmark, city, state, country, pinCode, pincode,
+      latitude, longitude, accuracy, addressType, tag, isDefault
     } = req.body;
 
     const shouldBeDefault = isDefault;
@@ -138,13 +162,6 @@ exports.updateAddress = async (req, res, next) => {
           addr.isDefault = false;
         }
       });
-      req.user.activeAddressId = req.params.id;
-    }
-
-    address.fullName = fullName.trim();
-    address.phone = phone.trim();
-    address.houseNo = houseNo.trim();
-    address.building = (building || '').trim();
     address.street = street.trim();
     address.area = area.trim();
     address.landmark = (landmark || '').trim();

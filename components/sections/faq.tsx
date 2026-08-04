@@ -107,16 +107,16 @@ export function Faq() {
                 return (
                   <AccordionItem key={key} value={key}>
                     <AccordionTrigger>
-                      <span className="flex flex-col items-start gap-1">
+                      <span className="flex flex-col items-start gap-1 w-full min-w-0 text-left">
                         {faq.category && (
                           <Badge size="sm" className="text-[9px] sm:text-[10px] bg-[#E8C8E4]/50 text-[#4A1942] border border-[#B76DAE]/30 font-semibold py-0 px-2">
                             {faq.category}
                           </Badge>
                         )}
-                        <span>{faq.question}</span>
+                        <span className="w-full min-w-0 break-words text-xs sm:text-base">{faq.question}</span>
                       </span>
                     </AccordionTrigger>
-                    <AccordionContent>{faq.answer}</AccordionContent>
+                    <AccordionContent className="break-words overflow-hidden">{faq.answer}</AccordionContent>
                   </AccordionItem>
                 );
               })}
