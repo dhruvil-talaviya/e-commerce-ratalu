@@ -109,10 +109,10 @@ export default async function RootLayout({
       {/* Favicon — always points to the admin-uploaded image, decoded from Cloudinary if needed */}
         {/* data-favicon-id attrs match DynamicFavicon upsert keys so client hydration
             updates these exact elements rather than duplicating them */}
-        <link data-favicon-id="dyn-icon" rel="icon" type="image/png" sizes="192x192" href={faviconUrl} />
-        <link data-favicon-id="dyn-icon2" rel="icon" type="image/png" href={faviconUrl} />
-        <link data-favicon-id="dyn-shortcut" rel="shortcut icon" href={faviconUrl} />
-        <link data-favicon-id="dyn-apple" rel="apple-touch-icon" href={faviconUrl} />
+        <link data-favicon-id="dyn-icon" rel="icon" type="image/png" sizes="192x192" href={faviconUrl} suppressHydrationWarning />
+        <link data-favicon-id="dyn-icon2" rel="icon" type="image/png" href={faviconUrl} suppressHydrationWarning />
+        <link data-favicon-id="dyn-shortcut" rel="shortcut icon" href={faviconUrl} suppressHydrationWarning />
+        <link data-favicon-id="dyn-apple" rel="apple-touch-icon" href={faviconUrl} suppressHydrationWarning />
         {/* Google Analytics GA4 */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-8RQGBPV32Y"
@@ -130,7 +130,7 @@ export default async function RootLayout({
       <body className="bg-background text-foreground">
         <OrganizationJsonLd />
         <WebsiteJsonLd />
-        <Providers>
+        <Providers initialSettings={settings}>
           <TrackingScripts />
           <StorefrontLayoutWrapper cms={cms}>{children}</StorefrontLayoutWrapper>
         </Providers>

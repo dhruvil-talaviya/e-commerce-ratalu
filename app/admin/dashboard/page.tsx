@@ -217,7 +217,7 @@ function AdminDashboardView() {
     // Don't bounce before the stored session has loaded.
     if (!hydrated) return;
     if (!isLoggedIn || !isAdmin) {
-      router.replace("/account");
+      router.replace("/admin/login");
     }
   }, [hydrated, isLoggedIn, isAdmin, router]);
 

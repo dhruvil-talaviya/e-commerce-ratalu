@@ -424,7 +424,7 @@ exports.getAdminCombos = async (req, res, next) => {
 // @access  Private (Admin)
 exports.createCombo = async (req, res, next) => {
   try {
-    const { name, description, items, comboPrice, badge, categoryId, status, featured, startsAt, endsAt } = req.body;
+    const { name, subtitle, description, items, comboPrice, badge, categoryId, status, featured, startsAt, endsAt, rating, reviewCount } = req.body;
 
     if (!name || !String(name).trim()) {
       return next(new ErrorResponse('A combo needs a name.', 400));
@@ -454,6 +454,7 @@ exports.createCombo = async (req, res, next) => {
     const combo = await Combo.create({
       name: String(name).trim(),
       slug,
+      subtitle: subtitle || '',
       description: description || '',
       image: req.body.image || '',
       items: resolved,
@@ -461,6 +462,8 @@ exports.createCombo = async (req, res, next) => {
       originalPrice,
       categoryId: categoryId || null,
       badge: badge || '',
+      rating: Number(rating) || 4.8,
+      reviewCount: Number(reviewCount) || 16,
       featured: Boolean(featured),
       status: status || 'Active',
       startsAt: startsAt || null,
@@ -503,12 +506,14 @@ exports.updateCombo = async (req, res, next) => {
       ));
     }
 
-    ['name', 'description', 'image', 'badge', 'status'].forEach((f) => {
+    ['name', 'subtitle', 'description', 'image', 'badge', 'status'].forEach((f) => {
       if (req.body[f] !== undefined) combo[f] = req.body[f];
     });
     if (req.body.categoryId !== undefined) combo.categoryId = req.body.categoryId || null;
     if (req.body.featured !== undefined) combo.featured = Boolean(req.body.featured);
     if (req.body.sortOrder !== undefined) combo.sortOrder = Number(req.body.sortOrder) || 0;
+    if (req.body.rating !== undefined) combo.rating = Number(req.body.rating) || 4.8;
+    if (req.body.reviewCount !== undefined) combo.reviewCount = Number(req.body.reviewCount) || 16;
     if (req.body.startsAt !== undefined) combo.startsAt = req.body.startsAt || null;
     if (req.body.endsAt !== undefined) combo.endsAt = req.body.endsAt || null;
 

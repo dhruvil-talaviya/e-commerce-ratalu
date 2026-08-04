@@ -195,6 +195,7 @@ export default function CouponsPage() {
     {
       key: "perAccountLimit",
       header: "Account Rules",
+      hideBelow: "md",
       cell: (c) => (
         <span className="text-xs font-medium text-gray-700">
           {c.firstOrderOnly
@@ -227,6 +228,7 @@ export default function CouponsPage() {
     {
       key: "expiryDate",
       header: "Expiry",
+      hideBelow: "md",
       cell: (c) => (
         <span className="text-xs text-gray-500">
           {c.expiryDate ? formatDate(c.expiryDate) : "Never"}

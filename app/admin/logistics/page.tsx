@@ -31,6 +31,14 @@ import { Button, Card, Skeleton, Modal, Badge, ConfirmDialog } from "@/component
 const INPUT =
   "w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-[#111827] focus:border-[#5B2C83] focus:outline-none focus:ring-2 focus:ring-[#5B2C83]/15";
 
+
+const LOGISTICS_TABS = [
+  { id: "overview", label: "Overview & Analytics", shortLabel: "Overview", icon: TrendingUp, description: "Live shipment metrics & courier performance", color: "text-purple-600", bg: "bg-purple-50" },
+  { id: "shipments", label: "Shipment Management", shortLabel: "Shipments", icon: Package, description: "Manage AWB generation, pickup dispatch & tracking", color: "text-indigo-600", bg: "bg-indigo-50" },
+  { id: "locations", label: "Pickup Locations", shortLabel: "Locations", icon: MapPin, description: "Warehouse addresses registered with Shiprocket", color: "text-emerald-600", bg: "bg-emerald-50" },
+  { id: "calculator", label: "Rate & Pincode Checker", shortLabel: "Rate Checker", icon: ShieldCheck, description: "Verify pincode serviceability & live shipping rates", color: "text-amber-600", bg: "bg-amber-50" }
+] as const;
+
 export default function AdminLogisticsPage() {
   const [activeTab, setActiveTab] = React.useState<"overview" | "shipments" | "locations" | "calculator">("overview");
 
@@ -258,54 +266,53 @@ export default function AdminLogisticsPage() {
       description="Enterprise Logistics Automation, Courier Dispatch & Real-Time Tracking"
     >
       <div className="flex flex-col gap-6">
-        {/* Navigation Bar */}
-        <div className="flex items-center justify-between border-b border-gray-200 pb-3">
-          <div className="flex items-center gap-2 overflow-x-auto">
-            {[
-              { id: "overview", label: "Overview & Analytics", icon: TrendingUp },
-              { id: "shipments", label: "Shipment Management", icon: Package },
-              { id: "locations", label: "Pickup Locations", icon: MapPin },
-              { id: "calculator", label: "Rate & Pincode Checker", icon: ShieldCheck }
-            ].map((tab) => {
-              const Icon = tab.icon;
-              const active = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
-                  className={cn(
-                    "flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-colors whitespace-nowrap",
-                    active
-                      ? "bg-[#5B2C83] text-white shadow-sm"
-                      : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
-                  )}
-                >
-                  <Icon className="size-4" />
-                  {tab.label}
-                </button>
-              );
-            })}
-          </div>
+        {/* Header Actions & Navigation Tabs */}
+        <div className="flex flex-col gap-3 border-b border-gray-200 pb-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            {/* Mobile: Horizontal scrollable icon pills */}
+            <div className="flex gap-2 overflow-x-auto pb-1 max-w-full" style={{ scrollbarWidth: "none" }}>
+              {LOGISTICS_TABS.map((tab) => {
+                const Icon = tab.icon;
+                const active = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as any)}
+                    className={cn(
+                      "flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-xl transition-all whitespace-nowrap shrink-0",
+                      active
+                        ? "bg-[#5B2C83] text-white shadow-md shadow-[#5B2C83]/20"
+                        : "bg-white border border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+                    )}
+                  >
+                    <Icon className="size-4" />
+                    <span>{tab.label}</span>
+                  </button>
+                );
+              })}
+            </div>
 
-          <div className="flex items-center gap-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => {
-                fetchDashboardStats();
-                if (activeTab === "shipments") fetchShipments();
-              }}
-            >
-              <RefreshCw className="size-3.5" />
-              Refresh
-            </Button>
-            <a
-              href="/admin/settings"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-50 text-[#5B2C83] border border-purple-200 hover:bg-purple-100 text-xs font-bold transition"
-            >
-              <Settings className="size-3.5" />
-              Logistics Settings
-            </a>
+            <div className="flex items-center gap-2 ml-auto">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  fetchDashboardStats();
+                  if (activeTab === "shipments") fetchShipments();
+                }}
+                className="text-xs"
+              >
+                <RefreshCw className="size-3.5" />
+                <span className="hidden sm:inline">Refresh</span>
+              </Button>
+              <a
+                href="/admin/settings"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 text-[#5B2C83] border border-purple-200 hover:bg-purple-100 text-xs font-bold transition"
+              >
+                <Settings className="size-3.5" />
+                <span className="hidden sm:inline">Settings</span>
+              </a>
+            </div>
           </div>
         </div>
 
@@ -313,7 +320,7 @@ export default function AdminLogisticsPage() {
         {activeTab === "overview" && (
           <div className="flex flex-col gap-6">
             {/* Widget Cards Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
               {[
                 { label: "Today's Shipments", value: stats?.widgets?.todaysShipments || 0, icon: Package, tone: "text-purple-600 bg-purple-50" },
                 { label: "Pending Pickups", value: stats?.widgets?.pendingPickups || 0, icon: Clock, tone: "text-sky-600 bg-sky-50" },

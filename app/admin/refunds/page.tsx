@@ -294,7 +294,7 @@ export default function AdminRefundsPage() {
       </div>
 
       {/* Queue tabs */}
-      <div className="mb-3 flex flex-wrap gap-1.5">
+      <div className="mb-3 flex gap-1.5 overflow-x-auto pb-1 max-w-full" style={{ scrollbarWidth: "none" }}>
         {QUEUES.map((q) => {
           const active = queue === q.value;
           return (
@@ -305,9 +305,9 @@ export default function AdminRefundsPage() {
                 setPage(1);
               }}
               className={cn(
-                "rounded-lg px-2.5 py-1.5 text-[11px] font-semibold transition-all duration-200",
+                "rounded-xl px-3 py-1.5 text-xs font-semibold transition-all duration-200 shrink-0 whitespace-nowrap",
                 active
-                  ? "bg-[#5B2C83] text-white"
+                  ? "bg-[#5B2C83] text-white shadow-sm"
                   : "border border-[#E5E7EB] bg-white text-[#6B7280] hover:bg-gray-50"
               )}
             >

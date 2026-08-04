@@ -53,57 +53,117 @@ function Badge({ className, children }: { className?: string; children: React.Re
 
 type SettingsTab = "shipping" | "shiprocket" | "razorpay" | "checkout" | "seo" | "brand" | "tax" | "security";
 
+const SETTINGS_TABS: {
+  id: SettingsTab;
+  label: string;
+  shortLabel: string;
+  icon: React.ElementType;
+  description: string;
+  color: string;
+  bg: string;
+}[] = [
+  { id: "shipping", label: "Shipping & Delivery", shortLabel: "Shipping", icon: Truck, description: "Delivery methods, flat rates & free shipping rules", color: "text-blue-600", bg: "bg-blue-50" },
+  { id: "shiprocket", label: "Shiprocket Logistics", shortLabel: "Shiprocket", icon: Package, description: "API credentials, warehouse & automation", color: "text-indigo-600", bg: "bg-indigo-50" },
+  { id: "razorpay", label: "Payments & Razorpay", shortLabel: "Payments", icon: CreditCard, description: "Payment gateway keys & accepted methods", color: "text-green-600", bg: "bg-green-50" },
+  { id: "checkout", label: "Checkout & Order Flow", shortLabel: "Checkout", icon: Sliders, description: "Order flow rules, COD limits & restrictions", color: "text-amber-600", bg: "bg-amber-50" },
+  { id: "seo", label: "Global SEO & Analytics", shortLabel: "SEO", icon: Globe, description: "Meta tags, structured data & tracking IDs", color: "text-teal-600", bg: "bg-teal-50" },
+  { id: "brand", label: "Brand Profile", shortLabel: "Brand", icon: Store, description: "Store name, logo, favicon & social links", color: "text-purple-600", bg: "bg-purple-50" },
+  { id: "tax", label: "GST & Tax", shortLabel: "Tax", icon: Receipt, description: "GST rate and GSTIN number configuration", color: "text-orange-600", bg: "bg-orange-50" },
+  { id: "security", label: "Security", shortLabel: "Security", icon: ShieldCheck, description: "Admin password & access control", color: "text-red-600", bg: "bg-red-50" },
+];
+
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = React.useState<SettingsTab>("shipping");
+  const activeItem = SETTINGS_TABS.find((t) => t.id === activeTab)!;
+  const ActiveIcon = activeItem.icon;
 
   return (
     <AdminShell
       title="Settings & Integrations"
-      description="Manage shipping rules, Razorpay payments, Shiprocket fulfillment, checkout rules, Global SEO, and store identity."
+      description="Shipping, payments, fulfilment, SEO and store identity."
     >
-      <div className="flex flex-col gap-6">
-        {/* Navigation Tabs */}
-        <div className="flex flex-wrap items-center gap-2 border-b border-gray-200 pb-2">
-          {[
-            { id: "shipping", label: "Shipping & Delivery", icon: Truck },
-            { id: "shiprocket", label: "Shiprocket Logistics", icon: Package },
-            { id: "razorpay", label: "Payments & Razorpay", icon: CreditCard },
-            { id: "checkout", label: "Checkout & Order Flow", icon: Sliders },
-            { id: "seo", label: "Global SEO & Analytics", icon: Globe },
-            { id: "brand", label: "Brand Profile", icon: Store },
-            { id: "tax", label: "GST & Tax", icon: Receipt },
-            { id: "security", label: "Security", icon: ShieldCheck },
-          ].map((tab) => {
-            const Icon = tab.icon;
-            const active = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id as SettingsTab)}
-                className={cn(
-                  "flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-colors cursor-pointer",
-                  active
-                    ? "bg-[#5B2C83] text-white shadow-md shadow-[#5B2C83]/20"
-                    : "bg-white text-gray-600 border border-gray-200 hover:border-gray-300 hover:bg-gray-50"
-                )}
-              >
-                <Icon className="size-4" />
-                {tab.label}
-              </button>
-            );
-          })}
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-6">
+
+        {/* Mobile: horizontal scrollable icon pills */}
+        <div className="lg:hidden">
+          <div className="flex gap-2 overflow-x-auto pb-2" style={{ scrollbarWidth: "none" }}>
+            {SETTINGS_TABS.map((tab) => {
+              const Icon = tab.icon;
+              const active = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={cn(
+                    "flex shrink-0 flex-col items-center gap-1 rounded-xl px-3 py-2.5 transition-all",
+                    active
+                      ? "bg-[#5B2C83] text-white shadow-md shadow-[#5B2C83]/25"
+                      : "border border-gray-200 bg-white text-gray-500 hover:border-gray-300 hover:bg-gray-50"
+                  )}
+                >
+                  <Icon className="size-4" />
+                  <span className="text-[10px] font-bold leading-none">{tab.shortLabel}</span>
+                </button>
+              );
+            })}
+          </div>
+          {/* Active section badge */}
+          <div className="mt-3 flex items-center gap-2.5 rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
+            <span className={cn("grid size-9 shrink-0 place-items-center rounded-lg", activeItem.bg)}>
+              <ActiveIcon className={cn("size-4", activeItem.color)} />
+            </span>
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-[#111827]">{activeItem.label}</p>
+              <p className="truncate text-[11px] text-[#6B7280]">{activeItem.description}</p>
+            </div>
+          </div>
         </div>
 
-        {/* Tab Content */}
-        {activeTab === "shipping" && <ShippingSettingsTab />}
-        {activeTab === "shiprocket" && <ShiprocketCard />}
-        {activeTab === "razorpay" && <RazorpayCard />}
-        {activeTab === "checkout" && <CheckoutSettingsCard />}
-        {activeTab === "seo" && <SeoSettingsCard />}
-        {activeTab === "brand" && <BrandCard />}
-        {activeTab === "tax" && <TaxCard />}
-        {activeTab === "security" && <SecurityCard />}
+        {/* Desktop: sticky left sidebar */}
+        <aside className="hidden w-56 shrink-0 lg:block">
+          <div className="sticky top-4 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+            <div className="border-b border-gray-100 px-4 py-3">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Configuration</p>
+            </div>
+            <nav className="py-1.5">
+              {SETTINGS_TABS.map((tab) => {
+                const Icon = tab.icon;
+                const active = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={cn(
+                      "relative flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition-all",
+                      active ? "bg-purple-50/80 text-[#5B2C83]" : "text-[#6B7280] hover:bg-gray-50 hover:text-[#111827]"
+                    )}
+                  >
+                    {active && <span className="absolute inset-y-1.5 left-0 w-[3px] rounded-r-full bg-[#5B2C83]" />}
+                    <span className={cn("grid size-7 shrink-0 place-items-center rounded-lg transition-colors", active ? tab.bg : "bg-gray-100")}>
+                      <Icon className={cn("size-3.5", active ? tab.color : "text-gray-500")} />
+                    </span>
+                    <span className="text-xs font-semibold leading-tight">{tab.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+            <div className="border-t border-gray-100 px-4 py-3">
+              <p className="text-[10px] leading-relaxed text-gray-400">Each section has its own <strong>Save</strong> button.</p>
+            </div>
+          </div>
+        </aside>
+
+        {/* Content panel */}
+        <div className="min-w-0 flex-1">
+          {activeTab === "shipping" && <ShippingSettingsTab />}
+          {activeTab === "shiprocket" && <ShiprocketCard />}
+          {activeTab === "razorpay" && <RazorpayCard />}
+          {activeTab === "checkout" && <CheckoutSettingsCard />}
+          {activeTab === "seo" && <SeoSettingsCard />}
+          {activeTab === "brand" && <BrandCard />}
+          {activeTab === "tax" && <TaxCard />}
+          {activeTab === "security" && <SecurityCard />}
+        </div>
       </div>
     </AdminShell>
   );
@@ -735,207 +795,362 @@ function ShiprocketCard() {
     }
   };
 
+  const statusMeta = {
+    connected: { label: "Connected", dot: "bg-emerald-500 animate-pulse", pill: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+    authentication_error: { label: "Auth Error", dot: "bg-amber-500", pill: "bg-amber-50 text-amber-700 border-amber-200" },
+    unconfigured: { label: "Not configured", dot: "bg-rose-500", pill: "bg-rose-50 text-rose-700 border-rose-200" },
+  }[status] ?? { label: status, dot: "bg-gray-400", pill: "bg-gray-50 text-gray-600 border-gray-200" };
+
   return (
-    <Card className="p-6">
-      <div className="mb-4 flex items-center justify-between border-b border-gray-100 pb-4">
-        <div className="flex items-center gap-3">
-          <span className="grid size-10 place-items-center rounded-xl bg-indigo-50 text-indigo-600">
-            <Package className="size-5" />
-          </span>
-          <div>
-            <h2 className="text-sm font-bold text-[#111827]">Shiprocket Enterprise Logistics Integration</h2>
-            <p className="text-xs text-[#6B7280]">Official Shiprocket REST API credentials, warehouse settings &amp; auto-fulfillment.</p>
+    <div className="flex flex-col gap-5">
+
+      {/* ── Hero header card ──────────────────────────────────────── */}
+      <div className="relative overflow-hidden rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-5">
+        {/* decorative blobs */}
+        <div className="pointer-events-none absolute -right-8 -top-8 size-40 rounded-full bg-indigo-100/40 blur-2xl" />
+        <div className="pointer-events-none absolute -bottom-6 right-20 size-28 rounded-full bg-purple-100/40 blur-2xl" />
+
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex items-center gap-3">
+            <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-600/30">
+              <Package className="size-6" />
+            </span>
+            <div>
+              <h2 className="text-base font-extrabold tracking-tight text-[#111827]">Shiprocket Logistics Hub</h2>
+              <p className="mt-0.5 text-xs text-[#6B7280]">Official REST API · AES-256 encrypted credentials · Auto-fulfillment pipeline</p>
+            </div>
+          </div>
+
+          {/* Status + last verified */}
+          <div className="flex shrink-0 flex-col items-start gap-1.5 sm:items-end">
+            <span className={cn("flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold", statusMeta.pill)}>
+              <span className={cn("size-2 rounded-full", statusMeta.dot)} />
+              {statusMeta.label}
+            </span>
+            {lastTested && (
+              <p className="text-[10px] text-gray-400">
+                Verified {new Date(lastTested).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}
+              </p>
+            )}
+            {lastSync && (
+              <p className="text-[10px] text-gray-400">
+                Synced {new Date(lastSync).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}
+              </p>
+            )}
           </div>
         </div>
-
-        {/* STATUS BADGE */}
-        <span
-          className={cn(
-            "px-3 py-1 text-xs font-bold rounded-full border flex items-center gap-1.5",
-            status === "connected"
-              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-              : status === "authentication_error"
-              ? "bg-amber-50 text-amber-700 border-amber-200"
-              : "bg-rose-50 text-rose-700 border-rose-200"
-          )}
-        >
-          <span className={cn("size-2 rounded-full", status === "connected" ? "bg-emerald-500 animate-pulse" : "bg-rose-500")} />
-          {status}
-        </span>
       </div>
 
       {loading ? (
-        <Skeleton className="h-64 w-full" />
+        <div className="flex flex-col gap-4">
+          <Skeleton className="h-48 w-full rounded-2xl" />
+          <Skeleton className="h-40 w-full rounded-2xl" />
+          <Skeleton className="h-52 w-full rounded-2xl" />
+        </div>
       ) : (
-        <div className="flex flex-col gap-6">
-          {/* Credentials Card */}
-          <div className="rounded-xl border border-gray-200 bg-gray-50/60 p-4">
-            <p className="text-xs font-bold text-gray-700 mb-3">API Authentication Credentials (AES-256 Encrypted)</p>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Labeled label="Shiprocket API Email">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter API Email"
-                  className={INPUT}
-                />
-              </Labeled>
-
-              <Labeled label="Shiprocket API Password">
-                <div className="relative">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder={shiprocketData.passwordMasked || "Enter Shiprocket Password"}
-                    className={cn(INPUT, "pr-10")}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((v) => !v)}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition"
-                  >
-                    {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                  </button>
-                </div>
-              </Labeled>
-            </div>
-
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-gray-200/60 pt-3">
-              <span className="text-xs text-gray-400">
-                {lastTested ? `Last Verified: ${new Date(lastTested).toLocaleString("en-IN")}` : "Credentials encrypted in DB."}
-              </span>
-              <div className="flex items-center gap-2">
-                <Button variant="secondary" size="sm" onClick={handleSyncPickups} disabled={syncing}>
-                  {syncing ? "Syncing..." : "Sync Pickups"}
-                </Button>
-                <Button variant="primary" size="sm" onClick={handleTestConnection} disabled={testing}>
-                  {testing ? "Testing..." : "Test Connection"}
-                </Button>
+        <>
+          {/* ── Section 1: API Credentials ──────────────────────────── */}
+          <Card className="overflow-hidden p-0">
+            <div className="flex items-center gap-2.5 border-b border-gray-100 bg-gray-50/60 px-5 py-3.5">
+              <KeyRound className="size-4 text-indigo-500" />
+              <div>
+                <p className="text-xs font-bold text-[#111827]">API Authentication Credentials</p>
+                <p className="text-[11px] text-gray-500">Stored with AES-256 encryption in the database</p>
               </div>
             </div>
-          </div>
 
-          {/* Warehouse & Package Defaults */}
-          <div className="rounded-xl border border-gray-200 bg-white p-4">
-            <p className="text-xs font-bold text-gray-700 mb-3">Warehouse &amp; Package Specifications</p>
-            <div className="grid gap-3 sm:grid-cols-4 mb-4">
-              <Labeled label="Warehouse Name">
-                <input
-                  value={shiprocketData.warehouseName || ""}
-                  onChange={(e) => setShiprocketData({ ...shiprocketData, warehouseName: e.target.value })}
-                  className={INPUT}
-                />
-              </Labeled>
-              <Labeled label="Warehouse Phone">
-                <input
-                  value={shiprocketData.warehousePhone || ""}
-                  onChange={(e) => setShiprocketData({ ...shiprocketData, warehousePhone: e.target.value })}
-                  className={INPUT}
-                />
-              </Labeled>
-              <Labeled label="GSTIN Number">
-                <input
-                  value={shiprocketData.gstNumber || ""}
-                  onChange={(e) => setShiprocketData({ ...shiprocketData, gstNumber: e.target.value })}
-                  className={INPUT}
-                />
-              </Labeled>
-              <Labeled label="Company Name">
-                <input
-                  value={shiprocketData.companyName || ""}
-                  onChange={(e) => setShiprocketData({ ...shiprocketData, companyName: e.target.value })}
-                  className={INPUT}
-                />
-              </Labeled>
+            <div className="p-5">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Labeled label="Shiprocket API Email">
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="api@yourcompany.com"
+                    className={INPUT}
+                  />
+                </Labeled>
+
+                <Labeled label="API Password">
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder={shiprocketData.passwordMasked || "Enter password to update"}
+                      className={cn(INPUT, "pr-10")}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((v) => !v)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 transition hover:text-gray-600"
+                    >
+                      {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                    </button>
+                  </div>
+                </Labeled>
+              </div>
+
+              <div className="mt-4 flex flex-col gap-2 border-t border-gray-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-[11px] text-gray-400">
+                  {lastTested
+                    ? `Last verified: ${new Date(lastTested).toLocaleString("en-IN")}`
+                    : "Credentials encrypted. Password field only needed on update."}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="secondary" size="sm" onClick={handleSyncPickups} disabled={syncing} className="border-indigo-200 text-indigo-700 hover:bg-indigo-50">
+                    <RefreshCw className={cn("size-3.5", syncing && "animate-spin")} />
+                    {syncing ? "Syncing…" : "Sync Pickups"}
+                  </Button>
+                  <Button variant="primary" size="sm" onClick={handleTestConnection} disabled={testing} className="bg-indigo-600 hover:bg-indigo-700">
+                    {testing ? <Loader2 className="size-3.5 animate-spin" /> : <CheckCircle2 className="size-3.5" />}
+                    {testing ? "Testing…" : "Test Connection"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          {/* ── Section 2: Warehouse info ───────────────────────────── */}
+          <Card className="overflow-hidden p-0">
+            <div className="flex items-center gap-2.5 border-b border-gray-100 bg-gray-50/60 px-5 py-3.5">
+              <Building className="size-4 text-indigo-500" />
+              <div>
+                <p className="text-xs font-bold text-[#111827]">Warehouse & Company Details</p>
+                <p className="text-[11px] text-gray-500">Used on shipping labels and tax invoices</p>
+              </div>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-4">
-              <Labeled label="Default Weight (KG)">
-                <input
-                  type="number"
-                  step="0.1"
-                  value={defaults.weight}
-                  onChange={(e) => setDefaults({ ...defaults, weight: Number(e.target.value) })}
-                  className={INPUT}
-                />
-              </Labeled>
-              <Labeled label="Length (CM)">
-                <input
-                  type="number"
-                  value={defaults.length}
-                  onChange={(e) => setDefaults({ ...defaults, length: Number(e.target.value) })}
-                  className={INPUT}
-                />
-              </Labeled>
-              <Labeled label="Width (CM)">
-                <input
-                  type="number"
-                  value={defaults.breadth}
-                  onChange={(e) => setDefaults({ ...defaults, breadth: Number(e.target.value) })}
-                  className={INPUT}
-                />
-              </Labeled>
-              <Labeled label="Height (CM)">
-                <input
-                  type="number"
-                  value={defaults.height}
-                  onChange={(e) => setDefaults({ ...defaults, height: Number(e.target.value) })}
-                  className={INPUT}
-                />
-              </Labeled>
+            <div className="p-5">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <Labeled label="Warehouse Name">
+                  <input
+                    value={shiprocketData.warehouseName || ""}
+                    onChange={(e) => setShiprocketData({ ...shiprocketData, warehouseName: e.target.value })}
+                    placeholder="Primary Warehouse"
+                    className={INPUT}
+                  />
+                </Labeled>
+                <Labeled label="Warehouse Phone">
+                  <input
+                    value={shiprocketData.warehousePhone || ""}
+                    onChange={(e) => setShiprocketData({ ...shiprocketData, warehousePhone: e.target.value })}
+                    placeholder="+91 98765 43210"
+                    className={INPUT}
+                  />
+                </Labeled>
+                <Labeled label="GSTIN Number">
+                  <input
+                    value={shiprocketData.gstNumber || ""}
+                    onChange={(e) => setShiprocketData({ ...shiprocketData, gstNumber: e.target.value })}
+                    placeholder="22AAAAA0000A1Z5"
+                    className={INPUT}
+                  />
+                </Labeled>
+                <Labeled label="Company Name">
+                  <input
+                    value={shiprocketData.companyName || ""}
+                    onChange={(e) => setShiprocketData({ ...shiprocketData, companyName: e.target.value })}
+                    placeholder="Ratalu Pvt. Ltd."
+                    className={INPUT}
+                  />
+                </Labeled>
+              </div>
             </div>
-          </div>
+          </Card>
 
-          {/* Automation Switches */}
-          <div className="grid gap-3 sm:grid-cols-3">
-            <PayToggle
-              title="Auto Assign Courier"
-              desc="Auto-select best courier on paid orders."
-              checked={defaults.autoAssignCourier}
-              onChange={(v) => setDefaults({ ...defaults, autoAssignCourier: v })}
-            />
-            <PayToggle
-              title="Auto Generate AWB"
-              desc="Automatically generate AWB post-payment."
-              checked={defaults.autoGenerateAWB}
-              onChange={(v) => setDefaults({ ...defaults, autoGenerateAWB: v })}
-            />
-            <PayToggle
-              title="Auto Schedule Pickup"
-              desc="Schedule pickup request with courier."
-              checked={defaults.autoSchedulePickup}
-              onChange={(v) => setDefaults({ ...defaults, autoSchedulePickup: v })}
-            />
-            <PayToggle
-              title="Auto Generate Label"
-              desc="Fetch shipping label PDF automatically."
-              checked={defaults.autoGenerateLabel}
-              onChange={(v) => setDefaults({ ...defaults, autoGenerateLabel: v })}
-            />
-            <PayToggle
-              title="Auto Generate Invoice"
-              desc="Generate tax invoice upon shipment creation."
-              checked={defaults.autoGenerateInvoice}
-              onChange={(v) => setDefaults({ ...defaults, autoGenerateInvoice: v })}
-            />
-            <PayToggle
-              title="Auto Notify Customer"
-              desc="Dispatch WhatsApp/SMS tracking link to customer."
-              checked={defaults.autoNotifyCustomer}
-              onChange={(v) => setDefaults({ ...defaults, autoNotifyCustomer: v })}
-            />
-          </div>
-        </div>
+          {/* ── Section 3: Package defaults ─────────────────────────── */}
+          <Card className="overflow-hidden p-0">
+            <div className="flex items-center gap-2.5 border-b border-gray-100 bg-gray-50/60 px-5 py-3.5">
+              <Layers className="size-4 text-indigo-500" />
+              <div>
+                <p className="text-xs font-bold text-[#111827]">Default Package Dimensions</p>
+                <p className="text-[11px] text-gray-500">Applied when product-level dimensions are not set</p>
+              </div>
+            </div>
+
+            <div className="p-5">
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                <Labeled label="Weight (KG)">
+                  <div className="relative">
+                    <input
+                      type="number" step="0.1"
+                      value={defaults.weight}
+                      onChange={(e) => setDefaults({ ...defaults, weight: Number(e.target.value) })}
+                      className={INPUT}
+                    />
+                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-bold text-gray-400">kg</span>
+                  </div>
+                </Labeled>
+                <Labeled label="Length (CM)">
+                  <div className="relative">
+                    <input
+                      type="number"
+                      value={defaults.length}
+                      onChange={(e) => setDefaults({ ...defaults, length: Number(e.target.value) })}
+                      className={INPUT}
+                    />
+                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-bold text-gray-400">cm</span>
+                  </div>
+                </Labeled>
+                <Labeled label="Width (CM)">
+                  <div className="relative">
+                    <input
+                      type="number"
+                      value={defaults.breadth}
+                      onChange={(e) => setDefaults({ ...defaults, breadth: Number(e.target.value) })}
+                      className={INPUT}
+                    />
+                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-bold text-gray-400">cm</span>
+                  </div>
+                </Labeled>
+                <Labeled label="Height (CM)">
+                  <div className="relative">
+                    <input
+                      type="number"
+                      value={defaults.height}
+                      onChange={(e) => setDefaults({ ...defaults, height: Number(e.target.value) })}
+                      className={INPUT}
+                    />
+                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-bold text-gray-400">cm</span>
+                  </div>
+                </Labeled>
+              </div>
+
+              {/* Visual dimension preview */}
+              <div className="mt-4 flex items-center gap-3 rounded-xl border border-indigo-100 bg-indigo-50/40 px-4 py-3">
+                <div
+                  className="shrink-0 rounded border-2 border-indigo-300 bg-indigo-100/60"
+                  style={{
+                    width: Math.max(32, Math.min(80, defaults.length * 2.5)),
+                    height: Math.max(20, Math.min(56, defaults.height * 2.5)),
+                  }}
+                />
+                <div className="text-[11px] text-indigo-800">
+                  <span className="font-bold">
+                    {defaults.length} × {defaults.breadth} × {defaults.height} cm
+                  </span>
+                  <span className="mx-1.5 text-indigo-400">·</span>
+                  <span className="font-bold">{defaults.weight} kg</span>
+                  <p className="mt-0.5 text-indigo-600/70">Approximate box preview (not to scale)</p>
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          {/* ── Section 4: Automation pipeline ──────────────────────── */}
+          <Card className="overflow-hidden p-0">
+            <div className="flex items-center gap-2.5 border-b border-gray-100 bg-gray-50/60 px-5 py-3.5">
+              <Zap className="size-4 text-amber-500" />
+              <div>
+                <p className="text-xs font-bold text-[#111827]">Auto-Fulfillment Pipeline</p>
+                <p className="text-[11px] text-gray-500">Automate every step from payment to customer delivery notification</p>
+              </div>
+            </div>
+
+            <div className="p-5">
+              {/* Pipeline visual steps */}
+              <div className="mb-5 flex items-center overflow-x-auto pb-1">
+                {[
+                  { key: "autoAssignCourier", label: "Assign Courier" },
+                  { key: "autoGenerateAWB", label: "Generate AWB" },
+                  { key: "autoCreateShipment", label: "Create Shipment" },
+                  { key: "autoSchedulePickup", label: "Schedule Pickup" },
+                  { key: "autoGenerateLabel", label: "Print Label" },
+                  { key: "autoGenerateInvoice", label: "Invoice" },
+                  { key: "autoNotifyCustomer", label: "Notify Customer" },
+                ].map((step, idx, arr) => {
+                  const on = defaults[step.key as keyof typeof defaults] as boolean;
+                  return (
+                    <React.Fragment key={step.key}>
+                      <button
+                        onClick={() => setDefaults({ ...defaults, [step.key]: !on })}
+                        className={cn(
+                          "flex shrink-0 flex-col items-center gap-1.5 rounded-xl border px-3 py-2.5 transition-all",
+                          on
+                            ? "border-indigo-200 bg-indigo-50 text-indigo-700"
+                            : "border-gray-200 bg-gray-50 text-gray-400"
+                        )}
+                      >
+                        <span className={cn(
+                          "grid size-5 place-items-center rounded-full text-[10px] font-black",
+                          on ? "bg-indigo-600 text-white" : "bg-gray-200 text-gray-500"
+                        )}>
+                          {idx + 1}
+                        </span>
+                        <span className="text-[10px] font-semibold leading-tight text-center whitespace-nowrap">{step.label}</span>
+                        <span className={cn("text-[9px] font-bold uppercase tracking-wide", on ? "text-indigo-500" : "text-gray-400")}>
+                          {on ? "ON" : "OFF"}
+                        </span>
+                      </button>
+                      {idx < arr.length - 1 && (
+                        <ArrowRight className={cn("mx-1 size-3 shrink-0", on ? "text-indigo-400" : "text-gray-200")} />
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </div>
+
+              {/* Detailed toggles grid */}
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <PayToggle
+                  title="Auto Assign Courier"
+                  desc="Auto-select best courier on paid orders."
+                  checked={defaults.autoAssignCourier}
+                  onChange={(v) => setDefaults({ ...defaults, autoAssignCourier: v })}
+                />
+                <PayToggle
+                  title="Auto Generate AWB"
+                  desc="Automatically generate AWB post-payment."
+                  checked={defaults.autoGenerateAWB}
+                  onChange={(v) => setDefaults({ ...defaults, autoGenerateAWB: v })}
+                />
+                <PayToggle
+                  title="Auto Schedule Pickup"
+                  desc="Schedule pickup request with courier."
+                  checked={defaults.autoSchedulePickup}
+                  onChange={(v) => setDefaults({ ...defaults, autoSchedulePickup: v })}
+                />
+                <PayToggle
+                  title="Auto Generate Label"
+                  desc="Fetch shipping label PDF automatically."
+                  checked={defaults.autoGenerateLabel}
+                  onChange={(v) => setDefaults({ ...defaults, autoGenerateLabel: v })}
+                />
+                <PayToggle
+                  title="Auto Generate Invoice"
+                  desc="Generate tax invoice upon shipment creation."
+                  checked={defaults.autoGenerateInvoice}
+                  onChange={(v) => setDefaults({ ...defaults, autoGenerateInvoice: v })}
+                />
+                <PayToggle
+                  title="Auto Notify Customer"
+                  desc="Dispatch WhatsApp/SMS tracking link to customer."
+                  checked={defaults.autoNotifyCustomer}
+                  onChange={(v) => setDefaults({ ...defaults, autoNotifyCustomer: v })}
+                />
+              </div>
+            </div>
+          </Card>
+        </>
       )}
 
-      <div className="mt-5 flex justify-end border-t border-gray-100 pt-4">
-        <Button variant="primary" onClick={handleSaveShiprocket} disabled={saving || loading}>
+      {/* ── Save footer ──────────────────────────────────────────── */}
+      <div className="flex flex-col-reverse gap-3 rounded-2xl border border-gray-100 bg-gray-50/60 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-[11px] text-gray-400">
+          {isDirty ? "⚠️ You have unsaved changes." : "All changes are saved."}
+        </p>
+        <Button
+          variant="primary"
+          onClick={handleSaveShiprocket}
+          disabled={saving || loading}
+          className="bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-600/20"
+        >
+          {saving ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
           {saving ? "Saving Shiprocket Settings…" : "Save Shiprocket Configuration"}
         </Button>
       </div>
-    </Card>
+    </div>
   );
 }
 

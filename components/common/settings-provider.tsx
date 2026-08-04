@@ -400,19 +400,22 @@ function DynamicFavicon({ settings }: { settings: StoreSettings }) {
   return null;
 }
 
-export function StoreSettingsProvider({ children }: { children: React.ReactNode }) {
-  const [settings, setSettings] = React.useState<StoreSettings>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const cached = localStorage.getItem(SETTINGS_CACHE_KEY);
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          return { ...DEFAULT_SETTINGS, ...parsed };
-        }
-      } catch {}
-    }
-    return DEFAULT_SETTINGS;
-  });
+export function StoreSettingsProvider({
+  children,
+  initialSettings,
+}: {
+  children: React.ReactNode;
+  /** Server-fetched settings passed from the RSC layout. When provided, both
+   *  the server render and the first client render use the same values so
+   *  there is zero logo/favicon flash and no React hydration mismatch. */
+  initialSettings?: Partial<StoreSettings> | null;
+}) {
+  // Seed state with server-fetched settings (if provided) so the initial HTML
+  // already contains the correct Cloudinary logo URL. The client picks up
+  // exactly the same value — no mismatch, no flash.
+  const [settings, setSettings] = React.useState<StoreSettings>(
+    initialSettings ? { ...DEFAULT_SETTINGS, ...initialSettings } : DEFAULT_SETTINGS
+  );
   const [hydrated, setHydrated] = React.useState(false);
 
   const fetchSettings = React.useCallback(async () => {
@@ -461,6 +464,9 @@ export function StoreSettingsProvider({ children }: { children: React.ReactNode 
 
         const merged = { ...DEFAULT_SETTINGS, ...data };
         setSettings(merged);
+        // Persist to localStorage so the next page load can show the right
+        // logo/favicon before the API response arrives.
+        try { localStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify(merged)); } catch {}
       }
     } catch (err) {
       console.warn("Failed to load store settings from server, using default settings:", err);
@@ -470,6 +476,16 @@ export function StoreSettingsProvider({ children }: { children: React.ReactNode 
   }, []);
 
   React.useEffect(() => {
+    // Load the localStorage cache synchronously after mount (never during SSR)
+    // so the logo/favicon snaps to the correct URL before the API fetch
+    // completes, without causing any server/client hydration mismatch.
+    try {
+      const cached = localStorage.getItem(SETTINGS_CACHE_KEY);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        setSettings(prev => ({ ...prev, ...parsed }));
+      }
+    } catch {}
     fetchSettings();
   }, [fetchSettings]);
 

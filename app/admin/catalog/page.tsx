@@ -580,13 +580,25 @@ function CombosPanel() {
     },
   ];
 
+  // Only products that actually have at least one priced pack can be used in a combo.
+  // If a product has no packs, the backend priceItems() will throw a 400 error.
+  const productsWithPacks = products.filter((p) => p.packs && p.packs.length > 0 && p.packs.some((pk: any) => pk.price > 0));
+
   return (
     <>
-      <div className="mb-3 flex justify-end">
-        <Button variant="primary" onClick={() => setEditing("new")} disabled={products.length < 2}>
-          <Plus className="size-3.5" />
-          New combo
-        </Button>
+      <div className="mb-3 flex items-center justify-between gap-3 flex-wrap">
+        {productsWithPacks.length < 2 && products.length > 0 && (
+          <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+            ⚠️ At least 2 products with published prices are needed before you can create a combo.
+            {productsWithPacks.length === 1 ? " (1 found — need 1 more)" : " No products with prices found."}
+          </p>
+        )}
+        <div className="ml-auto">
+          <Button variant="primary" onClick={() => setEditing("new")} disabled={productsWithPacks.length < 2}>
+            <Plus className="size-3.5" />
+            New combo
+          </Button>
+        </div>
       </div>
 
       <DataTable<Combo>
@@ -604,7 +616,7 @@ function CombosPanel() {
       {editing && (
         <ComboEditor
           combo={editing === "new" ? null : editing}
-          products={products}
+          products={productsWithPacks}
           onClose={() => setEditing(null)}
           onSaved={async () => {
             setEditing(null);
@@ -976,7 +988,7 @@ function ComboEditor({
                       aria-label="Pack size"
                     >
                       <option value="">Size…</option>
-                      {row.product?.packs.map((k) => (
+                      {row.product?.packs.filter((k: any) => k.price > 0).map((k: any) => (
                         <option key={k.id} value={k.id}>
                           {k.label} · {formatMoney(k.price)}
                         </option>

@@ -124,6 +124,11 @@ export function Logo({
           src={logoSrc}
           alt={`${name} logo`}
           onError={() => setImgError(true)}
+          // suppressHydrationWarning prevents React from erroring when the
+          // server-rendered src (/logo.png) differs from the post-mount src
+          // (Cloudinary URL loaded from localStorage / API). The correct URL
+          // is applied immediately after mount with no visible flash.
+          suppressHydrationWarning
           className={cn(
             "h-14 sm:h-16 lg:h-18 w-auto max-w-[220px] sm:max-w-[280px] object-contain border-none outline-none ring-0 shadow-none transition-transform duration-300 group-hover:scale-105"
           )}
