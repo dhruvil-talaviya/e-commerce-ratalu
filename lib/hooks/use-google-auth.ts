@@ -124,7 +124,27 @@ export function useGoogleAuth({ onSuccess, onError }: UseGoogleAuthOptions) {
       }
     }
 
+    // Prevent Turbopack dev error overlay from displaying Google GIS FedCM abort rejections
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      const reason = String(event.reason?.message || event.reason?.stack || event.reason || "");
+      if (
+        reason.includes("AbortError") ||
+        reason.includes("signal is aborted") ||
+        reason.includes("GSI_LOGGER") ||
+        reason.includes("FedCM") ||
+        reason.includes("origin is not allowed")
+      ) {
+        event.preventDefault();
+        if (typeof event.stopImmediatePropagation === "function") {
+          event.stopImmediatePropagation();
+        }
+      }
+    };
+
+    window.addEventListener("unhandledrejection", handleUnhandledRejection);
+
     return () => {
+      window.removeEventListener("unhandledrejection", handleUnhandledRejection);
       try {
         (window as any).google?.accounts?.id?.cancel();
       } catch {
