@@ -874,7 +874,14 @@ exports.getMyOrders = async (req, res, next) => {
 // @access  Private
 exports.getOrderDetails = async (req, res, next) => {
   try {
-    const order = await Order.findOne({ id: req.params.id });
+    const isObjectId = mongoose.Types.ObjectId.isValid(req.params.id);
+    const order = await Order.findOne({
+      $or: [
+        { id: req.params.id },
+        { displayId: req.params.id },
+        ...(isObjectId ? [{ _id: req.params.id }] : [])
+      ]
+    });
     if (!order) {
       return next(new ErrorResponse('Order not found', 404));
     }

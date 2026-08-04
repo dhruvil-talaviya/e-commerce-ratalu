@@ -42,6 +42,7 @@ router.post('/admin/orders/bulk/status', ...adminOnly, bulkUpdateOrderStatus);
 router.post('/admin/orders/bulk/delete', ...adminOnly, bulkDeleteOrders);
 
 router.get('/admin/orders', ...adminOnly, getAdminOrders);
+router.get('/admin/orders/:id', ...adminOnly, getOrderDetails);
 router.get('/admin/orders/:id/invoice', ...adminOnly, getOrderInvoice);
 router.put('/admin/orders/:id/status', ...adminOnly, updateOrderStatus);
 router.put('/admin/orders/:id/courier', ...adminOnly, assignCourier);
