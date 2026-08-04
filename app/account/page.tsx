@@ -58,6 +58,7 @@ import { useLanguage } from "@/components/common/language-provider";
 import { AddressForm } from "@/components/shop/address-form";
 import { Edit2, CheckCircle2 } from "lucide-react";
 import type { Language } from "@/lib/i18n/types";
+import { Logo } from "@/components/layout/logo";
 import { useProducts } from "@/components/shop/product-provider";
 import { useOrders, type Order } from "@/components/shop/order-provider";
 import { getPack, DEFAULT_PACK_ID, PACK_SIZES } from "@/lib/data/products";
@@ -1843,8 +1844,8 @@ function InlineAuthForm() {
           <div className="w-full rounded-3xl border border-amber-200/50 bg-white p-7 sm:p-10 shadow-xl text-center">
             {/* Logo & Welcome Header */}
             <div className="flex flex-col items-center justify-center mb-6">
-              <div className="size-16 rounded-2xl bg-amber-50 flex items-center justify-center mb-4 shadow-sm border border-amber-200/60">
-                <User className="size-8 text-[#4A1942]" />
+              <div className="mb-3 flex justify-center">
+                <Logo className="h-14 sm:h-16 w-auto max-w-[200px] object-contain" />
               </div>
               <h1 className="font-serif text-2xl sm:text-3xl font-black text-[#4A1942] tracking-tight">
                 Welcome to Yamora

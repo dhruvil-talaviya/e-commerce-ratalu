@@ -118,8 +118,8 @@ function LoginGateContent() {
 
         {/* Brand & Heading */}
         <div className="flex flex-col items-center justify-center mb-6">
-          <div className="size-16 rounded-2xl bg-amber-50 flex items-center justify-center mb-4 shadow-sm border border-amber-200/60">
-            <Logo className="h-10 w-auto" />
+          <div className="mb-3 flex justify-center">
+            <Logo className="h-14 sm:h-16 w-auto max-w-[200px] object-contain" />
           </div>
           <h2 className="font-serif text-2xl sm:text-3xl font-black text-[#4A1942] tracking-tight">
             Welcome to Yamora
