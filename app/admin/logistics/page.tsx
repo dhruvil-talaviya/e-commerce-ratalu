@@ -131,13 +131,19 @@ export default function AdminLogisticsPage() {
   React.useEffect(() => {
     fetchDashboardStats();
     fetchLocations();
-  }, [fetchDashboardStats, fetchLocations]);
-
-  React.useEffect(() => {
     if (activeTab === "shipments") {
       fetchShipments();
     }
-  }, [activeTab, fetchShipments]);
+
+    const interval = setInterval(() => {
+      fetchDashboardStats();
+      if (activeTab === "shipments") {
+        fetchShipments();
+      }
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [fetchDashboardStats, fetchLocations, fetchShipments, activeTab]);
 
   // Handle Shipment Actions
   const handleGenerateAWB = async (shipmentId: string) => {
