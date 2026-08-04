@@ -1150,10 +1150,17 @@ function ShiprocketShippingModal({
 
       const awb = res?.awbCode || res?.data?.awbCode;
       const courier = res?.courierName || res?.data?.courierName;
+      const warning = res?.warning || res?.data?.lastError || (res?.message?.includes("AWB") ? res.message : null);
 
-      toast.success("Shiprocket Order & AWB Created!", {
-        description: `AWB: ${awb || "Assigned"} via ${courier || "Shiprocket"}`,
-      });
+      if (!awb) {
+        toast.warning("Shiprocket Order Created (AWB Pending)", {
+          description: warning || "Order created in Shiprocket. Note: Minimum ₹100 Shiprocket wallet balance is required to assign AWB.",
+        });
+      } else {
+        toast.success("Shiprocket Order & AWB Created!", {
+          description: `AWB: ${awb} via ${courier || "Shiprocket"}`,
+        });
+      }
 
       const freshOrder = await apiFetch<Order>(`/admin/orders/${order.id}`).catch(() => null);
       onDone(freshOrder || order);

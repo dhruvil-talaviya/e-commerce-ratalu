@@ -356,7 +356,7 @@ class LogisticsService {
           let ruleReason = options.selectedCourierId ? 'Manually selected by Admin' : 'Auto-selected by rules engine';
 
           const serviceability = await provider.checkServiceability(token, {
-            pickupPincode: defaultPickup?.pinCode || '395006',
+            pickupPincode: defaultPickup?.pinCode || '394130',
             deliveryPincode: order.address?.pincode,
             weight: packageSpecs.chargeableWeightKg,
             cod: isCOD,

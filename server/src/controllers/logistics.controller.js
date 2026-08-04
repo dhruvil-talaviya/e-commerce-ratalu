@@ -339,6 +339,15 @@ exports.createShipment = async (req, res, next) => {
     };
 
     const shipment = await LogisticsService.processOrderPostPayment(orderId, options);
+    if (shipment?.lastError) {
+      sendResponse(res, 200, {
+        success: true,
+        message: `Order created in Shiprocket, but AWB generation failed: ${shipment.lastError}`,
+        data: shipment,
+        warning: shipment.lastError
+      });
+      return;
+    }
     sendResponse(res, 201, { success: true, message: 'Shipment created successfully', data: shipment });
   } catch (error) {
     next(error);

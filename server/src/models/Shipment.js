@@ -24,8 +24,8 @@ const ShipmentSchema = new mongoose.Schema({
   provider: { type: String, default: 'shiprocket' },
 
   // Provider identifiers
-  shiprocketOrderId: { type: Number, index: true },
-  shiprocketShipmentId: { type: Number, index: true },
+  shiprocketOrderId: { type: mongoose.Schema.Types.Mixed, index: true },
+  shiprocketShipmentId: { type: mongoose.Schema.Types.Mixed, index: true },
   awbCode: { type: String, index: true, sparse: true },
 
   // Courier info & ranking metadata
