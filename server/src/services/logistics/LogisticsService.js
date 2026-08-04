@@ -145,13 +145,13 @@ class LogisticsService {
     try {
       const settings = await this.getSettings();
       if (!settings.shiprocket?.enabled && !settings.activeProvider) {
-        return { serviceable: true, rates: [], message: 'Standard shipping available' };
+        return { serviceable: false, couriers: [], message: 'Shiprocket is disabled or not configured in settings' };
       }
       const token = await this.getAuthToken(settings.activeProvider);
       const provider = this.getProvider(settings.activeProvider);
 
       const defaultPickup = settings.pickupLocations.find(l => l.isDefault) || settings.pickupLocations[0];
-      const sourcePincode = pickupPincode || defaultPickup?.pinCode || '395006'; // Default warehouse pincode fallback
+      const sourcePincode = pickupPincode || defaultPickup?.pinCode || '394130'; // Default warehouse pincode fallback (394130)
 
       const result = await provider.checkServiceability(token, {
         pickupPincode: sourcePincode,
@@ -166,7 +166,7 @@ class LogisticsService {
       return result;
     } catch (err) {
       logger.warn(`[LogisticsService] checkServiceability fallback: ${err.message}`);
-      return { serviceable: true, rates: [], message: 'Standard shipping available' };
+      return { serviceable: false, couriers: [], message: err.message || 'Standard shipping available' };
     }
   }
 
@@ -217,7 +217,7 @@ class LogisticsService {
   /**
    * Process Order Fulfillment after Razorpay / COD payment success
    */
-  async processOrderPostPayment(orderId) {
+  async processOrderPostPayment(orderId, options = {}) {
     const order = typeof orderId === 'string' ? await Order.findById(orderId) : orderId;
     if (!order) {
       throw new Error(`Order ${orderId} not found for logistics processing`);
@@ -225,7 +225,7 @@ class LogisticsService {
 
     // Prevent duplicate shipment creation
     const existingShipment = await Shipment.findOne({ order: order._id });
-    if (existingShipment && existingShipment.status !== 'Failed') {
+    if (existingShipment && existingShipment.status !== 'Failed' && !options.forceRecreate) {
       logger.info(`[LogisticsService] Shipment already exists for order ${order.displayId || order.id}`);
       return existingShipment;
     }
@@ -240,7 +240,7 @@ class LogisticsService {
     const provider = this.getProvider(settings.activeProvider);
 
     const defaultPickup = settings.pickupLocations.find(l => l.isDefault) || settings.pickupLocations[0];
-    const pickupLocationName = defaultPickup?.pickupLocation || settings.defaults.defaultPickupLocation;
+    const pickupLocationName = options.pickupLocation || defaultPickup?.pickupLocation || settings.defaults.defaultPickupLocation;
 
     // Build Shiprocket Order Payload
     const nameParts = (order.userName || 'Customer').split(' ');
@@ -257,13 +257,29 @@ class LogisticsService {
       hsn: 2106
     }));
 
-    // Calculate package specs (dead weight, volumetric weight, dimensions) automatically
-    const packageSpecs = buildPackage(order.items, {
+    // Calculate package specs automatically or use custom options
+    const baseSpecs = buildPackage(order.items, {
       tareWeightGrams: settings.defaults.tareWeightGrams || 100,
-      length: settings.defaults.length,
-      breadth: settings.defaults.breadth,
-      height: settings.defaults.height
+      length: options.dimensions?.length || settings.defaults.length,
+      breadth: options.dimensions?.breadth || settings.defaults.breadth,
+      height: options.dimensions?.height || settings.defaults.height
     });
+
+    const finalWeightKg = options.customWeightKg ? Number(options.customWeightKg) : baseSpecs.chargeableWeightKg;
+    const finalLength = options.dimensions?.length ? Number(options.dimensions.length) : baseSpecs.dimensions.length;
+    const finalBreadth = options.dimensions?.breadth ? Number(options.dimensions.breadth) : baseSpecs.dimensions.breadth;
+    const finalHeight = options.dimensions?.height ? Number(options.dimensions.height) : baseSpecs.dimensions.height;
+
+    const packageSpecs = {
+      ...baseSpecs,
+      chargeableWeightKg: finalWeightKg,
+      deadWeightKg: finalWeightKg,
+      dimensions: {
+        length: finalLength,
+        breadth: finalBreadth,
+        height: finalHeight
+      }
+    };
 
     const isCOD = order.payment?.method === 'COD' && settings.defaults.codToggle !== false;
 
@@ -332,9 +348,13 @@ class LogisticsService {
         note: `Shiprocket order #${createRes.shiprocketOrderId} created successfully (${packageSpecs.presetName}, ${packageSpecs.chargeableWeightKg}kg).`
       });
 
-      // 2. Auto-Generate AWB using Shipping Rules Engine if enabled
-      if (settings.defaults.autoGenerateAWB && createRes.shiprocketShipmentId) {
+      // 2. Generate AWB using selected or recommended courier
+      if ((options.selectedCourierId || settings.defaults.autoGenerateAWB) && createRes.shiprocketShipmentId) {
         try {
+          let courierId = options.selectedCourierId ? Number(options.selectedCourierId) : null;
+          let chosenCourier = null;
+          let ruleReason = options.selectedCourierId ? 'Manually selected by Admin' : 'Auto-selected by rules engine';
+
           const serviceability = await provider.checkServiceability(token, {
             pickupPincode: defaultPickup?.pinCode || '395006',
             deliveryPincode: order.address?.pincode,
@@ -345,12 +365,16 @@ class LogisticsService {
             height: packageSpecs.dimensions.height
           });
 
-          // Evaluate couriers with custom shipping rules engine
-          const ruleResult = shippingRulesService.evaluateCouriers(serviceability.couriers, order, packageSpecs, settings);
-          const chosenCourier = ruleResult.selectedCourier;
-          const courierId = chosenCourier?.courierCompanyId || null;
+          if (courierId) {
+            chosenCourier = serviceability.couriers.find(c => Number(c.courierCompanyId) === courierId);
+          } else {
+            const ruleResult = shippingRulesService.evaluateCouriers(serviceability.couriers, order, packageSpecs, settings);
+            chosenCourier = ruleResult.selectedCourier;
+            courierId = chosenCourier?.courierCompanyId || null;
+            ruleReason = ruleResult.reason;
+          }
 
-          logger.info(`[LogisticsService] Generating AWB for shipment #${createRes.shiprocketShipmentId} via ${chosenCourier?.courierName || 'auto'}...`);
+          logger.info(`[LogisticsService] Generating AWB for shipment #${createRes.shiprocketShipmentId} via ${chosenCourier?.courierName || courierId || 'auto'}...`);
           const awbRes = await provider.generateAWB(token, {
             shipmentId: createRes.shiprocketShipmentId,
             courierId

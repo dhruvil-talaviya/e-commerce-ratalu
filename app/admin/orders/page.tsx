@@ -18,6 +18,15 @@ import {
   Edit2,
   AlertCircle,
   Loader2,
+  Star,
+  RefreshCw,
+  Copy,
+  Check,
+  ExternalLink,
+  ShieldCheck,
+  Sparkles,
+  Plane,
+  Calendar,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/components/ui/toast";
@@ -1044,7 +1053,7 @@ function OrdersView() {
  * order has ever carried a tracking number. An order cannot leave the building
  * unnamed: the customer is owed a courier and an AWB.
  */
-function DispatchDialog({
+function ShiprocketShippingModal({
   order,
   onClose,
   onDone,
@@ -1053,29 +1062,119 @@ function DispatchDialog({
   onClose: () => void;
   onDone: (updated: Order) => void;
 }) {
-  const [courierName, setCourierName] = React.useState(order.courierName ?? "");
-  const [trackingNumber, setTrackingNumber] = React.useState(order.trackingNumber ?? "");
-  const [saving, setSaving] = React.useState(false);
+  const [activeTab, setActiveTab] = React.useState<"shiprocket" | "manual">("shiprocket");
 
-  const editing = Boolean(order.trackingNumber);
+  // Dynamic weight calculation based on items (grams + 100g tare)
+  const calculatedGrams = React.useMemo(() => {
+    if (!Array.isArray(order.items) || order.items.length === 0) return 400;
+    return order.items.reduce((sum, item) => sum + ((item.grams || 100) * (item.quantity || 1)), 0);
+  }, [order.items]);
 
-  const submit = async () => {
-    setSaving(true);
+  const defaultWeightKg = Math.max(0.5, Number(((calculatedGrams + 100) / 1000).toFixed(2)));
+
+  const [weight, setWeight] = React.useState(String(defaultWeightKg));
+  const [length, setLength] = React.useState("15");
+  const [breadth, setBreadth] = React.useState("15");
+  const [height, setHeight] = React.useState("10");
+
+  const [checking, setChecking] = React.useState(false);
+  const [couriers, setCouriers] = React.useState<any[]>([]);
+  const [selectedCourierId, setSelectedCourierId] = React.useState<number | null>(null);
+  const [checkError, setCheckError] = React.useState("");
+
+  const [shipping, setShipping] = React.useState(false);
+
+  // Manual fallback input state
+  const [manualCourier, setManualCourier] = React.useState(order.courierName ?? "");
+  const [manualTracking, setManualTracking] = React.useState(order.trackingNumber ?? "");
+  const [manualSaving, setManualSaving] = React.useState(false);
+
+  const fetchRates = React.useCallback(async () => {
+    setChecking(true);
+    setCheckError("");
+    try {
+      const res = await apiFetch<any>("/logistics/check-serviceability", {
+        method: "POST",
+        body: {
+          orderId: order.id,
+          deliveryPincode: order.address?.pincode,
+          weight: Number(weight) || 0.5,
+          length: Number(length) || 15,
+          breadth: Number(breadth) || 15,
+          height: Number(height) || 10,
+          cod: order.payment?.method === "COD",
+        },
+      });
+
+      const list = (res.data?.couriers || []) as any[];
+      setCouriers(list);
+
+      if (list.length > 0) {
+        const recommended = list.find((c) => c.isRecommended) || list.find((c) => c.isCheapest) || list[0];
+        setSelectedCourierId(recommended.courierCompanyId);
+      } else {
+        setCheckError(res.data?.message || `No serviceable couriers found for pincode ${order.address?.pincode || ""}`);
+      }
+    } catch (err: any) {
+      setCheckError(err.message || "Failed to fetch courier serviceability rates");
+    } finally {
+      setChecking(false);
+    }
+  }, [order, weight, length, breadth, height]);
+
+  React.useEffect(() => {
+    fetchRates();
+  }, []);
+
+  const handleShipNow = async () => {
+    if (!selectedCourierId) {
+      toast.error("Please select a courier before shipping");
+      return;
+    }
+
+    setShipping(true);
+    try {
+      const res = await apiFetch<any>("/admin/logistics/shipments/create", {
+        method: "POST",
+        body: {
+          orderId: (order as any)._id || order.id,
+          courierId: selectedCourierId,
+          weight: Number(weight),
+          length: Number(length),
+          breadth: Number(breadth),
+          height: Number(height),
+          forceRecreate: true,
+        },
+      });
+
+      toast.success("Shiprocket Order & AWB Created!", {
+        description: `AWB: ${res.data?.awbCode || "Assigned"} via ${res.data?.courierName || "Shiprocket"}`,
+      });
+
+      const freshOrder = await apiFetch<Order>(`/admin/orders/${order.id}`);
+      onDone(freshOrder || order);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to create Shiprocket shipment");
+    } finally {
+      setShipping(false);
+    }
+  };
+
+  const handleManualSubmit = async () => {
+    setManualSaving(true);
     try {
       const updated = await apiFetch<Order>(`/admin/orders/${order.id}/courier`, {
         method: "PUT",
-        body: { courierName: courierName.trim(), trackingNumber: trackingNumber.trim() },
+        body: { courierName: manualCourier.trim(), trackingNumber: manualTracking.trim() },
       });
-      toast.success(editing ? "Courier details updated" : "Order dispatched", {
-        description: `${courierName.trim()} · ${trackingNumber.trim()}`,
+      toast.success("Courier details saved manually", {
+        description: `${manualCourier.trim()} · ${manualTracking.trim()}`,
       });
       onDone(updated);
-    } catch (err) {
-      toast.error("Could not dispatch", {
-        description: err instanceof Error ? err.message : undefined,
-      });
+    } catch (err: any) {
+      toast.error(err.message || "Failed to save manual courier details");
     } finally {
-      setSaving(false);
+      setManualSaving(false);
     }
   };
 
@@ -1083,44 +1182,247 @@ function DispatchDialog({
     <Modal
       open
       onClose={onClose}
-      title={editing ? "Update courier details" : `Dispatch ${order.displayId || order.id}`}
-      description="The customer sees the courier and tracking number on their order."
-      width="max-w-md"
+      title={`Fulfill Order #${order.displayId || order.id}`}
+      description={`Deliver to ${order.userName} · PIN: ${order.address?.pincode || "395007"}`}
+      width="max-w-2xl"
     >
-      <div className="flex flex-col gap-3.5">
-        <FilterField label="Courier">
-          <input
-            value={courierName}
-            onChange={(e) => setCourierName(e.target.value)}
-            placeholder="Delhivery, Blue Dart, India Post…"
-            className={FIELD_CLASS}
-            autoFocus
-          />
-        </FilterField>
-
-        <FilterField label="Tracking number (AWB)">
-          <input
-            value={trackingNumber}
-            onChange={(e) => setTrackingNumber(e.target.value)}
-            placeholder="e.g. 1234567890"
-            className={cn(FIELD_CLASS, "font-mono")}
-          />
-        </FilterField>
-      </div>
-
-      <div className="mt-5 flex justify-end gap-2 border-t border-gray-100 pt-4">
-        <Button variant="secondary" onClick={onClose} disabled={saving}>
-          Cancel
-        </Button>
-        <Button
-          variant="primary"
-          onClick={submit}
-          disabled={saving || !courierName.trim() || !trackingNumber.trim()}
+      {/* Mode Switcher Tabs */}
+      <div className="flex border-b border-gray-100 mb-4">
+        <button
+          type="button"
+          onClick={() => setActiveTab("shiprocket")}
+          className={cn(
+            "flex items-center gap-1.5 px-4 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer",
+            activeTab === "shiprocket"
+              ? "border-[#5B2C83] text-[#5B2C83] bg-purple-50/50"
+              : "border-transparent text-gray-500 hover:text-gray-800"
+          )}
         >
-          <Truck className="size-3.5" />
-          {saving ? "Saving…" : editing ? "Save details" : "Dispatch order"}
-        </Button>
+          <Truck className="size-4" />
+          <span>Ship via Shiprocket</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("manual")}
+          className={cn(
+            "flex items-center gap-1.5 px-4 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer",
+            activeTab === "manual"
+              ? "border-[#5B2C83] text-[#5B2C83] bg-purple-50/50"
+              : "border-transparent text-gray-500 hover:text-gray-800"
+          )}
+        >
+          <Edit2 className="size-4" />
+          <span>Manual Dispatch Entry</span>
+        </button>
       </div>
+
+      {activeTab === "shiprocket" ? (
+        <div className="space-y-4">
+          {/* Dynamic Package Editor */}
+          <div className="rounded-2xl bg-purple-50/40 p-4 border border-purple-100/80">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-extrabold text-purple-950 flex items-center gap-1.5">
+                <Truck className="size-4 text-purple-700" />
+                Package Dimensions &amp; Weight Editor
+              </span>
+              <span className="text-[11px] font-bold text-purple-700 bg-white px-2 py-0.5 rounded border border-purple-200">
+                Item Weight: {calculatedGrams}g
+              </span>
+            </div>
+            
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              <div>
+                <label className="text-[10px] font-extrabold text-gray-600 uppercase">Weight (kg)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={weight}
+                  onChange={(e) => setWeight(e.target.value)}
+                  className="w-full h-9 rounded-xl border border-gray-200 bg-white px-3 text-xs font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-extrabold text-gray-600 uppercase">Length (cm)</label>
+                <input
+                  type="number"
+                  value={length}
+                  onChange={(e) => setLength(e.target.value)}
+                  className="w-full h-9 rounded-xl border border-gray-200 bg-white px-3 text-xs font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-extrabold text-gray-600 uppercase">Width (cm)</label>
+                <input
+                  type="number"
+                  value={breadth}
+                  onChange={(e) => setBreadth(e.target.value)}
+                  className="w-full h-9 rounded-xl border border-gray-200 bg-white px-3 text-xs font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-extrabold text-gray-600 uppercase">Height (cm)</label>
+                <input
+                  type="number"
+                  value={height}
+                  onChange={(e) => setHeight(e.target.value)}
+                  className="w-full h-9 rounded-xl border border-gray-200 bg-white px-3 text-xs font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                />
+              </div>
+            </div>
+
+            <div className="mt-3 flex justify-end">
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={checking}
+                onClick={fetchRates}
+                className="h-8 text-xs font-bold bg-white hover:bg-gray-50 text-purple-900 border-purple-200"
+              >
+                {checking ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5 text-purple-700" />}
+                Recalculate Courier Rates
+              </Button>
+            </div>
+          </div>
+
+          {checkError && (
+            <div className="rounded-xl bg-amber-50 p-3 text-xs font-semibold text-amber-800 border border-amber-200 flex items-center gap-2">
+              <AlertCircle className="size-4 text-amber-600 shrink-0" />
+              <span>{checkError}</span>
+            </div>
+          )}
+
+          {/* Courier Comparison Table */}
+          <div className="space-y-2">
+            <h4 className="text-xs font-extrabold text-gray-900 flex items-center gap-1.5">
+              <span>Available Couriers ({couriers.length})</span>
+              {order.payment?.method === "COD" && (
+                <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded">COD Order</span>
+              )}
+            </h4>
+
+            {checking ? (
+              <div className="py-12 text-center text-xs text-gray-500">
+                <Loader2 className="size-6 animate-spin mx-auto text-purple-700 mb-2" />
+                Querying Shiprocket live courier rates &amp; serviceability...
+              </div>
+            ) : couriers.length === 0 ? (
+              <div className="py-8 text-center text-xs text-gray-500 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                No courier quotes returned. Ensure Shiprocket settings are connected or try manual dispatch entry.
+              </div>
+            ) : (
+              <div className="max-h-60 overflow-y-auto border border-gray-200 rounded-2xl divide-y divide-gray-100">
+                {couriers.map((c) => {
+                  const selected = selectedCourierId === c.courierCompanyId;
+                  return (
+                    <div
+                      key={c.courierCompanyId}
+                      onClick={() => setSelectedCourierId(c.courierCompanyId)}
+                      className={cn(
+                        "flex items-center justify-between gap-3 p-3 text-xs cursor-pointer transition-colors",
+                        selected ? "bg-purple-50/80 ring-1 ring-purple-500" : "hover:bg-gray-50"
+                      )}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <input
+                          type="radio"
+                          name="courier_choice"
+                          checked={selected}
+                          onChange={() => setSelectedCourierId(c.courierCompanyId)}
+                          className="size-4 text-purple-700 accent-purple-700 cursor-pointer"
+                        />
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-extrabold text-gray-900">{c.courierName}</span>
+                            {c.isRecommended && (
+                              <span className="text-[9px] font-black uppercase text-purple-800 bg-purple-100 px-1.5 py-0.5 rounded border border-purple-200">
+                                ⭐ Recommended
+                              </span>
+                            )}
+                            {c.isCheapest && (
+                              <span className="text-[9px] font-black uppercase text-emerald-800 bg-emerald-100 px-1.5 py-0.5 rounded border border-emerald-200">
+                                🏷️ Cheapest
+                              </span>
+                            )}
+                            {c.isFastest && (
+                              <span className="text-[9px] font-black uppercase text-blue-800 bg-blue-100 px-1.5 py-0.5 rounded border border-blue-200">
+                                ⚡ Fastest
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-gray-500 font-medium mt-0.5">
+                            ETA: <span className="font-bold text-gray-800">{c.estimatedDeliveryDays || 3} days</span> · Rating: <span className="font-bold text-amber-700">⭐ {c.rating || "4.5"}</span>
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <span className="font-black text-sm text-[#4A1942] block">₹{c.rate}</span>
+                        <span className="text-[10px] text-gray-500 font-medium">
+                          {c.codAvailable ? "✅ COD Supported" : "Prepaid Only"}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Action footer */}
+          <div className="flex justify-end gap-2 border-t border-gray-100 pt-4">
+            <Button variant="secondary" onClick={onClose} disabled={shipping}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleShipNow}
+              disabled={shipping || !selectedCourierId}
+              className="bg-[#4A1942] hover:bg-[#381132] font-bold"
+            >
+              {shipping ? <Loader2 className="size-4 animate-spin" /> : <Truck className="size-4" />}
+              <span>{shipping ? "Creating Shipment..." : "Ship Now & Generate AWB"}</span>
+            </Button>
+          </div>
+        </div>
+      ) : (
+        /* Manual Dispatch Entry Tab */
+        <div className="space-y-4 pt-1">
+          <div className="space-y-3">
+            <FilterField label="Courier Name">
+              <input
+                value={manualCourier}
+                onChange={(e) => setManualCourier(e.target.value)}
+                placeholder="e.g. Delhivery, Blue Dart, India Post"
+                className={FIELD_CLASS}
+                autoFocus
+              />
+            </FilterField>
+
+            <FilterField label="Tracking Number (AWB Code)">
+              <input
+                value={manualTracking}
+                onChange={(e) => setManualTracking(e.target.value)}
+                placeholder="e.g. 1234567890"
+                className={cn(FIELD_CLASS, "font-mono")}
+              />
+            </FilterField>
+          </div>
+
+          <div className="flex justify-end gap-2 border-t border-gray-100 pt-4">
+            <Button variant="secondary" onClick={onClose} disabled={manualSaving}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleManualSubmit}
+              disabled={manualSaving || !manualCourier.trim() || !manualTracking.trim()}
+            >
+              {manualSaving ? <Loader2 className="size-4 animate-spin" /> : <Truck className="size-4" />}
+              <span>{manualSaving ? "Saving..." : "Save Manual Dispatch"}</span>
+            </Button>
+          </div>
+        </div>
+      )}
     </Modal>
   );
 }
@@ -1256,7 +1558,7 @@ function OrderDetail({
       )}
 
       {dispatching && (
-        <DispatchDialog
+        <ShiprocketShippingModal
           order={order}
           onClose={() => setDispatching(false)}
           onDone={(updated) => {
@@ -1496,57 +1798,97 @@ function OrderDetail({
         </Card>
       </div>
 
-      {/* Shiprocket Logistics Block */}
-      <Card className="mt-3 p-3.5 bg-amber-50/50 border-amber-200/80">
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-[10px] font-bold text-amber-900 flex items-center gap-1">
-            <Truck className="size-3 text-amber-700" />
-            Shiprocket Logistics Fulfillment
-          </p>
+      {/* Shiprocket Logistics Fulfillment Card & Control Toolbar */}
+      <Card className="mt-3 p-4 bg-purple-50/40 border-purple-200/80 shadow-sm rounded-2xl">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <div className="size-8 rounded-xl bg-purple-100 border border-purple-200 flex items-center justify-center text-[#5B2C83]">
+              <Truck className="size-4" />
+            </div>
+            <div>
+              <h4 className="text-xs font-extrabold text-purple-950">Shiprocket Fulfillment Manager</h4>
+              <p className="text-[10px] text-purple-700 font-medium">Manage couriers, AWB, labels &amp; real-time tracking</p>
+            </div>
+          </div>
+
           {order.trackingNumber && (
-            <span className="text-[10px] font-mono font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded border border-amber-300">
-              AWB: {order.trackingNumber}
-            </span>
+            <div className="flex items-center gap-1.5 bg-purple-100/80 text-purple-900 border border-purple-200 px-2.5 py-1 rounded-xl font-mono text-xs font-bold">
+              <span>AWB: {order.trackingNumber}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(order.trackingNumber || "");
+                  toast.success("AWB Number copied to clipboard!");
+                }}
+                className="hover:text-purple-700 text-purple-600 ml-1"
+                title="Copy AWB"
+              >
+                <Copy className="size-3.5" />
+              </button>
+            </div>
           )}
         </div>
 
-        <div className="grid gap-2 text-[11px] sm:grid-cols-3 mb-3">
-          <div>
-            <span className="text-gray-500">Courier:</span>{" "}
-            <span className="font-bold text-gray-900">{order.courierName || "Not assigned"}</span>
-          </div>
-          <div>
-            <span className="text-gray-500">AWB Code:</span>{" "}
-            <span className="font-mono font-bold text-gray-900">{order.trackingNumber || "Pending"}</span>
-          </div>
-          <div>
-            <span className="text-gray-500">Shipment Status:</span>{" "}
-            <span className="font-bold text-amber-700">{order.status}</span>
+        {/* 9-Stage Shipping Timeline Indicators */}
+        <div className="mb-4 bg-white/80 p-3 rounded-xl border border-purple-100/90">
+          <p className="text-[10px] font-extrabold text-gray-500 uppercase tracking-wider mb-2">Shipment Progress</p>
+          <div className="flex items-center justify-between text-[10px] font-bold text-gray-600 overflow-x-auto gap-2 pb-1">
+            {[
+              { label: "Placed", done: true },
+              { label: "Paid", done: order.payment?.status === "Paid" },
+              { label: "Confirmed", done: ["Confirmed", "Packed", "Shipped", "Delivered"].includes(order.status) },
+              { label: "AWB Assigned", done: Boolean(order.trackingNumber) },
+              { label: "Pickup Scheduled", done: ["Packed", "Shipped", "Delivered"].includes(order.status) },
+              { label: "Shipped", done: ["Shipped", "In Transit", "Delivered"].includes(order.status) },
+              { label: "In Transit", done: ["In Transit", "Out for Delivery", "Delivered"].includes(order.status) },
+              { label: "Delivered", done: order.status === "Delivered" },
+            ].map((step, i) => (
+              <div key={step.label} className="flex items-center gap-1 shrink-0">
+                <span
+                  className={cn(
+                    "size-4 rounded-full flex items-center justify-center text-[9px] font-black",
+                    step.done ? "bg-emerald-500 text-white" : "bg-gray-200 text-gray-500"
+                  )}
+                >
+                  {step.done ? "✓" : i + 1}
+                </span>
+                <span className={cn("whitespace-nowrap", step.done ? "text-emerald-950 font-extrabold" : "text-gray-400")}>
+                  {step.label}
+                </span>
+                {i < 7 && <span className="text-gray-300 ml-1">→</span>}
+              </div>
+            ))}
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-amber-200/60">
+        {/* Shipment Details Summary */}
+        <div className="grid gap-3 text-xs sm:grid-cols-3 mb-4 bg-white p-3 rounded-xl border border-purple-100">
+          <div>
+            <span className="text-gray-500 font-medium block text-[10px] uppercase">Assigned Courier</span>
+            <span className="font-extrabold text-gray-900">{order.courierName || "Not assigned"}</span>
+          </div>
+          <div>
+            <span className="text-gray-500 font-medium block text-[10px] uppercase">Tracking / AWB</span>
+            <span className="font-mono font-extrabold text-gray-900">{order.trackingNumber || "Pending Generation"}</span>
+          </div>
+          <div>
+            <span className="text-gray-500 font-medium block text-[10px] uppercase">Fulfillment Status</span>
+            <span className="font-extrabold text-purple-900 bg-purple-50 px-2 py-0.5 rounded border border-purple-200 inline-block mt-0.5">
+              {order.status}
+            </span>
+          </div>
+        </div>
+
+        {/* Quick Action Toolbar */}
+        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-purple-200/60">
           <Button
-            variant="secondary"
+            variant="primary"
             size="sm"
-            onClick={async () => {
-              if (order.status === "Cancelled" || order.status === "Refund Completed" || order.status === "Refund Approved") {
-                toast.warning("Cannot create shipment for a cancelled or refunded order.");
-                return;
-              }
-              try {
-                await apiFetch("/admin/logistics/shipments/create", {
-                  method: "POST",
-                  body: { orderId: (order as any)._id || order.id }
-                });
-                toast.success("Shiprocket Order Created!");
-                onUpdated({ ...order });
-              } catch (err: any) {
-                toast.error(err.message || "Failed to create shipment");
-              }
-            }}
+            onClick={() => setDispatching(true)}
+            className="bg-[#5B2C83] hover:bg-[#4A1942] font-bold text-xs"
           >
-            Create Shipment
+            <Truck className="size-3.5" />
+            {order.trackingNumber ? "Change Courier / Re-Ship" : "Check Courier Rates & Ship"}
           </Button>
 
           <Button
@@ -1556,14 +1898,33 @@ function OrderDetail({
               try {
                 const res = await apiFetch<any>(`/admin/logistics/shipments/${(order as any)._id || order.id}/document?type=label`);
                 if (res.data?.url) window.open(res.data.url, "_blank");
-                else toast.error("Label URL not available");
+                else toast.error("Shipping Label not generated yet. Ship order first.");
               } catch (err: any) {
                 toast.error(err.message || "Label fetch failed");
               }
             }}
+            className="text-xs font-semibold"
           >
-            <Printer className="size-3.5" />
-            Label
+            <Printer className="size-3.5 text-purple-700" />
+            Print Label
+          </Button>
+
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={async () => {
+              try {
+                const res = await apiFetch<any>(`/admin/logistics/shipments/${(order as any)._id || order.id}/document?type=invoice`);
+                if (res.data?.url) window.open(res.data.url, "_blank");
+                else toast.error("Invoice not generated yet.");
+              } catch (err: any) {
+                toast.error(err.message || "Invoice fetch failed");
+              }
+            }}
+            className="text-xs font-semibold"
+          >
+            <FileText className="size-3.5 text-purple-700" />
+            Download Invoice
           </Button>
 
           <Button
@@ -1573,25 +1934,50 @@ function OrderDetail({
               try {
                 const res = await apiFetch<any>(`/admin/logistics/shipments/${(order as any)._id || order.id}/document?type=manifest`);
                 if (res.data?.url) window.open(res.data.url, "_blank");
-                else toast.error("Manifest URL not available");
+                else toast.error("Manifest not generated yet.");
               } catch (err: any) {
                 toast.error(err.message || "Manifest fetch failed");
               }
             }}
+            className="text-xs font-semibold"
           >
-            <FileText className="size-3.5" />
+            <Download className="size-3.5 text-purple-700" />
             Manifest
           </Button>
 
           {order.trackingNumber && (
-            <a
-              href={`https://shiprocket.co/tracking/${order.trackingNumber}`}
-              target="_blank"
-              rel="noreferrer"
-              className="px-2.5 py-1 text-xs font-semibold bg-amber-500 text-neutral-950 rounded hover:bg-amber-600 transition"
-            >
-              Track on Shiprocket ↗
-            </a>
+            <>
+              <a
+                href={`https://shiprocket.co/tracking/${order.trackingNumber}`}
+                target="_blank"
+                rel="noreferrer"
+                className="px-3 py-1.5 text-xs font-bold bg-amber-500 text-neutral-950 rounded-xl hover:bg-amber-600 transition inline-flex items-center gap-1.5"
+              >
+                <span>Track Package</span>
+                <ExternalLink className="size-3" />
+              </a>
+
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={async () => {
+                  try {
+                    const res = await apiFetch<any>(`/admin/logistics/shipments/${(order as any)._id || order.id}/track`);
+                    toast.success("Shipment status refreshed!", {
+                      description: `Current Status: ${res.data?.status || order.status}`,
+                    });
+                    const freshOrder = await apiFetch<Order>(`/admin/orders/${order.id}`);
+                    onUpdated(freshOrder || order);
+                  } catch (err: any) {
+                    toast.error(err.message || "Status refresh failed");
+                  }
+                }}
+                className="text-xs font-semibold"
+              >
+                <RefreshCw className="size-3.5 text-purple-700" />
+                Refresh Status
+              </Button>
+            </>
           )}
         </div>
       </Card>

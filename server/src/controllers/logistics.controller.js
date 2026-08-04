@@ -328,10 +328,17 @@ exports.getShipments = async (req, res, next) => {
 // @access  Private (Admin)
 exports.createShipment = async (req, res, next) => {
   try {
-    const { orderId } = req.body;
+    const { orderId, courierId, weight, length, breadth, height, forceRecreate } = req.body;
     if (!orderId) return next(new ErrorResponse('orderId is required', 400));
 
-    const shipment = await LogisticsService.processOrderPostPayment(orderId);
+    const options = {
+      selectedCourierId: courierId,
+      customWeightKg: weight,
+      dimensions: (length && breadth && height) ? { length: Number(length), breadth: Number(breadth), height: Number(height) } : undefined,
+      forceRecreate: !!forceRecreate
+    };
+
+    const shipment = await LogisticsService.processOrderPostPayment(orderId, options);
     sendResponse(res, 201, { success: true, message: 'Shipment created successfully', data: shipment });
   } catch (error) {
     next(error);
@@ -423,15 +430,47 @@ exports.retryShipment = async (req, res, next) => {
 // @access  Public
 exports.checkServiceability = async (req, res, next) => {
   try {
-    const { deliveryPincode, weight, cod, pickupPincode } = req.body;
+    let { deliveryPincode, weight, cod, pickupPincode, orderId, length, breadth, height } = req.body;
+
+    if (orderId && !deliveryPincode) {
+      const order = await Order.findById(orderId) || await Order.findOne({ id: orderId });
+      if (order) {
+        deliveryPincode = order.address?.pincode;
+        if (cod === undefined) {
+          cod = order.payment?.method === 'COD';
+        }
+        if (!weight && Array.isArray(order.items)) {
+          const totalGrams = order.items.reduce((sum, item) => sum + ((item.grams || 100) * (item.quantity || 1)), 0);
+          weight = Math.max(0.5, Number(((totalGrams + 100) / 1000).toFixed(2)));
+        }
+      }
+    }
+
     if (!deliveryPincode) return next(new ErrorResponse('deliveryPincode is required', 400));
 
     const result = await LogisticsService.checkServiceability({
       pickupPincode,
       deliveryPincode,
       weight,
-      cod
+      cod,
+      length,
+      breadth,
+      height
     });
+
+    if (result.couriers && result.couriers.length > 0) {
+      const sortedByRate = [...result.couriers].sort((a, b) => (a.rate || 0) - (b.rate || 0));
+      const sortedByEtd = [...result.couriers].sort((a, b) => (a.estimatedDeliveryDays || 99) - (b.estimatedDeliveryDays || 99));
+
+      const cheapestId = sortedByRate[0]?.courierCompanyId;
+      const fastestId = sortedByEtd[0]?.courierCompanyId;
+
+      result.couriers = result.couriers.map(c => ({
+        ...c,
+        isCheapest: c.courierCompanyId === cheapestId,
+        isFastest: c.courierCompanyId === fastestId
+      }));
+    }
 
     sendResponse(res, 200, { success: true, data: result });
   } catch (error) {
