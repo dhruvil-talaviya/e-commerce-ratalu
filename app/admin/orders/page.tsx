@@ -8,6 +8,7 @@ import {
   X,
   Download,
   FileText,
+  Package,
   Truck,
   Trash2,
   Phone,
@@ -1081,16 +1082,37 @@ function ShiprocketShippingModal({
 
   // Dynamic weight calculation based on items (grams + 100g tare)
   const calculatedGrams = React.useMemo(() => {
-    if (!Array.isArray(order.items) || order.items.length === 0) return 400;
-    return order.items.reduce((sum, item) => sum + ((item.grams || 100) * (item.quantity || 1)), 0);
+    if (!Array.isArray(order.items) || order.items.length === 0) return 325;
+    return order.items.reduce((sum, item) => {
+      const itemGrams = Number(item.grams || (item as any).weight || (item as any).weightInGrams) || 150;
+      return sum + (itemGrams * (item.quantity || 1));
+    }, 0);
   }, [order.items]);
 
-  const defaultWeightKg = Math.max(0.5, Number(((calculatedGrams + 100) / 1000).toFixed(2)));
-
-  const [weight, setWeight] = React.useState(String(defaultWeightKg));
   const [length, setLength] = React.useState("15");
   const [breadth, setBreadth] = React.useState("15");
   const [height, setHeight] = React.useState("10");
+
+  // Dead weight in KG
+  const actualKg = Number((calculatedGrams / 1000).toFixed(2));
+
+  // Volumetric weight formula: (L * W * H) / 5000 (standard logistics industry metric)
+  const volumetricKg = React.useMemo(() => {
+    const l = Number(length) || 15;
+    const w = Number(breadth) || 15;
+    const h = Number(height) || 10;
+    return Number(((l * w * h) / 5000).toFixed(2));
+  }, [length, breadth, height]);
+
+  // Billable weight is whichever is higher: actual dead weight or volumetric weight (minimum 0.5kg for logistics)
+  const billableKg = Math.max(actualKg, volumetricKg, 0.5);
+
+  const [weight, setWeight] = React.useState(String(billableKg));
+
+  // Sync weight automatically when items or dimensions change
+  React.useEffect(() => {
+    setWeight(String(billableKg));
+  }, [billableKg]);
 
   const [checking, setChecking] = React.useState(false);
   const [couriers, setCouriers] = React.useState<any[]>([]);
@@ -1244,67 +1266,96 @@ function ShiprocketShippingModal({
 
       {activeTab === "shiprocket" ? (
         <div className="space-y-4">
-          {/* Dynamic Package Editor */}
-          <div className="rounded-2xl bg-purple-50/40 p-4 border border-purple-100/80">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-extrabold text-purple-950 flex items-center gap-1.5">
-                <Truck className="size-4 text-purple-700" />
-                Package Dimensions &amp; Weight Editor
+          {/* Box 1: Dynamic Package & Volumetric Auto-Calculator */}
+          <div className="rounded-2xl border border-purple-200/80 bg-gradient-to-br from-purple-50/70 via-white to-purple-50/30 p-4 shadow-xs">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+              <span className="text-xs font-extrabold text-[#5B2C83] flex items-center gap-1.5">
+                <Package className="size-4 text-[#5B2C83]" />
+                Package Dimensions &amp; Weight Auto-Calculator
               </span>
-              <span className="text-[11px] font-bold text-purple-700 bg-white px-2 py-0.5 rounded border border-purple-200">
-                Item Weight: {calculatedGrams}g
-              </span>
-            </div>
-            
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-              <div>
-                <label className="text-[10px] font-extrabold text-gray-600 uppercase">Weight (kg)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={weight}
-                  onChange={(e) => setWeight(e.target.value)}
-                  className="w-full h-9 rounded-xl border border-gray-200 bg-white px-3 text-xs font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-600"
-                />
-              </div>
-              <div>
-                <label className="text-[10px] font-extrabold text-gray-600 uppercase">Length (cm)</label>
-                <input
-                  type="number"
-                  value={length}
-                  onChange={(e) => setLength(e.target.value)}
-                  className="w-full h-9 rounded-xl border border-gray-200 bg-white px-3 text-xs font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-600"
-                />
-              </div>
-              <div>
-                <label className="text-[10px] font-extrabold text-gray-600 uppercase">Width (cm)</label>
-                <input
-                  type="number"
-                  value={breadth}
-                  onChange={(e) => setBreadth(e.target.value)}
-                  className="w-full h-9 rounded-xl border border-gray-200 bg-white px-3 text-xs font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-600"
-                />
-              </div>
-              <div>
-                <label className="text-[10px] font-extrabold text-gray-600 uppercase">Height (cm)</label>
-                <input
-                  type="number"
-                  value={height}
-                  onChange={(e) => setHeight(e.target.value)}
-                  className="w-full h-9 rounded-xl border border-gray-200 bg-white px-3 text-xs font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-600"
-                />
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[10px] font-extrabold text-purple-950 bg-white px-2 py-0.5 rounded-md border border-purple-200">
+                  Item Net: {calculatedGrams}g
+                </span>
+                <span className="text-[10px] font-extrabold text-purple-900 bg-purple-100/80 px-2 py-0.5 rounded-md border border-purple-200">
+                  Volumetric: {volumetricKg} kg
+                </span>
+                <span className="text-[10px] font-black text-emerald-900 bg-emerald-100 px-2 py-0.5 rounded-md border border-emerald-300">
+                  Billable: {billableKg} kg
+                </span>
               </div>
             </div>
 
-            <div className="mt-3 flex justify-end">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              <div>
+                <label className="text-[10px] font-extrabold text-gray-600 uppercase flex items-center justify-between">
+                  <span>Weight (kg)</span>
+                </label>
+                <div className="relative mt-1">
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={weight}
+                    onChange={(e) => setWeight(e.target.value)}
+                    className="w-full h-9 rounded-xl border border-gray-200 bg-white px-3 pr-8 text-xs font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#5B2C83]/20 focus:border-[#5B2C83]"
+                  />
+                  <span className="absolute right-2.5 top-2 text-[10px] font-bold text-gray-400">kg</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-extrabold text-gray-600 uppercase">Length (cm)</label>
+                <div className="relative mt-1">
+                  <input
+                    type="number"
+                    value={length}
+                    onChange={(e) => setLength(e.target.value)}
+                    className="w-full h-9 rounded-xl border border-gray-200 bg-white px-3 pr-8 text-xs font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#5B2C83]/20 focus:border-[#5B2C83]"
+                  />
+                  <span className="absolute right-2.5 top-2 text-[10px] font-bold text-gray-400">cm</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-extrabold text-gray-600 uppercase">Width (cm)</label>
+                <div className="relative mt-1">
+                  <input
+                    type="number"
+                    value={breadth}
+                    onChange={(e) => setBreadth(e.target.value)}
+                    className="w-full h-9 rounded-xl border border-gray-200 bg-white px-3 pr-8 text-xs font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#5B2C83]/20 focus:border-[#5B2C83]"
+                  />
+                  <span className="absolute right-2.5 top-2 text-[10px] font-bold text-gray-400">cm</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-extrabold text-gray-600 uppercase">Height (cm)</label>
+                <div className="relative mt-1">
+                  <input
+                    type="number"
+                    value={height}
+                    onChange={(e) => setHeight(e.target.value)}
+                    className="w-full h-9 rounded-xl border border-gray-200 bg-white px-3 pr-8 text-xs font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#5B2C83]/20 focus:border-[#5B2C83]"
+                  />
+                  <span className="absolute right-2.5 top-2 text-[10px] font-bold text-gray-400">cm</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-3 flex items-center justify-between pt-1">
+              <span className="text-[11px] font-semibold text-purple-900/80">
+                Formula: <span className="font-mono text-[10px]">Max(Dead Weight, Volumetric: (L×W×H)/5000)</span>
+              </span>
+
               <Button
                 variant="secondary"
                 size="sm"
                 disabled={checking}
                 onClick={fetchRates}
-                className="h-8 text-xs font-bold bg-white hover:bg-gray-50 text-purple-900 border-purple-200"
+                className="h-8 text-xs font-bold bg-white hover:bg-purple-50 text-[#5B2C83] border-purple-200 shadow-2xs"
               >
-                {checking ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5 text-purple-700" />}
+                {checking ? <Loader2 className="size-3.5 animate-spin text-[#5B2C83]" /> : <RefreshCw className="size-3.5 text-[#5B2C83]" />}
                 Recalculate Courier Rates
               </Button>
             </div>
@@ -1317,18 +1368,26 @@ function ShiprocketShippingModal({
             </div>
           )}
 
-          {/* Courier Comparison Table */}
+          {/* Box 2: Premium Available Couriers List */}
           <div className="space-y-2">
-            <h4 className="text-xs font-extrabold text-gray-900 flex items-center gap-1.5">
-              <span>Available Couriers ({couriers.length})</span>
-              {order.payment?.method === "COD" && (
-                <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded">COD Order</span>
-              )}
-            </h4>
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-extrabold text-gray-900 flex items-center gap-2">
+                <span>Available Courier Partners ({couriers.length})</span>
+                {order.payment?.method === "COD" ? (
+                  <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-200">
+                    COD Order
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-200">
+                    Prepaid Order
+                  </span>
+                )}
+              </h4>
+            </div>
 
             {checking ? (
-              <div className="py-12 text-center text-xs text-gray-500">
-                <Loader2 className="size-6 animate-spin mx-auto text-purple-700 mb-2" />
+              <div className="py-12 text-center text-xs text-gray-500 bg-white rounded-2xl border border-gray-200 shadow-2xs">
+                <Loader2 className="size-6 animate-spin mx-auto text-[#5B2C83] mb-2" />
                 Querying Shiprocket live courier rates &amp; serviceability...
               </div>
             ) : couriers.length === 0 ? (
@@ -1336,7 +1395,7 @@ function ShiprocketShippingModal({
                 No courier quotes returned. Ensure Shiprocket settings are connected or try manual dispatch entry.
               </div>
             ) : (
-              <div className="max-h-60 overflow-y-auto border border-gray-200 rounded-2xl divide-y divide-gray-100">
+              <div className="max-h-64 overflow-y-auto space-y-2 pr-1">
                 {couriers.map((c) => {
                   const selected = selectedCourierId === c.courierCompanyId;
                   return (
@@ -1344,46 +1403,48 @@ function ShiprocketShippingModal({
                       key={c.courierCompanyId}
                       onClick={() => setSelectedCourierId(c.courierCompanyId)}
                       className={cn(
-                        "flex items-center justify-between gap-3 p-3 text-xs cursor-pointer transition-colors",
-                        selected ? "bg-purple-50/80 ring-1 ring-purple-500" : "hover:bg-gray-50"
+                        "rounded-2xl border p-3.5 text-xs cursor-pointer transition-all flex items-center justify-between gap-3",
+                        selected
+                          ? "bg-purple-50/90 border-[#5B2C83] ring-2 ring-[#5B2C83]/15 shadow-xs"
+                          : "bg-white border-gray-200 hover:border-purple-200 hover:bg-purple-50/30"
                       )}
                     >
-                      <div className="flex items-center gap-3 min-w-0">
+                      <div className="flex items-start gap-3 min-w-0">
                         <input
                           type="radio"
                           name="courier_choice"
                           checked={selected}
                           onChange={() => setSelectedCourierId(c.courierCompanyId)}
-                          className="size-4 text-purple-700 accent-purple-700 cursor-pointer"
+                          className="mt-0.5 size-4 text-[#5B2C83] accent-[#5B2C83] cursor-pointer shrink-0"
                         />
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-extrabold text-gray-900">{c.courierName}</span>
+                            <span className="font-extrabold text-sm text-gray-900">{c.courierName}</span>
                             {c.isRecommended && (
-                              <span className="text-[9px] font-black uppercase text-purple-800 bg-purple-100 px-1.5 py-0.5 rounded border border-purple-200">
+                              <span className="text-[9px] font-black uppercase text-purple-800 bg-purple-100 px-2 py-0.5 rounded-md border border-purple-200">
                                 ⭐ Recommended
                               </span>
                             )}
                             {c.isCheapest && (
-                              <span className="text-[9px] font-black uppercase text-emerald-800 bg-emerald-100 px-1.5 py-0.5 rounded border border-emerald-200">
+                              <span className="text-[9px] font-black uppercase text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-md border border-emerald-200">
                                 🏷️ Cheapest
                               </span>
                             )}
                             {c.isFastest && (
-                              <span className="text-[9px] font-black uppercase text-blue-800 bg-blue-100 px-1.5 py-0.5 rounded border border-blue-200">
+                              <span className="text-[9px] font-black uppercase text-blue-800 bg-blue-100 px-2 py-0.5 rounded-md border border-blue-200">
                                 ⚡ Fastest
                               </span>
                             )}
                           </div>
-                          <p className="text-[11px] text-gray-500 font-medium mt-0.5">
-                            ETA: <span className="font-bold text-gray-800">{c.estimatedDeliveryDays || 3} days</span> · Rating: <span className="font-bold text-amber-700">⭐ {c.rating || "4.5"}</span>
+                          <p className="text-[11px] text-gray-500 font-medium mt-1">
+                            Estimated Delivery: <span className="font-bold text-gray-900">{c.estimatedDeliveryDays || 3} days</span> · Rating: <span className="font-bold text-amber-700">⭐ {c.rating || "4.8"}</span>
                           </p>
                         </div>
                       </div>
 
                       <div className="text-right shrink-0">
-                        <span className="font-black text-sm text-[#4A1942] block">₹{c.rate}</span>
-                        <span className="text-[10px] text-gray-500 font-medium">
+                        <span className="font-black text-base text-[#5B2C83] block">₹{c.rate}</span>
+                        <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 inline-block mt-0.5">
                           {c.codAvailable ? "✅ COD Supported" : "Prepaid Only"}
                         </span>
                       </div>
@@ -1403,7 +1464,7 @@ function ShiprocketShippingModal({
               variant="primary"
               onClick={handleShipNow}
               disabled={shipping || !selectedCourierId}
-              className="bg-[#4A1942] hover:bg-[#381132] font-bold"
+              className="bg-[#5B2C83] hover:bg-[#4B236E] font-bold text-white shadow-sm"
             >
               {shipping ? <Loader2 className="size-4 animate-spin" /> : <Truck className="size-4" />}
               <span>{shipping ? "Creating Shipment..." : "Ship Now & Generate AWB"}</span>
