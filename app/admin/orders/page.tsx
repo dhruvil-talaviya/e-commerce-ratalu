@@ -1106,7 +1106,7 @@ function ShiprocketShippingModal({
         },
       });
 
-      const list = (res.data?.couriers || []) as any[];
+      const list = (res?.couriers || res?.data?.couriers || []) as any[];
       setCouriers(list);
 
       if (list.length > 0) {
@@ -1114,7 +1114,7 @@ function ShiprocketShippingModal({
         const recommended = list.find((c) => c.isRecommended) || list.find((c) => c.isCheapest) || list[0];
         setSelectedCourierId(recommended.courierCompanyId);
       } else {
-        setCheckError(res.data?.message || `No serviceable couriers found for pincode ${order.address?.pincode || ""}`);
+        setCheckError(res?.message || res?.data?.message || `No serviceable couriers found for pincode ${order.address?.pincode || ""}`);
       }
     } catch (err: any) {
       setCheckError(err.message || "Failed to fetch courier serviceability rates");
@@ -1125,7 +1125,7 @@ function ShiprocketShippingModal({
 
   React.useEffect(() => {
     fetchRates();
-  }, [order.id, fetchRates]);
+  }, [order?.id]);
 
   const handleShipNow = async () => {
     if (!selectedCourierId) {
@@ -1148,8 +1148,11 @@ function ShiprocketShippingModal({
         },
       });
 
+      const awb = res?.awbCode || res?.data?.awbCode;
+      const courier = res?.courierName || res?.data?.courierName;
+
       toast.success("Shiprocket Order & AWB Created!", {
-        description: `AWB: ${res.data?.awbCode || "Assigned"} via ${res.data?.courierName || "Shiprocket"}`,
+        description: `AWB: ${awb || "Assigned"} via ${courier || "Shiprocket"}`,
       });
 
       const freshOrder = await apiFetch<Order>(`/admin/orders/${order.id}`);
@@ -1898,7 +1901,8 @@ function OrderDetail({
             onClick={async () => {
               try {
                 const res = await apiFetch<any>(`/admin/logistics/shipments/${(order as any)._id || order.id}/document?type=label`);
-                if (res.data?.url) window.open(res.data.url, "_blank");
+                const url = res?.url || res?.data?.url;
+                if (url) window.open(url, "_blank");
                 else toast.error("Shipping Label not generated yet. Ship order first.");
               } catch (err: any) {
                 toast.error(err.message || "Label fetch failed");
@@ -1916,7 +1920,8 @@ function OrderDetail({
             onClick={async () => {
               try {
                 const res = await apiFetch<any>(`/admin/logistics/shipments/${(order as any)._id || order.id}/document?type=invoice`);
-                if (res.data?.url) window.open(res.data.url, "_blank");
+                const url = res?.url || res?.data?.url;
+                if (url) window.open(url, "_blank");
                 else toast.error("Invoice not generated yet.");
               } catch (err: any) {
                 toast.error(err.message || "Invoice fetch failed");
@@ -1934,7 +1939,8 @@ function OrderDetail({
             onClick={async () => {
               try {
                 const res = await apiFetch<any>(`/admin/logistics/shipments/${(order as any)._id || order.id}/document?type=manifest`);
-                if (res.data?.url) window.open(res.data.url, "_blank");
+                const url = res?.url || res?.data?.url;
+                if (url) window.open(url, "_blank");
                 else toast.error("Manifest not generated yet.");
               } catch (err: any) {
                 toast.error(err.message || "Manifest fetch failed");
