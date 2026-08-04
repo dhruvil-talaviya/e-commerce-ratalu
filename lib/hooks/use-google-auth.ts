@@ -152,41 +152,66 @@ export function useGoogleAuth({ onSuccess, onError }: UseGoogleAuthOptions) {
     });
   }, []);
 
-  return { signIn };
+  const renderButton = useCallback((container: HTMLElement) => {
+    const google = (window as any).google;
+    if (google?.accounts?.id && container) {
+      google.accounts.id.renderButton(container, {
+        type: "standard",
+        theme: "outline",
+        size: "large",
+        text: "continue_with",
+        shape: "pill",
+        width: 280,
+      });
+    }
+  }, []);
+
+  return { signIn, renderButton };
 }
 
 /**
- * When One Tap prompt is suppressed, render a temporary Google Sign-In button
- * and auto-click it to open the full OAuth popup with consent screen.
+ * When One Tap prompt is suppressed by browser policies, render a clean
+ * Google Sign-In prompt card so the user can click directly.
  */
 function showFallbackButton(google: any) {
-  // Remove any existing fallback container
   const existing = document.getElementById("g_id_signin_fallback");
   if (existing) existing.remove();
 
-  const container = document.createElement("div");
-  container.id = "g_id_signin_fallback";
-  container.style.cssText =
-    "position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:99999;opacity:0;pointer-events:none;";
-  document.body.appendChild(container);
+  const backdrop = document.createElement("div");
+  backdrop.id = "g_id_signin_fallback";
+  backdrop.className = "fixed inset-0 z-[99999] flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-200";
 
-  google.accounts.id.renderButton(container, {
+  const card = document.createElement("div");
+  card.className = "relative flex flex-col items-center gap-4 rounded-3xl bg-white p-6 shadow-2xl border border-purple-100 max-w-xs w-full text-center";
+  
+  const closeBtn = document.createElement("button");
+  closeBtn.innerHTML = "&times;";
+  closeBtn.className = "absolute right-3 top-2 text-xl font-bold text-gray-400 hover:text-gray-700 cursor-pointer";
+  closeBtn.onclick = () => backdrop.remove();
+
+  const title = document.createElement("p");
+  title.className = "text-xs font-bold text-gray-700";
+  title.innerText = "Select your Google Account to sign in:";
+
+  const btnContainer = document.createElement("div");
+  btnContainer.className = "my-1 flex justify-center w-full";
+
+  card.appendChild(closeBtn);
+  card.appendChild(title);
+  card.appendChild(btnContainer);
+  backdrop.appendChild(card);
+  document.body.appendChild(backdrop);
+
+  google.accounts.id.renderButton(btnContainer, {
     type: "standard",
     theme: "outline",
     size: "large",
     text: "continue_with",
-    shape: "rectangular",
-    logo_alignment: "left",
-    width: 300,
+    shape: "pill",
+    width: 260,
   });
 
-  // Auto-click the rendered button after a short delay
-  setTimeout(() => {
-    const btn = container.querySelector('div[role="button"]') as HTMLElement;
-    if (btn) {
-      btn.click();
-    }
-    // Clean up after user interaction
-    setTimeout(() => container.remove(), 60000);
-  }, 150);
+  backdrop.onclick = (e) => {
+    if (e.target === backdrop) backdrop.remove();
+  };
 }

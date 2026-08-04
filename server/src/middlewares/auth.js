@@ -3,6 +3,8 @@ const ErrorResponse = require('../utils/errorResponse');
 const Customer = require('../models/Customer');
 const Admin = require('../models/Admin');
 
+const JWT_SECRET = process.env.JWT_SECRET || 'ratalu_jwt_secret_key_2026_production_xyz';
+
 // Protect routes - Verify JWT and attach user
 const protect = async (req, res, next) => {
   let token;
@@ -16,7 +18,7 @@ const protect = async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET);
     // Always normalize to lowercase — never compare mixed-case strings
     const userRole = String(decoded.role || '').toLowerCase();
 
@@ -50,7 +52,7 @@ const softAuth = async (req, res, next) => {
   if (!header.startsWith('Bearer ')) return next();
 
   try {
-    const decoded = jwt.verify(header.split(' ')[1], process.env.JWT_SECRET);
+    const decoded = jwt.verify(header.split(' ')[1], JWT_SECRET);
 
     if (String(decoded.role || '').toLowerCase() === 'customer') {
       const customer = await Customer.findById(decoded.id);

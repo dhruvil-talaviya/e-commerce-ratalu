@@ -77,15 +77,14 @@ const limitMessage = (message) => ({ success: false, message, data: null });
  *
  * So: key on the user id from the bearer token when there is one, and fall back
  * to the IP for anonymous traffic. Each account gets its own budget, and
- * unauthenticated abuse is still limited per address.
- */
 const jwt = require('jsonwebtoken');
+const JWT_SECRET = process.env.JWT_SECRET || 'ratalu_jwt_secret_key_2026_production_xyz';
 
 const rateKey = (req) => {
   const header = req.headers.authorization || '';
   if (header.startsWith('Bearer ')) {
     try {
-      const decoded = jwt.verify(header.slice(7), process.env.JWT_SECRET);
+      const decoded = jwt.verify(header.slice(7), JWT_SECRET);
       if (decoded?.id) return `user:${decoded.id}`;
     } catch {
       // Expired/forged token — fall through and limit by address.
@@ -99,7 +98,7 @@ const isAdminRequest = (req) => {
   const header = req.headers.authorization || '';
   if (header.startsWith('Bearer ')) {
     try {
-      const decoded = jwt.verify(header.slice(7), process.env.JWT_SECRET);
+      const decoded = jwt.verify(header.slice(7), JWT_SECRET);
       // Always normalize to lowercase before comparing
       const role = decoded?.role?.toLowerCase();
       if (role === 'admin') return true;
