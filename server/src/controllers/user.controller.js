@@ -78,7 +78,13 @@ exports.addAddress = async (req, res, next) => {
       latitude, longitude, accuracy, addressType, tag, isDefault
     } = req.body;
 
-    const addresses = req.user.addresses || [];
+    console.log("Customer ID:", req.user._id);
+    console.log("Before push:", req.user.addresses);
+
+    if (!req.user.addresses) {
+      req.user.addresses = [];
+    }
+    const addresses = req.user.addresses;
     
     // Determine if this address should be default
     const shouldBeDefault = isDefault || addresses.length === 0;
@@ -115,6 +121,8 @@ exports.addAddress = async (req, res, next) => {
       isDefault: shouldBeDefault
     });
 
+    console.log("After push:", req.user.addresses);
+
     const newAddress = req.user.addresses[req.user.addresses.length - 1];
     
     if (shouldBeDefault) {
@@ -122,6 +130,9 @@ exports.addAddress = async (req, res, next) => {
     }
 
     await req.user.save();
+
+    const verify = await Customer.findById(req.user._id);
+    console.log("Saved document:", verify ? verify.addresses : "NOT FOUND");
 
     sendResponse(res, 201, {
       success: true,

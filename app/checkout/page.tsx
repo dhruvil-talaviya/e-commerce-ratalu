@@ -45,24 +45,30 @@ type PayMethod = "Razorpay" | "COD";
 interface PayOption {
   key: PayMethod;
   title: string;
+  subtitle: string;
   description: string;
   badge?: string;
   icon: typeof CreditCard;
+  tags?: string[];
 }
 
 const ALL_PAYMENT_OPTIONS: PayOption[] = [
   {
     key: "Razorpay",
     title: "Pay Online",
-    description: "UPI & QR, cards, net-banking and wallets — secured by Razorpay",
+    subtitle: "Instant & 100% Secured",
+    description: "UPI (Google Pay, PhonePe, Paytm), Cards, NetBanking & Wallets",
     badge: "Recommended",
     icon: CreditCard,
+    tags: ["UPI", "GPay", "PhonePe", "Cards", "NetBanking"],
   },
   {
     key: "COD",
     title: "Cash on Delivery",
-    description: "Pay in cash when your order arrives",
+    subtitle: "Pay at doorstep",
+    description: "Pay with cash or UPI QR code when your order arrives at your address",
     icon: Banknote,
+    tags: ["Cash", "QR at Doorstep"],
   },
 ];
 
@@ -945,20 +951,71 @@ export default function CheckoutPage() {
                         key={option.key}
                         onClick={() => setMethod(option.key)}
                         className={cn(
-                          "flex cursor-pointer items-start gap-4 rounded-2xl border p-4 transition-all",
-                          selected ? "border-purple-600 bg-purple-50/40 ring-1 ring-purple-500" : "border-gray-200 bg-white hover:border-gray-300"
+                          "relative flex cursor-pointer flex-col gap-3 rounded-2xl border p-4 sm:p-5 transition-all duration-200 shadow-2xs select-none",
+                          selected
+                            ? "border-purple-600 bg-gradient-to-r from-purple-50/80 via-purple-50/40 to-white ring-2 ring-purple-600/30 shadow-md"
+                            : "border-gray-200 bg-white hover:border-purple-300 hover:bg-gray-50/50"
                         )}
                       >
-                        <span className={cn("grid size-10 shrink-0 place-items-center rounded-xl", selected ? "bg-[#4A1942] text-white" : "bg-gray-100 text-gray-500")}>
-                          <Icon className="size-5" />
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center justify-between">
-                            <p className="font-bold text-sm text-gray-900">{option.title}</p>
-                            {option.badge && <span className="text-[10px] font-extrabold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-md">{option.badge}</span>}
+                        <div className="flex items-start gap-3.5 sm:gap-4">
+                          {/* Custom Radio Circle */}
+                          <div className="pt-0.5 shrink-0">
+                            <div
+                              className={cn(
+                                "flex size-5 items-center justify-center rounded-full border-2 transition-all",
+                                selected ? "border-purple-700 bg-white" : "border-gray-300 bg-white"
+                              )}
+                            >
+                              {selected && <div className="size-2.5 rounded-full bg-purple-700" />}
+                            </div>
                           </div>
-                          <p className="text-xs text-gray-500 mt-0.5">{option.description}</p>
+
+                          {/* Icon Badge */}
+                          <div
+                            className={cn(
+                              "grid size-10 sm:size-11 shrink-0 place-items-center rounded-2xl transition-all shadow-2xs",
+                              selected
+                                ? "bg-gradient-to-br from-[#4A1942] to-[#5B2C83] text-white shadow-purple-900/20"
+                                : "bg-gray-100 text-gray-500 border border-gray-150"
+                            )}
+                          >
+                            <Icon className="size-5 sm:size-5.5" />
+                          </div>
+
+                          {/* Info & Title */}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center justify-between gap-1.5">
+                              <div className="flex items-center gap-2">
+                                <p className="font-extrabold text-sm sm:text-base text-gray-900">{option.title}</p>
+                                <span className="text-[11px] font-semibold text-purple-700 hidden sm:inline">{option.subtitle}</span>
+                              </div>
+                              {option.badge && (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-purple-800 bg-purple-100/90 border border-purple-200/80 px-2.5 py-0.5 rounded-full shadow-2xs">
+                                  <span className="size-1 rounded-full bg-purple-600 animate-pulse" />
+                                  {option.badge}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-600 mt-1 font-medium leading-relaxed">{option.description}</p>
+                          </div>
                         </div>
+
+                        {/* Selected Details Expansion */}
+                        {selected && (
+                          <div className="mt-1 pt-3 border-t border-purple-100/80 flex flex-wrap items-center justify-between gap-2 animate-in fade-in slide-in-from-top-1 duration-150">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              {option.tags?.map((t) => (
+                                <span key={t} className="text-[10px] font-bold text-gray-700 bg-white border border-gray-200/80 px-2 py-0.5 rounded-md shadow-2xs">
+                                  {t}
+                                </span>
+                              ))}
+                            </div>
+                            <span className="text-[11px] font-bold text-emerald-700 flex items-center gap-1">
+                              <ShieldCheck className="size-3.5 text-emerald-600 shrink-0" />
+                              {option.key === "Razorpay" ? "Secured by 256-bit Encryption" : "Verified Doorstep Delivery"}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
