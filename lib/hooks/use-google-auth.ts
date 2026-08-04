@@ -56,6 +56,31 @@ function decodeJwtPayload(token: string): Record<string, unknown> {
  * 4. Google returns a credential (JWT ID token)
  * 5. onSuccess is called with the user's real email, name, avatar
  */
+if (typeof window !== "undefined") {
+  const isGsiError = (msg: string) =>
+    msg.includes("GSI_LOGGER") ||
+    msg.includes("FedCM") ||
+    msg.includes("AbortError") ||
+    msg.includes("signal is aborted") ||
+    msg.includes("origin is not allowed");
+
+  window.addEventListener("unhandledrejection", (e) => {
+    const msg = String(e.reason?.message || e.reason?.stack || e.reason || "");
+    if (isGsiError(msg)) {
+      e.preventDefault();
+      if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+    }
+  }, true);
+
+  window.addEventListener("error", (e) => {
+    const msg = String(e.message || e.error || "");
+    if (isGsiError(msg)) {
+      e.preventDefault();
+      if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+    }
+  }, true);
+}
+
 export function useGoogleAuth({ onSuccess, onError }: UseGoogleAuthOptions) {
   const initializedRef = useRef(false);
   const callbackRef = useRef(onSuccess);
@@ -124,27 +149,7 @@ export function useGoogleAuth({ onSuccess, onError }: UseGoogleAuthOptions) {
       }
     }
 
-    // Prevent Turbopack dev error overlay from displaying Google GIS FedCM abort rejections
-    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-      const reason = String(event.reason?.message || event.reason?.stack || event.reason || "");
-      if (
-        reason.includes("AbortError") ||
-        reason.includes("signal is aborted") ||
-        reason.includes("GSI_LOGGER") ||
-        reason.includes("FedCM") ||
-        reason.includes("origin is not allowed")
-      ) {
-        event.preventDefault();
-        if (typeof event.stopImmediatePropagation === "function") {
-          event.stopImmediatePropagation();
-        }
-      }
-    };
-
-    window.addEventListener("unhandledrejection", handleUnhandledRejection);
-
     return () => {
-      window.removeEventListener("unhandledrejection", handleUnhandledRejection);
       try {
         (window as any).google?.accounts?.id?.cancel();
       } catch {
@@ -162,14 +167,7 @@ export function useGoogleAuth({ onSuccess, onError }: UseGoogleAuthOptions) {
       return;
     }
 
-    // Show the Google One Tap / account picker popup
-    google.accounts.id.prompt((notification: any) => {
-      if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-        // One Tap was suppressed (e.g. user dismissed before, or browser blocked it).
-        // Fall back to a rendered Google Sign-In button that triggers the full popup.
-        showFallbackButton(google);
-      }
-    });
+    google.accounts.id.prompt();
   }, []);
 
   const renderButton = useCallback((container: HTMLElement) => {
@@ -187,51 +185,4 @@ export function useGoogleAuth({ onSuccess, onError }: UseGoogleAuthOptions) {
   }, []);
 
   return { signIn, renderButton };
-}
-
-/**
- * When One Tap prompt is suppressed by browser policies, render a clean
- * Google Sign-In prompt card so the user can click directly.
- */
-function showFallbackButton(google: any) {
-  const existing = document.getElementById("g_id_signin_fallback");
-  if (existing) existing.remove();
-
-  const backdrop = document.createElement("div");
-  backdrop.id = "g_id_signin_fallback";
-  backdrop.className = "fixed inset-0 z-[99999] flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-200";
-
-  const card = document.createElement("div");
-  card.className = "relative flex flex-col items-center gap-4 rounded-3xl bg-white p-6 shadow-2xl border border-purple-100 max-w-xs w-full text-center";
-  
-  const closeBtn = document.createElement("button");
-  closeBtn.innerHTML = "&times;";
-  closeBtn.className = "absolute right-3 top-2 text-xl font-bold text-gray-400 hover:text-gray-700 cursor-pointer";
-  closeBtn.onclick = () => backdrop.remove();
-
-  const title = document.createElement("p");
-  title.className = "text-xs font-bold text-gray-700";
-  title.innerText = "Select your Google Account to sign in:";
-
-  const btnContainer = document.createElement("div");
-  btnContainer.className = "my-1 flex justify-center w-full";
-
-  card.appendChild(closeBtn);
-  card.appendChild(title);
-  card.appendChild(btnContainer);
-  backdrop.appendChild(card);
-  document.body.appendChild(backdrop);
-
-  google.accounts.id.renderButton(btnContainer, {
-    type: "standard",
-    theme: "outline",
-    size: "large",
-    text: "continue_with",
-    shape: "pill",
-    width: 260,
-  });
-
-  backdrop.onclick = (e) => {
-    if (e.target === backdrop) backdrop.remove();
-  };
 }
