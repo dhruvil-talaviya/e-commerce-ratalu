@@ -1611,17 +1611,26 @@ exports.bulkDeleteOrders = async (req, res, next) => {
 // @access  Private (Admin)
 exports.getOrderFilterOptions = async (req, res, next) => {
   try {
-    const [cities, states, methods, partners] = await Promise.all([
+    const [cities, states, methods, partners, statusCountsRaw] = await Promise.all([
       Order.distinct('address.city'),
       Order.distinct('address.state'),
       Order.distinct('payment.method'),
-      Order.distinct('courierName')
+      Order.distinct('courierName'),
+      Order.aggregate([
+        { $group: { _id: '$status', count: { $sum: 1 } } }
+      ])
     ]);
+
+    const statusCounts = {};
+    statusCountsRaw.forEach(item => {
+      if (item._id) statusCounts[item._id] = item.count;
+    });
 
     sendResponse(res, 200, {
       success: true,
       data: {
         statuses: Order.schema.path('status').enumValues,
+        statusCounts,
         paymentStatuses: ['Pending', 'Paid', 'Failed', 'Refunded'],
         paymentMethods: methods.filter(Boolean).sort(),
         partners: partners.filter(Boolean).sort(),

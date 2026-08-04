@@ -61,6 +61,7 @@ import type { Order } from "@/components/shop/order-provider";
 
 interface FilterOptions {
   statuses: string[];
+  statusCounts?: Record<string, number>;
   paymentStatuses: string[];
   paymentMethods: string[];
   cities: string[];
@@ -551,7 +552,7 @@ function OrdersView() {
         >
           <span className="text-[10px] font-semibold text-amber-700">Pending Hold</span>
           <span className="mt-1 text-lg font-extrabold text-amber-950">
-            {orders.filter((o) => (o.status as string) === "Pending Confirmation" || o.status === "Pending").length}
+            {options?.statusCounts ? (options.statusCounts["Pending Confirmation"] || 0) + (options.statusCounts["Pending"] || 0) : orders.filter((o) => (o.status as string) === "Pending Confirmation" || o.status === "Pending").length}
           </span>
         </button>
 
@@ -566,7 +567,7 @@ function OrdersView() {
         >
           <span className="text-[10px] font-semibold text-emerald-700">Confirmed</span>
           <span className="mt-1 text-lg font-extrabold text-emerald-950">
-            {orders.filter((o) => o.status === "Confirmed").length}
+            {options?.statusCounts ? (options.statusCounts["Confirmed"] || 0) : orders.filter((o) => o.status === "Confirmed").length}
           </span>
         </button>
 
@@ -581,7 +582,7 @@ function OrdersView() {
         >
           <span className="text-[10px] font-semibold text-amber-700">Preparing</span>
           <span className="mt-1 text-lg font-extrabold text-amber-950">
-            {orders.filter((o) => o.status === "Preparing").length}
+            {options?.statusCounts ? (options.statusCounts["Preparing"] || 0) : orders.filter((o) => o.status === "Preparing").length}
           </span>
         </button>
 
@@ -596,7 +597,7 @@ function OrdersView() {
         >
           <span className="text-[10px] font-semibold text-blue-700">Packed</span>
           <span className="mt-1 text-lg font-extrabold text-blue-950">
-            {orders.filter((o) => o.status === "Packed").length}
+            {options?.statusCounts ? (options.statusCounts["Packed"] || 0) : orders.filter((o) => o.status === "Packed").length}
           </span>
         </button>
 
@@ -611,7 +612,7 @@ function OrdersView() {
         >
           <span className="text-[10px] font-semibold text-indigo-700">Ready To Ship</span>
           <span className="mt-1 text-lg font-extrabold text-indigo-950">
-            {orders.filter((o) => o.status === "Ready to Ship").length}
+            {options?.statusCounts ? (options.statusCounts["Ready to Ship"] || 0) : orders.filter((o) => o.status === "Ready to Ship").length}
           </span>
         </button>
 
@@ -626,7 +627,7 @@ function OrdersView() {
         >
           <span className="text-[10px] font-semibold text-purple-700">Shipped</span>
           <span className="mt-1 text-lg font-extrabold text-purple-950">
-            {orders.filter((o) => o.status === "Shipped" || o.status === "Out for Delivery").length}
+            {options?.statusCounts ? (options.statusCounts["Shipped"] || 0) + (options.statusCounts["Out for Delivery"] || 0) : orders.filter((o) => o.status === "Shipped" || o.status === "Out for Delivery").length}
           </span>
         </button>
 
@@ -641,7 +642,7 @@ function OrdersView() {
         >
           <span className="text-[10px] font-semibold text-green-700">Delivered</span>
           <span className="mt-1 text-lg font-extrabold text-green-950">
-            {orders.filter((o) => o.status === "Delivered" || (o.status as string) === "Completed").length}
+            {options?.statusCounts ? (options.statusCounts["Delivered"] || 0) + (options.statusCounts["Completed"] || 0) : orders.filter((o) => o.status === "Delivered" || (o.status as string) === "Completed").length}
           </span>
         </button>
 
@@ -656,7 +657,7 @@ function OrdersView() {
         >
           <span className="text-[10px] font-semibold text-rose-700">Cancelled</span>
           <span className="mt-1 text-lg font-extrabold text-rose-950">
-            {orders.filter((o) => o.status === "Cancelled").length}
+            {options?.statusCounts ? (options.statusCounts["Cancelled"] || 0) : orders.filter((o) => o.status === "Cancelled").length}
           </span>
         </button>
 
@@ -671,7 +672,7 @@ function OrdersView() {
         >
           <span className="text-[10px] font-semibold text-slate-600">Refunded</span>
           <span className="mt-1 text-lg font-extrabold text-slate-900">
-            {orders.filter((o) => ["Refunded", "Refund Completed", "Refund Processing"].includes(o.status)).length}
+            {options?.statusCounts ? (options.statusCounts["Refunded"] || 0) + (options.statusCounts["Refund Completed"] || 0) + (options.statusCounts["Refund Processing"] || 0) : orders.filter((o) => ["Refunded", "Refund Completed", "Refund Processing"].includes(o.status)).length}
           </span>
         </button>
 
@@ -686,7 +687,7 @@ function OrdersView() {
         >
           <span className="text-[10px] font-semibold text-amber-700">Expired / Failed</span>
           <span className="mt-1 text-lg font-extrabold text-amber-950">
-            {orders.filter((o) => (o.status as string) === "Expired" || (o.status as string) === "Payment Failed" || (o.status as string) === "Payment Pending" || o.status === "Pending").length}
+            {options?.statusCounts ? (options.statusCounts["Expired"] || 0) + (options.statusCounts["Payment Failed"] || 0) : orders.filter((o) => (o.status as string) === "Expired" || (o.status as string) === "Payment Failed" || (o.status as string) === "Payment Pending" || o.status === "Pending").length}
           </span>
         </button>
       </div>
@@ -711,19 +712,33 @@ function OrdersView() {
 
           {statusTabs.map((s) => {
             const active = filters.status === s.value;
+            const count = s.value
+              ? (options?.statusCounts?.[s.value] ?? 0)
+              : totalRecords;
+
             return (
               <button
                 key={s.value || "all"}
                 onClick={() => setFilter("status", s.value)}
                 aria-pressed={active}
                 className={cn(
-                  "whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-bold transition-colors",
+                  "whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer",
                   active
-                    ? "bg-[#5B2C83] text-white shadow-sm"
+                    ? "bg-[#5B2C83] text-white shadow-xs ring-2 ring-[#5B2C83]/20"
                     : "border border-[#E5E7EB] bg-white text-[#6B7280] hover:border-[#5B2C83]/40 hover:text-[#111827]"
                 )}
               >
-                {s.label}
+                <span>{s.label}</span>
+                <span
+                  className={cn(
+                    "px-1.5 py-0.5 rounded-full text-[10px] font-black",
+                    active
+                      ? "bg-white/20 text-white"
+                      : "bg-gray-100 text-gray-600"
+                  )}
+                >
+                  {count}
+                </span>
               </button>
             );
           })}
@@ -1518,32 +1533,40 @@ function OrderDetail({
           onClose={() => setShowOverrideModal(false)}
           title="Super Admin Status Override"
           description={`Override lifecycle constraints for Order #${order.displayId || order.id}`}
-          width="max-w-md"
+          width="max-w-lg"
         >
           <div className="space-y-4 py-2">
-            <div className="space-y-1">
-              <label className="text-[11px] font-bold text-gray-500">Target Status</label>
-              <select
-                value={overrideStatus}
-                onChange={(e) => setOverrideStatus(e.target.value)}
-                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-red-500/20"
-              >
-                <option value="">Select status...</option>
+            <div className="space-y-2">
+              <label className="text-[11px] font-extrabold uppercase tracking-wider text-gray-600 block">Select Target Status</label>
+              <div className="max-h-56 overflow-y-auto pr-1 grid grid-cols-2 gap-1.5 border border-gray-200 rounded-2xl p-2 bg-gray-50/50">
                 {['Pending', 'Confirmed', 'Preparing', 'Packed', 'Ready to Ship', 'Assigned to Logistics', 'Shipped', 'Out for Delivery', 'Delivered', 'Cancelled', 'Returned', 'Refund Requested', 'Refund Approved', 'Refund Completed', 'Payment Failed', 'Expired']
                   .filter(s => s !== effectiveStatus)
                   .map(s => (
-                    <option key={s} value={s}>{s}</option>
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setOverrideStatus(s)}
+                      className={cn(
+                        "flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all text-left border cursor-pointer",
+                        overrideStatus === s
+                          ? "bg-[#5B2C83] text-white border-[#5B2C83] shadow-xs"
+                          : "bg-white text-gray-800 border-gray-200 hover:border-purple-300 hover:bg-purple-50/40"
+                      )}
+                    >
+                      <span>{s}</span>
+                      {overrideStatus === s && <CheckCircle2 className="size-3.5 shrink-0 text-white" />}
+                    </button>
                   ))}
-              </select>
+              </div>
             </div>
 
             <div className="space-y-1">
-              <label className="text-[11px] font-bold text-gray-500">Override Reason</label>
+              <label className="text-[11px] font-extrabold uppercase tracking-wider text-gray-600">Override Reason (Audit Log)</label>
               <textarea
                 value={overrideReason}
                 onChange={(e) => setOverrideReason(e.target.value)}
-                placeholder="Why is this status override necessary?"
-                className="h-20 w-full rounded-lg border border-gray-200 bg-white p-2.5 text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-red-500/20"
+                placeholder="Reason for overriding lifecycle safety rules..."
+                className="h-20 w-full rounded-xl border border-gray-200 bg-white p-3 text-xs font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-500/20"
               />
             </div>
 
@@ -1554,7 +1577,7 @@ function OrderDetail({
               <Button
                 variant="primary"
                 size="sm"
-                className="bg-red-600 hover:bg-red-700 text-white"
+                className="bg-red-600 hover:bg-red-700 text-white font-bold"
                 disabled={!overrideStatus || !overrideReason.trim() || busy}
                 onClick={async () => {
                   onStatus(order, overrideStatus, overrideReason);
