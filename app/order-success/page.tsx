@@ -29,6 +29,8 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/toast";
 import { formatINR } from "@/lib/utils";
 import { apiFetch } from "@/lib/api";
+import { useStoreSettings } from "@/components/common/settings-provider";
+import { SITE } from "@/lib/constants";
 
 interface OrderDetail {
   id: string;
@@ -74,6 +76,7 @@ interface OrderDetail {
 }
 
 function OrderSuccessContent() {
+  const { settings } = useStoreSettings();
   const searchParams = useSearchParams();
   const orderId = searchParams.get("orderId");
 
@@ -122,11 +125,17 @@ function OrderSuccessContent() {
   }
 
   const displayId = order?.displayId || order?.id || orderId || "";
+  const supportEmail = settings?.supportEmail?.trim() || SITE.email || "support@yamorawafers.com";
+  
+  const rawWa = (settings?.whatsappNumber || "9825000000").replace(/\D/g, "");
+  const cc = (settings?.whatsappCountryCode || "91").replace(/\D/g, "");
+  const waNo = rawWa.startsWith(cc) ? rawWa : `${cc}${rawWa}`;
+  const waMsg = encodeURIComponent(`Hi Yamora Wafers, I need help with my order #${displayId}`);
+  const whatsappUrl = `https://wa.me/${waNo}?text=${waMsg}`;
 
   return (
-    <div className="min-h-[90vh] bg-gradient-to-b from-[#FDF8F0] via-purple-50/20 to-white py-8 sm:py-14 px-4 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-3xl">
-        {/* Main Success Container */}
+    <div className="min-h-screen bg-[#FDF8F0] py-8 sm:py-14">
+      <div className="container-px mx-auto max-w-3xl px-4 sm:px-6">
         <motion.div
           initial={{ opacity: 0, y: 24, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -158,22 +167,19 @@ function OrderSuccessContent() {
             </p>
 
             {/* Order ID Pill with Copy button */}
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-              <span className="text-xs text-gray-500 font-medium">Order Number:</span>
-              <button
-                type="button"
-                onClick={() => handleCopyId(displayId)}
-                title="Click to copy Order ID"
-                className="group flex items-center gap-2 rounded-2xl border border-purple-200 bg-purple-50/70 hover:bg-purple-100/80 px-3.5 py-1.5 text-xs font-mono font-extrabold text-[#5B2C83] transition-all cursor-pointer shadow-2xs"
-              >
-                <span>#{displayId}</span>
-                {copied ? (
-                  <Check className="size-3.5 text-emerald-600" />
-                ) : (
-                  <Copy className="size-3.5 text-purple-600 group-hover:scale-110 transition-transform" />
-                )}
-              </button>
-            </div>
+            {displayId && (
+              <div className="mt-5 flex items-center justify-center gap-2">
+                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Order Reference:</span>
+                <button
+                  type="button"
+                  onClick={() => handleCopyId(displayId)}
+                  className="font-mono font-black text-sm text-[#5B2C83] bg-purple-50 hover:bg-purple-100 px-3.5 py-1.5 rounded-2xl border border-purple-200 shadow-2xs transition-all flex items-center gap-2 cursor-pointer active:scale-95"
+                >
+                  <span>#{displayId}</span>
+                  {copied ? <Check className="size-3.5 text-emerald-600" /> : <Copy className="size-3.5 text-purple-600" />}
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Live Order Stepper Timeline */}
