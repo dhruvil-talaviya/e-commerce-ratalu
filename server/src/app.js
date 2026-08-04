@@ -77,6 +77,8 @@ const limitMessage = (message) => ({ success: false, message, data: null });
  *
  * So: key on the user id from the bearer token when there is one, and fall back
  * to the IP for anonymous traffic. Each account gets its own budget, and
+ * unauthenticated abuse is still limited per address.
+ */
 const jwt = require('jsonwebtoken');
 const JWT_SECRET = process.env.JWT_SECRET || 'ratalu_jwt_secret_key_2026_production_xyz';
 
