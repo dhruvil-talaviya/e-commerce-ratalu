@@ -1884,34 +1884,6 @@ function InlineAuthForm() {
                 )}
               </button>
 
-              {showEmailForm ? (
-                <form onSubmit={handleEmailSubmit} className="space-y-3 pt-1">
-                  <input
-                    type="email"
-                    placeholder="Enter your email address"
-                    value={emailInput}
-                    onChange={(e) => setEmailInput(e.target.value)}
-                    required
-                    className="w-full h-11 px-4 text-xs font-semibold text-gray-800 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-600 focus:bg-white transition-all"
-                  />
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full h-11 rounded-xl bg-purple-900 hover:bg-purple-950 text-white text-xs font-bold shadow-xs transition-all disabled:opacity-60 cursor-pointer"
-                  >
-                    {loading ? <Loader2 className="size-4 animate-spin mx-auto" /> : "Sign In with Email"}
-                  </button>
-                </form>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setShowEmailForm(true)}
-                  className="text-xs font-bold text-purple-700 hover:text-purple-900 hover:underline transition-all cursor-pointer block mx-auto pt-1"
-                >
-                  Or sign in with Email address &rarr;
-                </button>
-              )}
-
               <p className="text-[11px] text-gray-500 font-medium leading-normal px-2 pt-2">
                 By continuing you agree to our{" "}
                 <Link href="/policies/terms" className="text-purple-900 font-bold underline hover:text-purple-950">

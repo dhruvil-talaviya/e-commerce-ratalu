@@ -1,3 +1,4 @@
+const jwt = require('jsonwebtoken');
 const JWT_SECRET = process.env.JWT_SECRET || 'ratalu_jwt_secret_key_2026_production_xyz';
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'ratalu_refresh_secret_key_2026_xyz';
 
