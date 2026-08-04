@@ -103,6 +103,7 @@ export function useGoogleAuth({ onSuccess, onError }: UseGoogleAuthOptions) {
         callback: handleCredentialResponse,
         auto_select: false,
         cancel_on_tap_outside: true,
+        use_fedcm_for_prompt: false,
         ux_mode: "popup",
       });
     }
@@ -122,6 +123,14 @@ export function useGoogleAuth({ onSuccess, onError }: UseGoogleAuthOptions) {
         errorRef.current?.("Failed to process Google credentials.");
       }
     }
+
+    return () => {
+      try {
+        (window as any).google?.accounts?.id?.cancel();
+      } catch {
+        // Ignore unmount cancel error
+      }
+    };
   }, []);
 
   const signIn = useCallback(() => {
