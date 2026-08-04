@@ -324,29 +324,38 @@ class LogisticsService {
     });
 
     try {
-      // 1. Create Shiprocket Order
-      logger.info(`[LogisticsService] Creating Shiprocket order for ${order.displayId || order.id}...`);
-      const createRes = await provider.createOrder(token, shiprocketOrderPayload);
-      
-      shipmentDoc.shiprocketOrderId = createRes.shiprocketOrderId;
-      shipmentDoc.shiprocketShipmentId = createRes.shiprocketShipmentId;
-      shipmentDoc.status = 'Confirmed';
-      shipmentDoc.queueStatus = 'idle';
-      shipmentDoc.retryCount = 0;
-      shipmentDoc.apiLogs.push({
-        action: 'create_order',
-        request: shiprocketOrderPayload,
-        response: createRes,
-        status: 'success'
-      });
+      let createRes = {
+        shiprocketOrderId: shipmentDoc.shiprocketOrderId,
+        shiprocketShipmentId: shipmentDoc.shiprocketShipmentId
+      };
 
-      // Update Order Status
-      order.status = 'Confirmed';
-      order.timeline.push({
-        status: 'Confirmed',
-        time: new Date(),
-        note: `Shiprocket order #${createRes.shiprocketOrderId} created successfully (${packageSpecs.presetName}, ${packageSpecs.chargeableWeightKg}kg).`
-      });
+      // 1. Create Shiprocket Order (if not already created)
+      if (!shipmentDoc.shiprocketShipmentId) {
+        logger.info(`[LogisticsService] Creating Shiprocket order for ${order.displayId || order.id}...`);
+        createRes = await provider.createOrder(token, shiprocketOrderPayload);
+
+        shipmentDoc.shiprocketOrderId = createRes.shiprocketOrderId;
+        shipmentDoc.shiprocketShipmentId = createRes.shiprocketShipmentId;
+        shipmentDoc.status = 'Confirmed';
+        shipmentDoc.queueStatus = 'idle';
+        shipmentDoc.retryCount = 0;
+        shipmentDoc.apiLogs.push({
+          action: 'create_order',
+          request: shiprocketOrderPayload,
+          response: createRes,
+          status: 'success'
+        });
+
+        // Update Order Status
+        order.status = 'Confirmed';
+        order.timeline.push({
+          status: 'Confirmed',
+          time: new Date(),
+          note: `Shiprocket order #${createRes.shiprocketOrderId} created successfully (${packageSpecs.presetName}, ${packageSpecs.chargeableWeightKg}kg).`
+        });
+      } else {
+        logger.info(`[LogisticsService] Order ${order.displayId || order.id} already exists in Shiprocket (Shipment #${shipmentDoc.shiprocketShipmentId}). Proceeding to AWB generation...`);
+      }
 
       // 2. Generate AWB using selected or recommended courier
       if ((options.selectedCourierId || settings.defaults.autoGenerateAWB) && createRes.shiprocketShipmentId) {
