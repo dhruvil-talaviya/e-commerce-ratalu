@@ -162,18 +162,31 @@ exports.updateAddress = async (req, res, next) => {
           addr.isDefault = false;
         }
       });
-    address.street = street.trim();
-    address.area = area.trim();
-    address.landmark = (landmark || '').trim();
-    address.city = city.trim();
-    address.state = state.trim();
-    address.country = country || 'India';
-    address.pinCode = pinCode.trim();
+    }
+
+    const finalPinCode = String(pinCode || pincode || address.pinCode).trim();
+    const finalType = addressType || tag || address.addressType || 'Home';
+
+    if (fullName) address.fullName = String(fullName).trim();
+    if (phone) address.phone = String(phone).trim();
+    if (houseNo) address.houseNo = String(houseNo).trim();
+    if (building !== undefined) address.building = String(building).trim();
+    if (street) address.street = String(street).trim();
+    if (area) address.area = String(area).trim();
+    if (landmark !== undefined) address.landmark = String(landmark).trim();
+    if (city) address.city = String(city).trim();
+    if (state) address.state = String(state).trim();
+    if (country) address.country = String(country).trim();
+    address.pinCode = finalPinCode;
+    address.addressType = finalType;
     if (latitude !== undefined) address.latitude = latitude;
     if (longitude !== undefined) address.longitude = longitude;
     if (accuracy !== undefined) address.accuracy = accuracy;
-    address.addressType = addressType || 'Home';
-    address.isDefault = shouldBeDefault;
+    if (isDefault !== undefined) address.isDefault = Boolean(isDefault);
+
+    if (address.isDefault) {
+      req.user.activeAddressId = address._id.toString();
+    }
 
     await req.user.save();
 
