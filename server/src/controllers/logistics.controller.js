@@ -432,6 +432,8 @@ exports.checkServiceability = async (req, res, next) => {
   try {
     let { deliveryPincode, weight, cod, pickupPincode, orderId, length, breadth, height } = req.body;
 
+    logger.info(`[checkServiceability REQ] body: ${JSON.stringify(req.body)}`);
+
     if (orderId && !deliveryPincode) {
       const order = await Order.findById(orderId) || await Order.findOne({ id: orderId });
       if (order) {
@@ -457,6 +459,8 @@ exports.checkServiceability = async (req, res, next) => {
       breadth,
       height
     });
+
+    logger.info(`[checkServiceability RES] serviceable: ${result.serviceable}, couriers: ${result.couriers?.length}`);
 
     if (result.couriers && result.couriers.length > 0) {
       const sortedByRate = [...result.couriers].sort((a, b) => (a.rate || 0) - (b.rate || 0));

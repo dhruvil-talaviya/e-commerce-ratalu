@@ -1110,6 +1110,7 @@ function ShiprocketShippingModal({
       setCouriers(list);
 
       if (list.length > 0) {
+        setCheckError("");
         const recommended = list.find((c) => c.isRecommended) || list.find((c) => c.isCheapest) || list[0];
         setSelectedCourierId(recommended.courierCompanyId);
       } else {
@@ -1124,7 +1125,7 @@ function ShiprocketShippingModal({
 
   React.useEffect(() => {
     fetchRates();
-  }, []);
+  }, [order.id, fetchRates]);
 
   const handleShipNow = async () => {
     if (!selectedCourierId) {
