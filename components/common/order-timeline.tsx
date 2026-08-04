@@ -140,7 +140,14 @@ export function OrderTimeline({
                 {/* Text Info */}
                 <div className="mt-2 min-w-0 w-full px-0.5">
                   <p className={cn("text-[10px] sm:text-xs font-extrabold leading-tight break-words", step.done || step.inProgress ? "text-gray-900" : "text-gray-400")}>
-                    {step.title}
+                    {step.id === "hold" ? (
+                      <>
+                        <span className="hidden sm:inline">Cancel Window</span>
+                        <span className="inline sm:hidden">Cancel</span>
+                      </>
+                    ) : (
+                      step.title
+                    )}
                   </p>
                   <div className="mt-0.5 text-[9px] sm:text-[10px] text-gray-500 font-medium leading-tight truncate">
                     {step.subtitle}

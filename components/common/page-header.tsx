@@ -19,7 +19,7 @@ export function PageHeader({
 }) {
   return (
     <section className="bg-radial-cream">
-      <div className="container-px mx-auto max-w-7xl pb-8 pt-12">
+      <div className="container-px mx-auto max-w-7xl pb-4 sm:pb-8 pt-6 sm:pt-12">
         {crumbs && (
           <nav aria-label="Breadcrumb" className="mb-5 flex items-center gap-1.5 text-sm text-charcoal-soft">
             {crumbs.map((c, i) => (
