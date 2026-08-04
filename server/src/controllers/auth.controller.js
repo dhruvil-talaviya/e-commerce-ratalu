@@ -118,12 +118,16 @@ exports.googleAuth = async (req, res, next) => {
 
     setRefreshTokenCookie(res, refreshToken);
 
-    await AuditLog.create({
-      user: customer.email,
-      role: 'Customer',
-      action: isCreated ? `Google OAuth account created (${customer.email}). IP: ${ip}` : `Google OAuth login successful. IP: ${ip}`,
-      ipAddress: ip
-    });
+    try {
+      await AuditLog.create({
+        user: customer.email,
+        role: 'Customer',
+        action: isCreated ? `Google OAuth account created (${customer.email}). IP: ${ip}` : `Google OAuth login successful. IP: ${ip}`,
+        ipAddress: ip
+      });
+    } catch {
+      // ignore audit log failures
+    }
 
     return sendResponse(res, 200, {
       success: true,
@@ -187,12 +191,16 @@ exports.emailAuth = async (req, res, next) => {
     const refreshToken = generateRefreshToken(customer);
     setRefreshTokenCookie(res, refreshToken);
 
-    await AuditLog.create({
-      user: customer.email,
-      role: 'Customer',
-      action: isCreated ? `Email account created (${customer.email}). IP: ${ip}` : `Email login successful. IP: ${ip}`,
-      ipAddress: ip
-    });
+    try {
+      await AuditLog.create({
+        user: customer.email,
+        role: 'Customer',
+        action: isCreated ? `Email account created (${customer.email}). IP: ${ip}` : `Email login successful. IP: ${ip}`,
+        ipAddress: ip
+      });
+    } catch {
+      // ignore audit log failures
+    }
 
     return sendResponse(res, 200, {
       success: true,
