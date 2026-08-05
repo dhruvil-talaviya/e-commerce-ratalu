@@ -141,7 +141,19 @@ const RefundSchema = new mongoose.Schema({
   /** Set once stock has been returned, so it can never be added twice. */
   stockRestored: { type: Boolean, default: false },
 
-  ipAddress: { type: String, default: '' }
+  ipAddress: { type: String, default: '' },
+
+  /**
+   * How this refund record was created:
+   *  'customer'  — customer submitted it via the storefront
+   *  'rto_auto'  — auto-created when courier returned the shipment (RTO)
+   *  'admin'     — admin opened it manually
+   */
+  source: {
+    type: String,
+    enum: ['customer', 'rto_auto', 'admin'],
+    default: 'customer'
+  }
 }, { timestamps: true });
 
 RefundSchema.index({ status: 1, createdAt: -1 });

@@ -99,7 +99,11 @@ const OrderSchema = new mongoose.Schema({
       'Delivered',
       'Completed',
       'Cancelled',
-      'Returned',
+      'Returned',           // customer-initiated return
+      'RTO In Transit',     // courier returning parcel, not yet at warehouse
+      'RTO Received',       // warehouse confirmed RTO package received
+      'RTO Refund Pending', // admin chose "Refund Customer" disposition
+      'Re-delivery Pending',// admin chose re-attempt, waiting for new shipment
       'Refund Requested',
       'Refund Approved',
       'Refund Processing',
@@ -127,6 +131,10 @@ const OrderSchema = new mongoose.Schema({
       'Completed',
       'Cancelled',
       'Returned',
+      'RTO In Transit',
+      'RTO Received',
+      'RTO Refund Pending',
+      'Re-delivery Pending',
       'Refund Requested',
       'Refund Approved',
       'Refund Processing',

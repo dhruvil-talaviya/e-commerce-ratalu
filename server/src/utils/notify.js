@@ -37,7 +37,11 @@ const ORDER_STATUS_COPY = {
   'Out for Delivery': 'is out for delivery today.',
   Delivered: 'has been delivered. Enjoy every crunch!',
   Cancelled: 'has been cancelled.',
-  Returned: 'has been marked as returned.',
+  Returned: 'has been returned by you.',
+  'RTO In Transit': 'could not be delivered and the courier is bringing it back to us.',
+  'RTO Received': 'has been received back at our warehouse. Our team will be in touch shortly.',
+  'RTO Refund Pending': 'is being processed for a refund. We will notify you once it is complete.',
+  'Re-delivery Pending': 'is being prepared for re-delivery to your updated address.',
   'Refund Requested': 'has a refund request under review.',
   'Refund Approved': 'has an approved refund — the amount is on its way back to you.',
   'Refund Completed': 'has been fully refunded.',
@@ -55,6 +59,31 @@ const notifyOrderStatus = (order, status) =>
     type: 'OrderStatus'
   });
 
+/**
+ * Rich RTO-specific notification that includes the courier's failure reason
+ * and clear next-step instructions — much more useful than a generic status change.
+ *
+ * @param {Object} order        - Mongoose Order document
+ * @param {string} courierReason - Human-readable reason from courier / Shiprocket
+ */
+const notifyRTOCustomer = (order, courierReason) => {
+  const orderId = order.displayId || order.id;
+  const reason  = courierReason || 'The courier was unable to complete delivery.';
+
+  const message =
+    `We were unable to deliver your order ${orderId}. ` +
+    `Reason: ${reason}. ` +
+    `Our team has received the shipment back. ` +
+    `You can request a re-delivery (with an updated address) or a full refund from your orders page. ` +
+    `Need help? Contact our support team.`;
+
+  return notify(order.customerId, {
+    title: `Delivery failed for Order ${orderId}`,
+    message,
+    type: 'OrderStatus'
+  });
+};
+
 /** Record an admin-facing alert notification. */
 const notifyAdmin = async ({ title, message, type = 'General' }) => {
   try {
@@ -65,4 +94,4 @@ const notifyAdmin = async ({ title, message, type = 'General' }) => {
   }
 };
 
-module.exports = { notify, notifyOrderStatus, notifyAdmin, ORDER_STATUS_COPY };
+module.exports = { notify, notifyOrderStatus, notifyRTOCustomer, notifyAdmin, ORDER_STATUS_COPY };

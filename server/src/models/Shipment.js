@@ -20,7 +20,20 @@ const ShipmentHistorySchema = new mongoose.Schema({
 const ShipmentSchema = new mongoose.Schema({
   order: { type: mongoose.Schema.Types.ObjectId, ref: 'Order', required: true, index: true },
   orderId: { type: String, required: true, index: true }, // Display ID (RW-000101)
-  shipmentTag: { type: String, default: 'Shipment A' }, // Partial shipment identifier e.g., Shipment A, Shipment B
+  shipmentTag: { type: String, default: 'Shipment A' }, // kept for display; use attemptNumber for logic
+  /**
+   * Which delivery attempt this shipment represents.
+   * 1 = original, 2 = first re-attempt, 3 = second re-attempt, etc.
+   * Capped at 3 by the reAttemptDelivery endpoint.
+   */
+  attemptNumber: { type: Number, default: 1 },
+
+  /**
+   * Whether this is the currently active shipment for the order.
+   * Set to false on Shipment A when Shipment B is created.
+   * Prevents multiple "live" shipments confusing the tracking UI.
+   */
+  isActive: { type: Boolean, default: true, index: true },
   provider: { type: String, default: 'shiprocket' },
 
   // Provider identifiers
@@ -110,7 +123,57 @@ const ShipmentSchema = new mongoose.Schema({
   apiLogs: [ApiAuditLogSchema],
 
   // Error tracking
-  lastError: { type: String, default: '' }
+  lastError: { type: String, default: '' },
+
+  // ─── RTO (Return to Origin) Fields ──────────────────────────────────────────
+  // Populated by admin via the "Mark RTO Received" action. Never set
+  // automatically — requires a human to inspect the physical package.
+  rtoReason: {
+    type: String,
+    enum: [
+      'Customer Not Available',
+      'Customer Refused',
+      'Wrong Address',
+      'Phone Unreachable',
+      'Address Incomplete',
+      'Courier Issue',
+      'Other'
+    ],
+    default: null
+  },
+  rtoItemCondition: {
+    type: String,
+    enum: ['Reusable', 'Damaged'],
+    default: null
+  },
+  rtoDisposition: {
+    type: String,
+    enum: ['Refund Customer', 'Re-attempt Delivery', 'Close Order'],
+    default: null
+  },
+  rtoReceivedAt:  { type: Date,    default: null },
+  rtoReceivedBy:  { type: String,  default: '' },
+  rtoNotes:       { type: String,  default: '' },
+
+  /**
+   * Timestamp when Shiprocket first reported "RTO In Transit". Allows
+   * measuring how long a courier holds the package before returning it.
+   */
+  rtoInitiatedAt: { type: Date, default: null },
+
+  /**
+   * Exact failure reason string as received from the courier / Shiprocket
+   * (e.g. "Customer shifted", "Address landmark missing"). Stored verbatim
+   * alongside the normalised `rtoReason` enum for support & debugging.
+   */
+  courierReasonRaw: { type: String, default: '' },
+
+  /**
+   * Set to true once a Refund document has been auto-created for this RTO
+   * shipment (prepaid orders only). Guards against duplicate webhook fires
+   * spawning multiple Refund records.
+   */
+  rtoRefundAutoCreated: { type: Boolean, default: false }
 }, { timestamps: true });
 
 ShipmentSchema.index({ order: 1, status: 1 });

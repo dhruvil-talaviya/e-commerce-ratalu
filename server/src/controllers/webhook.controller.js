@@ -9,8 +9,10 @@ const Shipment = require('../models/Shipment');
 const Order = require('../models/Order');
 const LogisticsSettings = require('../models/LogisticsSettings');
 const LogisticsAuditLog = require('../models/LogisticsAuditLog');
-const { sendResponse, ErrorResponse } = require('../utils/response');
+const sendResponse = require('../utils/response');
+const ErrorResponse = require('../utils/errorResponse');
 const { notifyOrderStatus } = require('../utils/notify');
+const rtoService = require('../services/rto.service');
 const logger = require('../config/logger');
 
 /**
@@ -19,15 +21,15 @@ const logger = require('../config/logger');
  */
 const mapShiprocketStatus = (statusCode, currentStatus = '') => {
   const statusStr = String(currentStatus).toUpperCase();
-  
+
+  if (statusStr.includes('RTO') || statusCode === 9) return 'RTO';
   if (statusStr.includes('DELIVERED') || statusCode === 7) return 'Delivered';
   if (statusStr.includes('OUT FOR DELIVERY') || statusCode === 17) return 'Out For Delivery';
   if (statusStr.includes('TRANSIT') || statusCode === 6 || statusCode === 18) return 'In Transit';
   if (statusStr.includes('PICKED UP') || statusCode === 19) return 'Picked Up';
-  if (statusStr.includes('RTO')) return 'RTO';
   if (statusStr.includes('CANCEL')) return 'Cancelled';
   if (statusStr.includes('LOST')) return 'Failed';
-  
+
   return currentStatus || 'In Transit';
 };
 
@@ -107,28 +109,54 @@ exports.handleShiprocketWebhook = async (req, res, next) => {
     const orderDoc = await Order.findOne({ id: shipmentDoc.orderId });
     if (orderDoc) {
       if (mappedStatus === 'Delivered') {
-        orderDoc.status = 'Delivered';
+        orderDoc.status      = 'Delivered';
         orderDoc.payment.status = 'Paid';
+        orderDoc.timeline.push({
+          status: 'Delivered',
+          time:   new Date(),
+          note:   `Courier Update (${shipmentDoc.courierName || 'Shiprocket'}): ${currentStatus || mappedStatus}`
+        });
+        await orderDoc.save();
+        await notifyOrderStatus(orderDoc, 'Delivered').catch(() => {});
+
       } else if (mappedStatus === 'Out For Delivery') {
-        orderDoc.status = 'Out For Delivery';
+        orderDoc.status = 'Out for Delivery';
+        orderDoc.timeline.push({
+          status: 'Out for Delivery',
+          time:   new Date(),
+          note:   `Courier Update: Out for delivery.`
+        });
+        await orderDoc.save();
+        await notifyOrderStatus(orderDoc, 'Out for Delivery').catch(() => {});
+
       } else if (mappedStatus === 'In Transit' || mappedStatus === 'Picked Up') {
         orderDoc.status = 'Shipped';
-      } else if (mappedStatus === 'RTO') {
-        orderDoc.status = 'Returned';
-      }
-
-      orderDoc.timeline.push({
-        status: orderDoc.status,
-        time: new Date(),
-        note: `Courier Update (${shipmentDoc.courierName || 'Shiprocket'}): ${currentStatus || mappedStatus}`
-      });
-      await orderDoc.save();
-
-      // Trigger Customer Notification on status transition
-      if (prevStatus !== mappedStatus) {
-        await notifyOrderStatus(orderDoc, orderDoc.status).catch(err => {
-          logger.warn(`[WebhookNotification] Customer notification warning: ${err.message}`);
+        orderDoc.timeline.push({
+          status: 'Shipped',
+          time:   new Date(),
+          note:   `Courier Update (${shipmentDoc.courierName || 'Shiprocket'}): ${currentStatus || mappedStatus}`
         });
+        await orderDoc.save();
+        await notifyOrderStatus(orderDoc, 'Shipped').catch(() => {});
+
+      } else if (mappedStatus === 'RTO') {
+        // ── Delegate entirely to the centralized RTO service ─────────────────
+        // It handles: order status (RTO In Transit), timeline, auto-refund for
+        // prepaid orders, rich customer notification, admin alert, audit log.
+        const courierReason = payload?.scans?.[0]?.activity || currentStatus || '';
+        await rtoService.handleRTOInitiated(orderDoc, shipmentDoc, courierReason);
+        // Save shipment to persist rtoInitiatedAt, courierReasonRaw, rtoRefundAutoCreated
+        await shipmentDoc.save();
+
+      } else if (mappedStatus === 'Cancelled') {
+        orderDoc.status = 'Cancelled';
+        orderDoc.timeline.push({
+          status: 'Cancelled',
+          time:   new Date(),
+          note:   `Courier Update: Shipment cancelled.`
+        });
+        await orderDoc.save();
+        await notifyOrderStatus(orderDoc, 'Cancelled').catch(() => {});
       }
     }
 

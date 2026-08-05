@@ -400,6 +400,17 @@ function DynamicFavicon({ settings }: { settings: StoreSettings }) {
   return null;
 }
 
+// Fields that are server-authoritative: once set from SSR initialSettings,
+// they must never be overwritten by localStorage cache or client API fetch.
+// This prevents the old-logo flash on every page refresh.
+const SERVER_AUTHORITATIVE_FIELDS = [
+  "storeLogo",
+  "storeLogoDark",
+  "storeFavicon",
+  "storeName",
+  "storeTagline",
+] as const satisfies ReadonlyArray<keyof StoreSettings>;
+
 export function StoreSettingsProvider({
   children,
   initialSettings,
@@ -417,6 +428,19 @@ export function StoreSettingsProvider({
     initialSettings ? { ...DEFAULT_SETTINGS, ...initialSettings } : DEFAULT_SETTINGS
   );
   const [hydrated, setHydrated] = React.useState(false);
+
+  // Stable ref holding the server-side logo/favicon values. These are used to
+  // re-apply authoritative values after every client-side setSettings call so
+  // the logo src never changes after the initial SSR render.
+  const serverLogoRef = React.useRef<Partial<StoreSettings>>(
+    initialSettings
+      ? Object.fromEntries(
+          SERVER_AUTHORITATIVE_FIELDS
+            .map((k) => [k, (initialSettings as any)[k]])
+            .filter(([, v]) => v != null && v !== "")
+        )
+      : {}
+  );
 
   const fetchSettings = React.useCallback(async () => {
     try {
@@ -462,7 +486,10 @@ export function StoreSettingsProvider({
         if (data.storeFavicon) data.storeFavicon = sanitize(data.storeFavicon);
         if (data.storeLogo) data.storeLogo = sanitize(data.storeLogo);
 
-        const merged = { ...DEFAULT_SETTINGS, ...data };
+        // Re-apply server-authoritative logo/favicon so the API response
+        // never overwrites the SSR-confirmed values (prevents logo flash).
+        const serverOverrides = serverLogoRef.current;
+        const merged = { ...DEFAULT_SETTINGS, ...data, ...serverOverrides };
         setSettings(merged);
         // Persist to localStorage so the next page load can show the right
         // logo/favicon before the API response arrives.
@@ -479,15 +506,26 @@ export function StoreSettingsProvider({
     // Load the localStorage cache synchronously after mount (never during SSR)
     // so the logo/favicon snaps to the correct URL before the API fetch
     // completes, without causing any server/client hydration mismatch.
+    //
+    // IMPORTANT: When `initialSettings` was provided by the server (SSR), the
+    // logo/favicon fields are already correct. We must NOT let a stale
+    // localStorage cache overwrite those fields — doing so causes the visible
+    // "old logo flash" on page refresh. Only apply cached values for fields
+    // that the server did not supply.
     try {
       const cached = localStorage.getItem(SETTINGS_CACHE_KEY);
       if (cached) {
         const parsed = JSON.parse(cached);
+        if (initialSettings) {
+          // Strip server-authoritative branding fields from the stale cache
+          // so the SSR-confirmed values (already in state) are not clobbered.
+          SERVER_AUTHORITATIVE_FIELDS.forEach((k) => delete parsed[k]);
+        }
         setSettings(prev => ({ ...prev, ...parsed }));
       }
     } catch {}
     fetchSettings();
-  }, [fetchSettings]);
+  }, [fetchSettings, initialSettings]);
 
   useLiveRefresh(fetchSettings, { minIntervalMs: 60000 });
 

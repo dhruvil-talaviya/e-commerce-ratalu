@@ -9,6 +9,7 @@ const Manifest = require('../../models/Manifest');
 const ShiprocketProvider = require('./ShiprocketProvider');
 const { decrypt } = require('../../utils/crypto');
 const { notifyOrderStatus, notifyAdmin } = require('../../utils/notify');
+const rtoService = require('../rto.service');
 const logger = require('../../config/logger');
 const { buildPackage } = require('../../utils/packageBuilder');
 const shippingRulesService = require('./shippingRules.service');
@@ -791,26 +792,32 @@ class LogisticsService {
 
     // Sync with main Order document
     const order = await Order.findById(shipment.order);
-    if (order && order.status !== mappedStatus) {
-      const orderStatusMap = {
-        'Picked Up': 'Assigned to Logistics',
-        'In Transit': 'Shipped',
-        'Out For Delivery': 'Out for Delivery',
-        'Delivered': 'Delivered',
-        'RTO': 'Returned',
-        'Cancelled': 'Cancelled'
-      };
-
-      const newOrderStatus = orderStatusMap[mappedStatus];
-      if (newOrderStatus && order.status !== newOrderStatus) {
-        order.status = newOrderStatus;
-        order.timeline.push({
-          status: newOrderStatus,
-          time: new Date(),
-          note: `Shipment status updated to ${mappedStatus}.`
-        });
-        await order.save();
-        await notifyOrderStatus(order, newOrderStatus);
+    if (order) {
+      if (mappedStatus === 'RTO') {
+        // Delegate to centralised RTO service — keeps behaviour identical
+        // whether the update comes from a webhook or a manual sync.
+        const courierReason = trackingRes.activities?.[0]?.activity || '';
+        await rtoService.handleRTOInitiated(order, shipment, courierReason);
+        await shipment.save(); // persist rtoInitiatedAt, guard flags, etc.
+      } else {
+        const orderStatusMap = {
+          'Picked Up':       'Assigned to Logistics',
+          'In Transit':      'Shipped',
+          'Out For Delivery':'Out for Delivery',
+          'Delivered':       'Delivered',
+          'Cancelled':       'Cancelled'
+        };
+        const newOrderStatus = orderStatusMap[mappedStatus];
+        if (newOrderStatus && order.status !== newOrderStatus) {
+          order.status = newOrderStatus;
+          order.timeline.push({
+            status: newOrderStatus,
+            time:   new Date(),
+            note:   `Shipment status updated to ${mappedStatus}.`
+          });
+          await order.save();
+          await notifyOrderStatus(order, newOrderStatus);
+        }
       }
     }
 
@@ -926,25 +933,30 @@ class LogisticsService {
 
     const order = await Order.findById(shipment.order);
     if (order) {
-      const orderStatusMap = {
-        'Picked Up': 'Assigned to Logistics',
-        'In Transit': 'Shipped',
-        'Out For Delivery': 'Out for Delivery',
-        'Delivered': 'Delivered',
-        'RTO': 'Returned',
-        'Cancelled': 'Cancelled'
-      };
-
-      const newOrderStatus = orderStatusMap[mappedStatus];
-      if (newOrderStatus && order.status !== newOrderStatus) {
-        order.status = newOrderStatus;
-        order.timeline.push({
-          status: newOrderStatus,
-          time: new Date(),
-          note: `Webhook update: status moved to ${mappedStatus}.`
-        });
-        await order.save();
-        await notifyOrderStatus(order, newOrderStatus);
+      if (mappedStatus === 'RTO') {
+        // Delegate to centralised RTO service (same as webhook path)
+        const courierReason = payload.activity || currentStatus || '';
+        await rtoService.handleRTOInitiated(order, shipment, courierReason);
+        await shipment.save();
+      } else {
+        const orderStatusMap = {
+          'Picked Up':       'Assigned to Logistics',
+          'In Transit':      'Shipped',
+          'Out For Delivery':'Out for Delivery',
+          'Delivered':       'Delivered',
+          'Cancelled':       'Cancelled'
+        };
+        const newOrderStatus = orderStatusMap[mappedStatus];
+        if (newOrderStatus && order.status !== newOrderStatus) {
+          order.status = newOrderStatus;
+          order.timeline.push({
+            status: newOrderStatus,
+            time:   new Date(),
+            note:   `Webhook update: status moved to ${mappedStatus}.`
+          });
+          await order.save();
+          await notifyOrderStatus(order, newOrderStatus);
+        }
       }
     }
 

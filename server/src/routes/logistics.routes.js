@@ -26,10 +26,17 @@ const {
   getDashboardStats
 } = require('../controllers/logistics.controller');
 
+const {
+  handleShiprocketWebhook
+} = require('../controllers/webhook.controller');
+
+const {
+  markRTOReceived,
+  reAttemptDelivery
+} = require('../controllers/return.controller');
+
 const { protect, authorize } = require('../middlewares/auth');
 const adminOnly = [protect, authorize('admin')];
-
-const { handleShiprocketWebhook } = require('../controllers/logistics.controller');
 
 // ─── Public Routes ──────────────────────────────────────────────────────────
 router.post('/logistics/check-serviceability', checkServiceability);
@@ -64,5 +71,11 @@ router.post('/admin/logistics/shipments/:id/cancel', ...adminOnly, cancelShipmen
 router.get('/admin/logistics/kpis', ...adminOnly, require('../controllers/logistics.controller').getLogisticsKPIs);
 router.get('/admin/logistics/courier-analytics', ...adminOnly, require('../controllers/logistics.controller').getCourierAnalytics);
 router.post('/admin/logistics/retry-queue', ...adminOnly, require('../controllers/logistics.controller').retryFailedQueue);
+
+// ─── Admin RTO Routes ────────────────────────────────────────────────────────
+// Mark an RTO shipment as physically received: captures reason, condition, disposition.
+router.post('/admin/logistics/shipments/:shipmentId/rto-received', ...adminOnly, markRTOReceived);
+// Create Shipment B (re-attempt delivery) after RTO — capped at 3 total attempts.
+router.post('/admin/orders/:orderId/reattempt-delivery', ...adminOnly, reAttemptDelivery);
 
 module.exports = router;
