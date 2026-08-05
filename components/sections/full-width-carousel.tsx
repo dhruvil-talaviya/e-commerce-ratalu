@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { ChevronLeft, ChevronRight, Sparkles, Pause, Play } from "lucide-react";
+import { Sparkles, Pause, Play } from "lucide-react";
 import { useSection } from "@/components/cms/cms-provider";
 import { cn, sanitizeMediaUrl } from "@/lib/utils";
 
@@ -115,7 +115,7 @@ export function FullWidthCarousel() {
       id="photo-carousel"
       className="relative w-screen max-w-none left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] overflow-hidden bg-[#120814] py-0 my-4 sm:my-10 shadow-xl"
     >
-      <div className="relative w-full h-[460px] xs:h-[500px] sm:h-[560px] lg:h-[650px] overflow-hidden bg-[#120814]">
+      <div className="relative w-full h-[460px] xs:h-[500px] sm:h-[680px] md:h-[750px] lg:h-[820px] xl:h-[880px] overflow-hidden bg-[#120814]">
         <AnimatePresence initial={false} custom={direction} mode="popLayout">
           <motion.div
             key={currentSlide.id || currentIndex}
@@ -196,26 +196,6 @@ export function FullWidthCarousel() {
             </div>
           </motion.div>
         </AnimatePresence>
-
-        {/* Dynamic Navigation Arrows (Visible on sm+) */}
-        {slides.length > 1 && (
-          <>
-            <button
-              onClick={() => paginate(-1)}
-              aria-label="Previous slide"
-              className="absolute left-3 top-1/2 -translate-y-1/2 z-20 hidden sm:flex size-10 items-center justify-center rounded-full bg-[#120814]/60 text-white backdrop-blur-md border border-white/10 hover:bg-[#120814]/90 transition-all cursor-pointer"
-            >
-              <ChevronLeft className="size-5" />
-            </button>
-            <button
-              onClick={() => paginate(1)}
-              aria-label="Next slide"
-              className="absolute right-3 top-1/2 -translate-y-1/2 z-20 hidden sm:flex size-10 items-center justify-center rounded-full bg-[#120814]/60 text-white backdrop-blur-md border border-white/10 hover:bg-[#120814]/90 transition-all cursor-pointer"
-            >
-              <ChevronRight className="size-5" />
-            </button>
-          </>
-        )}
 
         {/* Dynamic Dot Indicators (Both Mobile & Desktop) */}
         {slides.length > 1 && (
