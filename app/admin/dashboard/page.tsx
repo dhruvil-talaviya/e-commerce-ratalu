@@ -50,6 +50,14 @@ import {
   Check,
   CheckCheck,
   Percent,
+  Inbox,
+  Mail,
+  Phone,
+  User,
+  ExternalLink,
+  MessageSquare,
+  Send,
+  CheckCircle2,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -3898,7 +3906,11 @@ function HomepageTab({
   // Contact inquiries database list
   const [inquiries, setInquiries] = React.useState<any[]>([]);
   const [inquiryFilter, setInquiryFilter] = React.useState("All");
+  const [inquiryStatusFilter, setInquiryStatusFilter] = React.useState("All");
+  const [inquirySearchQuery, setInquirySearchQuery] = React.useState("");
   const [inquiryPage, setInquiryPage] = React.useState(1);
+  const [selectedInquiryModal, setSelectedInquiryModal] = React.useState<any | null>(null);
+  const [modalResolverNotes, setModalResolverNotes] = React.useState("");
   // Media library database list
   const [mediaList, setMediaList] = React.useState<any[]>([]);
   const [mediaFolderFilter, setMediaFolderFilter] = React.useState("All");
@@ -4364,7 +4376,20 @@ function HomepageTab({
   };
 
   // Filters for media list and contact inquiries
-  const filteredInquiries = inquiries.filter((i) => inquiryFilter === "All" || i.inquiryType === inquiryFilter);
+  const filteredInquiries = inquiries.filter((i) => {
+    const matchesType = inquiryFilter === "All" || i.inquiryType === inquiryFilter;
+    const matchesStatus = inquiryStatusFilter === "All" || (inquiryStatusFilter === "Pending" ? i.status !== "Resolved" : i.status === "Resolved");
+    const q = inquirySearchQuery.trim().toLowerCase();
+    const matchesSearch = !q ||
+      (i.name || "").toLowerCase().includes(q) ||
+      (i.email || "").toLowerCase().includes(q) ||
+      (i.phone || "").toLowerCase().includes(q) ||
+      (i.message || "").toLowerCase().includes(q) ||
+      (i.inquiryType || "").toLowerCase().includes(q) ||
+      (i.assignedTo || "").toLowerCase().includes(q) ||
+      (i.resolverNotes || "").toLowerCase().includes(q);
+    return matchesType && matchesStatus && matchesSearch;
+  });
   const filteredMedia = mediaList.filter((m) => {
     const matchesFolder = mediaFolderFilter === "All" || m.folder === mediaFolderFilter;
     const matchesSearch = !mediaSearchQuery || m.name.toLowerCase().includes(mediaSearchQuery.toLowerCase()) || (m.altText || "").toLowerCase().includes(mediaSearchQuery.toLowerCase());
@@ -5404,110 +5429,299 @@ function HomepageTab({
           inquiryPage * INQUIRIES_PER_PAGE
         );
 
+        const pendingCount = inquiries.filter((i) => i.status !== "Resolved").length;
+        const resolvedCount = inquiries.filter((i) => i.status === "Resolved").length;
+        const bulkCount = inquiries.filter((i) => ["Bulk Order", "Distributor", "Franchise"].includes(i.inquiryType)).length;
+
+        const getInquiryBadgeStyle = (type: string) => {
+          switch (type) {
+            case "Order Status":
+              return "bg-blue-50 text-blue-700 border-blue-200";
+            case "Bulk Order":
+              return "bg-purple-50 text-purple-700 border-purple-200";
+            case "Distributor":
+            case "Franchise":
+              return "bg-amber-50 text-amber-800 border-amber-200";
+            case "Product Inquiry":
+              return "bg-emerald-50 text-emerald-700 border-emerald-200";
+            default:
+              return "bg-gray-100 text-gray-700 border-gray-200";
+          }
+        };
+
         return (
-          <div className="flex flex-col gap-5">
-            <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="flex flex-col gap-1 w-44">
-                  <label className="text-[10px] font-bold text-gray-400 ">Filter Inquiry Type</label>
-                  <select
-                    value={inquiryFilter}
+          <div className="flex flex-col gap-6">
+            {/* Top KPI Metrics Cards */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-xl border border-purple-100 bg-linear-to-br from-purple-50/60 to-white p-4 shadow-2xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-purple-700">Total Inquiries</span>
+                  <div className="rounded-lg bg-purple-100 p-2 text-purple-700">
+                    <Inbox className="size-4" />
+                  </div>
+                </div>
+                <p className="mt-2 text-2xl font-extrabold text-gray-900">{inquiries.length}</p>
+                <p className="text-[11px] text-gray-500 mt-0.5">Across all categories</p>
+              </div>
+
+              <div className="rounded-xl border border-amber-100 bg-linear-to-br from-amber-50/60 to-white p-4 shadow-2xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-amber-700">Pending Review</span>
+                  <div className="rounded-lg bg-amber-100 p-2 text-amber-700">
+                    <Clock className="size-4" />
+                  </div>
+                </div>
+                <p className="mt-2 text-2xl font-extrabold text-gray-900">{pendingCount}</p>
+                <p className="text-[11px] text-amber-600 font-medium mt-0.5">Requires resolution action</p>
+              </div>
+
+              <div className="rounded-xl border border-emerald-100 bg-linear-to-br from-emerald-50/60 to-white p-4 shadow-2xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-emerald-700">Resolved</span>
+                  <div className="rounded-lg bg-emerald-100 p-2 text-emerald-700">
+                    <CheckCircle className="size-4" />
+                  </div>
+                </div>
+                <p className="mt-2 text-2xl font-extrabold text-gray-900">{resolvedCount}</p>
+                <p className="text-[11px] text-emerald-600 font-medium mt-0.5">Completed inquiries</p>
+              </div>
+
+              <div className="rounded-xl border border-indigo-100 bg-linear-to-br from-indigo-50/60 to-white p-4 shadow-2xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-indigo-700">Wholesale / Bulk</span>
+                  <div className="rounded-lg bg-indigo-100 p-2 text-indigo-700">
+                    <Sparkles className="size-4" />
+                  </div>
+                </div>
+                <p className="mt-2 text-2xl font-extrabold text-gray-900">{bulkCount}</p>
+                <p className="text-[11px] text-indigo-600 font-medium mt-0.5">High-priority leads</p>
+              </div>
+            </div>
+
+            {/* Filter & Toolbar Controls */}
+            <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-gray-200 bg-white p-4 shadow-2xs">
+              <div className="flex flex-1 flex-wrap items-center gap-3 min-w-[280px]">
+                {/* Search Bar */}
+                <div className="relative flex-1 min-w-[220px]">
+                  <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search customer, email, phone, message..."
+                    value={inquirySearchQuery}
                     onChange={(e) => {
-                      setInquiryFilter(e.target.value);
+                      setInquirySearchQuery(e.target.value);
                       setInquiryPage(1);
                     }}
-                    className="h-8 rounded border border-gray-200 px-2 text-xs shadow-sm bg-white outline-none"
-                  >
-                    <option value="All">All Types</option>
-                    <option value="General">General Enquiry</option>
-                    <option value="Product Inquiry">Product Inquiry</option>
-                    <option value="Order Status">Order Status</option>
-                    <option value="Bulk Order">Wholesale / Bulk Order</option>
-                    <option value="Distributor">Distributor</option>
-                    <option value="Franchise">Franchise</option>
-                  </select>
+                    className="h-9 w-full rounded-lg border border-gray-200 bg-gray-50/50 pl-9 pr-8 text-xs outline-none focus:border-purple-500 focus:bg-white focus:ring-1 focus:ring-purple-500 transition-all"
+                  />
+                  {inquirySearchQuery && (
+                    <button
+                      onClick={() => setInquirySearchQuery("")}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      <X className="size-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Type Filter Select */}
+                <select
+                  value={inquiryFilter}
+                  onChange={(e) => {
+                    setInquiryFilter(e.target.value);
+                    setInquiryPage(1);
+                  }}
+                  className="h-9 rounded-lg border border-gray-200 bg-white px-3 text-xs outline-none focus:border-purple-500 shadow-2xs font-medium text-gray-700"
+                >
+                  <option value="All">All Inquiry Types</option>
+                  <option value="General">General Enquiry</option>
+                  <option value="Product Inquiry">Product Inquiry</option>
+                  <option value="Order Status">Order Status</option>
+                  <option value="Bulk Order">Wholesale / Bulk Order</option>
+                  <option value="Distributor">Distributor</option>
+                  <option value="Franchise">Franchise</option>
+                </select>
+
+                {/* Status Segmented Pills */}
+                <div className="flex items-center rounded-lg border border-gray-200 bg-gray-50/80 p-0.5">
+                  {["All", "Pending", "Resolved"].map((st) => (
+                    <button
+                      key={st}
+                      onClick={() => {
+                        setInquiryStatusFilter(st);
+                        setInquiryPage(1);
+                      }}
+                      className={cn(
+                        "rounded-md px-3 py-1 text-xs font-semibold transition-all cursor-pointer",
+                        inquiryStatusFilter === st
+                          ? "bg-white text-purple-900 shadow-2xs"
+                          : "text-gray-500 hover:text-gray-800"
+                      )}
+                    >
+                      {st === "All" ? "All Status" : st}
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              <Button type="button" onClick={handleExportInquiriesCSV} className="border-purple-200 hover:bg-purple-50 text-purple-650 bg-white text-xs h-8">
-                <Download className="size-3.5 mr-1" />
-                Export CSV Records
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleExportInquiriesCSV}
+                className="h-9 border-purple-200 bg-white text-xs font-semibold text-purple-700 hover:bg-purple-50 shadow-2xs"
+              >
+                <Download className="size-3.5 mr-1.5" />
+                Export CSV
               </Button>
             </div>
 
-            <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden flex flex-col">
+            {/* Inquiries Table */}
+            <div className="rounded-xl border border-gray-200 bg-white shadow-2xs overflow-hidden flex flex-col">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="border-b border-gray-200 bg-gray-50 text-gray-500 font-bold text-[10px]">
-                      <th className="px-4 py-3">Inquiry Date</th>
-                      <th className="px-4 py-3">Customer Info</th>
-                      <th className="px-4 py-3">Message Subject & Body</th>
-                      <th className="px-4 py-3">Inquiry Type</th>
-                      <th className="px-4 py-3">Assign staff</th>
-                      <th className="px-4 py-3">Resolver comment notes</th>
-                      <th className="px-4 py-3 text-right">Status</th>
+                    <tr className="border-b border-gray-200 bg-gray-50/80 text-gray-500 font-bold text-[11px] uppercase tracking-wider">
+                      <th className="px-4 py-3.5 w-28">Date</th>
+                      <th className="px-4 py-3.5 w-52">Customer</th>
+                      <th className="px-4 py-3.5 min-w-[280px]">Message & Subject</th>
+                      <th className="px-4 py-3.5 w-36">Inquiry Type</th>
+                      <th className="px-4 py-3.5 w-36">Assigned Staff</th>
+                      <th className="px-4 py-3.5 min-w-[180px]">Resolver Notes</th>
+                      <th className="px-4 py-3.5 w-32 text-center">Status</th>
+                      <th className="px-4 py-3.5 w-16 text-right">Action</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-gray-100">
                     {paginatedInquiries.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="px-4 py-8 text-center text-xs text-gray-400 bg-gray-50/50">
-                          No inquiries found.
+                        <td colSpan={8} className="px-4 py-12 text-center text-xs text-gray-400 bg-gray-50/30">
+                          <Inbox className="size-8 mx-auto mb-2 text-gray-300" />
+                          No customer inquiries found matching your filters.
                         </td>
                       </tr>
                     ) : (
-                      paginatedInquiries.map((i) => (
-                        <tr key={i._id} className="border-b border-gray-150 bg-white hover:bg-gray-50/50">
-                          <td className="px-4 py-3 text-gray-400 w-28">{new Date(i.createdAt).toLocaleDateString()}</td>
-                          <td className="px-4 py-3 w-48">
-                            <p className="font-bold text-gray-900">{i.name}</p>
-                            <p className="text-[10px] text-gray-500">{i.email}</p>
-                            <p className="text-[10px] font-semibold text-gray-700 mt-0.5">{i.phone}</p>
-                          </td>
-                          <td className="px-4 py-3 max-w-sm">
-                            <p className="text-gray-700 whitespace-pre-wrap">{i.message}</p>
-                          </td>
-                          <td className="px-4 py-3 w-32">
-                            <span className="rounded bg-orange-50 px-2 py-0.5 text-[9px] font-extrabold text-orange-700 border border-orange-200 ">{i.inquiryType || "General"}</span>
-                          </td>
-                          <td className="px-4 py-3 w-36">
-                            <select
-                              value={i.assignedTo || ""}
-                              onChange={(e) => handleUpdateInquiry(i._id, { assignedTo: e.target.value })}
-                              className="rounded border border-gray-200 px-2 py-1 text-xs bg-white outline-none w-full"
-                            >
-                              <option value="">Unassigned</option>
-                              <option value="Admin">Admin</option>
-                              <option value="Storeowner">Storeowner</option>
-                            </select>
-                          </td>
-                          <td className="px-4 py-3">
-                            <input
-                              type="text"
-                              defaultValue={i.resolverNotes}
-                              onBlur={(e) => handleUpdateInquiry(i._id, { resolverNotes: e.target.value })}
-                              placeholder="Resolution comments..."
-                              className="rounded border border-gray-200 px-2 py-1 text-xs w-full"
-                            />
-                          </td>
-                          <td className="px-4 py-3 text-right w-28">
-                            <select
-                              value={i.status}
-                              onChange={(e) => handleUpdateInquiry(i._id, { status: e.target.value })}
-                              className={cn(
-                                "rounded px-2 py-0.5 text-[10px] font-bold border",
-                                i.status === "Resolved"
-                                  ? "bg-green-50 text-green-700 border-green-200"
-                                  : "bg-red-50 text-red-700 border-red-200"
-                              )}
-                            >
-                              <option value="Pending">Pending</option>
-                              <option value="Resolved">Resolved</option>
-                            </select>
-                          </td>
-                        </tr>
-                      ))
+                      paginatedInquiries.map((i) => {
+                        const initials = (i.name || "Customer")
+                          .split(" ")
+                          .map((n: string) => n[0])
+                          .join("")
+                          .substring(0, 2)
+                          .toUpperCase();
+
+                        // Subject line extraction if exists formatted as [Subject: ...]
+                        const matchSubject = (i.message || "").match(/^\[Subject:\s*(.*?)\]/i);
+                        const subjectText = matchSubject ? matchSubject[1] : null;
+                        const bodyContent = matchSubject ? (i.message || "").replace(matchSubject[0], "").trim() : i.message;
+
+                        return (
+                          <tr key={i._id} className="bg-white hover:bg-purple-50/20 transition-colors">
+                            <td className="px-4 py-3.5 text-gray-400 font-medium text-[11px] align-top whitespace-nowrap">
+                              {new Date(i.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                            </td>
+
+                            <td className="px-4 py-3.5 align-top">
+                              <div className="flex items-start gap-2.5">
+                                <div className="size-8 rounded-full bg-linear-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-2xs">
+                                  {initials}
+                                </div>
+                                <div className="flex flex-col min-w-0">
+                                  <p className="font-bold text-gray-900 truncate">{i.name}</p>
+                                  <p className="text-[11px] text-gray-500 truncate">{i.email}</p>
+                                  {i.phone && (
+                                    <span className="text-[10px] font-semibold text-gray-600 mt-0.5 flex items-center gap-1">
+                                      <Phone className="size-2.5 text-gray-400" />
+                                      {i.phone}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+
+                            <td className="px-4 py-3.5 align-top">
+                              <div className="flex flex-col gap-1">
+                                {subjectText && (
+                                  <span className="inline-flex items-center text-[10px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-100 w-fit">
+                                    {subjectText}
+                                  </span>
+                                )}
+                                <p className="text-gray-700 line-clamp-2 text-xs leading-relaxed">
+                                  {bodyContent}
+                                </p>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedInquiryModal(i);
+                                    setModalResolverNotes(i.resolverNotes || "");
+                                  }}
+                                  className="text-[11px] font-bold text-purple-600 hover:text-purple-800 hover:underline w-fit mt-0.5 flex items-center gap-0.5"
+                                >
+                                  Read full inquiry & details →
+                                </button>
+                              </div>
+                            </td>
+
+                            <td className="px-4 py-3.5 align-top">
+                              <span className={cn("inline-flex rounded-md px-2.5 py-1 text-[10px] font-bold border", getInquiryBadgeStyle(i.inquiryType))}>
+                                {i.inquiryType || "General"}
+                              </span>
+                            </td>
+
+                            <td className="px-4 py-3.5 align-top">
+                              <select
+                                value={i.assignedTo || ""}
+                                onChange={(e) => handleUpdateInquiry(i._id, { assignedTo: e.target.value })}
+                                className="h-8 rounded-lg border border-gray-200 px-2 text-xs bg-white outline-none w-full focus:border-purple-500 shadow-2xs font-medium text-gray-700"
+                              >
+                                <option value="">Unassigned</option>
+                                <option value="Admin">Admin</option>
+                                <option value="Storeowner">Storeowner</option>
+                              </select>
+                            </td>
+
+                            <td className="px-4 py-3.5 align-top">
+                              <input
+                                type="text"
+                                defaultValue={i.resolverNotes}
+                                onBlur={(e) => handleUpdateInquiry(i._id, { resolverNotes: e.target.value })}
+                                placeholder="Add resolution note..."
+                                className="h-8 rounded-lg border border-gray-200 px-2.5 text-xs w-full outline-none focus:border-purple-500 focus:bg-white bg-gray-50/40"
+                              />
+                            </td>
+
+                            <td className="px-4 py-3.5 align-top text-center">
+                              <select
+                                value={i.status || "Pending"}
+                                onChange={(e) => handleUpdateInquiry(i._id, { status: e.target.value })}
+                                className={cn(
+                                  "rounded-lg px-2.5 py-1 text-[11px] font-bold border outline-none cursor-pointer transition-all shadow-2xs",
+                                  i.status === "Resolved"
+                                    ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+                                    : "bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100"
+                                )}
+                              >
+                                <option value="Pending">⚠️ Pending</option>
+                                <option value="Resolved">✅ Resolved</option>
+                              </select>
+                            </td>
+
+                            <td className="px-4 py-3.5 align-top text-right">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedInquiryModal(i);
+                                  setModalResolverNotes(i.resolverNotes || "");
+                                }}
+                                className="h-8 w-8 p-0 rounded-lg border-gray-200 hover:bg-purple-50 hover:border-purple-200 hover:text-purple-700"
+                                title="View Full Inquiry Details"
+                              >
+                                <Eye className="size-3.5" />
+                              </Button>
+                            </td>
+                          </tr>
+                        );
+                      })
                     )}
                   </tbody>
                 </table>
@@ -5515,7 +5729,7 @@ function HomepageTab({
 
               {/* Bottom Pagination Bar */}
               <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 bg-gray-50/70 px-4 py-3 text-xs">
-                <span className="font-semibold text-gray-500">
+                <span className="font-medium text-gray-500">
                   Showing {filteredInquiries.length > 0 ? (inquiryPage - 1) * INQUIRIES_PER_PAGE + 1 : 0} to{" "}
                   {Math.min(inquiryPage * INQUIRIES_PER_PAGE, filteredInquiries.length)} of {filteredInquiries.length} inquiries
                 </span>
@@ -5534,7 +5748,7 @@ function HomepageTab({
                       key={p}
                       onClick={() => setInquiryPage(p)}
                       className={cn(
-                        "size-7 rounded-lg text-xs font-bold transition-all",
+                        "size-7 rounded-lg text-xs font-bold transition-all cursor-pointer",
                         p === inquiryPage
                           ? "bg-[#5B2C83] text-white shadow-2xs"
                           : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
@@ -5555,6 +5769,170 @@ function HomepageTab({
                 </div>
               </div>
             </div>
+
+            {/* Inquiry Details & Resolution Modal */}
+            {selectedInquiryModal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+                <div className="relative w-full max-w-2xl rounded-2xl bg-white shadow-2xl overflow-hidden flex flex-col max-h-[90vh] border border-gray-100">
+                  {/* Modal Header */}
+                  <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50/80 px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="size-10 rounded-full bg-linear-to-br from-purple-600 to-indigo-700 flex items-center justify-center text-white font-bold text-sm shadow-2xs">
+                        {(selectedInquiryModal.name || "Customer")
+                          .split(" ")
+                          .map((n: string) => n[0])
+                          .join("")
+                          .substring(0, 2)
+                          .toUpperCase()}
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-gray-900 text-base">{selectedInquiryModal.name}</h3>
+                        <p className="text-xs text-gray-500">
+                          Submitted on {new Date(selectedInquiryModal.createdAt).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setSelectedInquiryModal(null)}
+                      className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-200 hover:text-gray-700 transition-colors"
+                    >
+                      <X className="size-5" />
+                    </button>
+                  </div>
+
+                  {/* Modal Body */}
+                  <div className="p-6 overflow-y-auto flex flex-col gap-5 text-xs">
+                    {/* Customer Info Bar */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3.5 rounded-xl bg-purple-50/50 border border-purple-100">
+                      <div>
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Email</span>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <Mail className="size-3.5 text-purple-600" />
+                          <a href={`mailto:${selectedInquiryModal.email}`} className="font-semibold text-purple-700 hover:underline truncate">
+                            {selectedInquiryModal.email}
+                          </a>
+                        </div>
+                      </div>
+
+                      <div>
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Phone</span>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <Phone className="size-3.5 text-purple-600" />
+                          <a href={`tel:${selectedInquiryModal.phone}`} className="font-semibold text-gray-800 hover:underline">
+                            {selectedInquiryModal.phone || "Not provided"}
+                          </a>
+                        </div>
+                      </div>
+
+                      <div>
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Type</span>
+                        <div className="mt-0.5">
+                          <span className={cn("inline-flex rounded px-2 py-0.5 text-[10px] font-bold border", getInquiryBadgeStyle(selectedInquiryModal.inquiryType))}>
+                            {selectedInquiryModal.inquiryType || "General"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Message Body */}
+                    <div className="flex flex-col gap-2">
+                      <label className="font-bold text-gray-900 text-xs">Inquiry Message</label>
+                      <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-4 text-gray-800 text-xs leading-relaxed whitespace-pre-wrap max-h-60 overflow-y-auto">
+                        {selectedInquiryModal.message}
+                      </div>
+                    </div>
+
+                    {/* Resolution Section */}
+                    <div className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-2xs">
+                      <h4 className="font-bold text-gray-900 text-xs flex items-center gap-1.5">
+                        <CheckCircle2 className="size-4 text-purple-600" />
+                        Admin Resolution & Notes
+                      </h4>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-[11px] font-medium text-gray-600 mb-1 block">Status</label>
+                          <select
+                            value={selectedInquiryModal.status || "Pending"}
+                            onChange={(e) => {
+                              const newStatus = e.target.value;
+                              setSelectedInquiryModal({ ...selectedInquiryModal, status: newStatus });
+                            }}
+                            className={cn(
+                              "h-9 rounded-lg border px-3 text-xs font-bold outline-none w-full cursor-pointer",
+                              selectedInquiryModal.status === "Resolved"
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                : "bg-amber-50 text-amber-800 border-amber-200"
+                            )}
+                          >
+                            <option value="Pending">⚠️ Pending</option>
+                            <option value="Resolved">✅ Resolved</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="text-[11px] font-medium text-gray-600 mb-1 block">Assigned Staff</label>
+                          <select
+                            value={selectedInquiryModal.assignedTo || ""}
+                            onChange={(e) => {
+                              const newStaff = e.target.value;
+                              setSelectedInquiryModal({ ...selectedInquiryModal, assignedTo: newStaff });
+                            }}
+                            className="h-9 rounded-lg border border-gray-200 px-3 text-xs bg-white outline-none w-full text-gray-700 font-medium"
+                          >
+                            <option value="">Unassigned</option>
+                            <option value="Admin">Admin</option>
+                            <option value="Storeowner">Storeowner</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-medium text-gray-600 mb-1 block">Resolver Comments / Internal Notes</label>
+                        <textarea
+                          rows={3}
+                          value={modalResolverNotes}
+                          onChange={(e) => setModalResolverNotes(e.target.value)}
+                          placeholder="Type internal notes or response details here..."
+                          className="w-full rounded-lg border border-gray-200 p-2.5 text-xs outline-none focus:border-purple-500 focus:bg-white bg-gray-50/40"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Modal Footer */}
+                  <div className="flex items-center justify-between border-t border-gray-100 bg-gray-50/80 px-6 py-3.5">
+                    <div className="flex items-center gap-2">
+                      <a
+                        href={`mailto:${selectedInquiryModal.email}?subject=Re: Inquiry #${selectedInquiryModal._id.substring(0, 6)}`}
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-purple-700 hover:underline"
+                      >
+                        <Mail className="size-3.5" /> Direct Email Customer <ExternalLink className="size-3" />
+                      </a>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" onClick={() => setSelectedInquiryModal(null)} className="h-8 text-xs">
+                        Close
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={async () => {
+                          await handleUpdateInquiry(selectedInquiryModal._id, {
+                            status: selectedInquiryModal.status,
+                            assignedTo: selectedInquiryModal.assignedTo,
+                            resolverNotes: modalResolverNotes,
+                          });
+                          setSelectedInquiryModal(null);
+                        }}
+                        className="h-8 text-xs bg-[#5B2C83] hover:bg-[#4a236c] text-white font-bold"
+                      >
+                        Save Resolution
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         );
       })()}
