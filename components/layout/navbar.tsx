@@ -29,6 +29,7 @@ const NAV_KEY_MAP: Record<string, string> = {
 
 export function Navbar() {
   const pathname = usePathname();
+  const [mounted, setMounted] = React.useState(false);
   const [scrolled, setScrolled] = React.useState(false);
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [notificationsOpen, setNotificationsOpen] = React.useState(false);
@@ -37,8 +38,15 @@ export function Navbar() {
   const { user, isLoggedIn, logout } = useAccount();
   const { t } = useLanguage();
 
-  const isAdmin = isLoggedIn && isAdminSession(user);
-  const unreadNotifications = useUnreadNotifications();
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const isAdmin = mounted && isLoggedIn && isAdminSession(user);
+  const rawUnreadNotifications = useUnreadNotifications();
+  const unreadNotifications = mounted ? rawUnreadNotifications : 0;
+  const cartItemCount = mounted ? totals.itemCount : 0;
+  const isUserLoggedIn = mounted ? isLoggedIn : false;
 
   useMotionValueEvent(scrollY, "change", (latest) => {
     setScrolled(latest > 16);
@@ -134,7 +142,7 @@ export function Navbar() {
             )}
 
             {/* Notifications Drawer Toggle */}
-            {isLoggedIn && (
+            {isUserLoggedIn && (
               <button
                 onClick={() => setNotificationsOpen(true)}
                 className="relative grid size-10 place-items-center rounded-full text-[#3D2B1F] transition-colors hover:bg-[#E8C8E4]/30 hover:text-[#4A1942] sm:size-11"
@@ -155,11 +163,11 @@ export function Navbar() {
 
             {/* User Account */}
             <Link
-              href={isLoggedIn ? "/account" : `${pathname}?login=true`}
+              href={isUserLoggedIn ? "/account" : `${pathname}?login=true`}
               className="flex size-10 items-center justify-center rounded-full text-[#3D2B1F] transition-colors hover:bg-[#E8C8E4]/30 hover:text-[#4A1942] sm:size-11"
-              aria-label={isLoggedIn && user ? `Account of ${(user.name || "Snacker").split(" ")[0]}` : t("nav_account")}
+              aria-label={isUserLoggedIn && user ? `Account of ${(user.name || "Snacker").split(" ")[0]}` : t("nav_account")}
             >
-              {isLoggedIn && user ? (
+              {isUserLoggedIn && user ? (
                 <span className="grid size-7 place-items-center rounded-full bg-[#4A1942] text-xs font-bold text-white shadow-xs">
                   {(user.name || "S")[0].toUpperCase()}
                 </span>
@@ -172,20 +180,20 @@ export function Navbar() {
             <button
               onClick={openCart}
               className="relative grid size-10 place-items-center rounded-full text-[#4A1942] transition-colors hover:bg-[#E8C8E4]/30 sm:size-11"
-              aria-label={`Cart, ${totals.itemCount} items`}
+              aria-label={`Cart, ${cartItemCount} items`}
             >
               <ShoppingBag className="size-5" />
               <AnimatePresence>
-                {totals.itemCount > 0 && (
+                {cartItemCount > 0 && (
                   <motion.span
-                    key={totals.itemCount}
+                    key={cartItemCount}
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     exit={{ scale: 0 }}
                     transition={{ type: "spring", stiffness: 500, damping: 25 }}
                     className="absolute -right-1 -top-1 grid min-w-5 place-items-center rounded-full bg-[#E8B923] px-1.5 text-[10px] font-black text-[#1A0F0A] shadow-sm"
                   >
-                    {totals.itemCount}
+                    {cartItemCount}
                   </motion.span>
                 )}
               </AnimatePresence>

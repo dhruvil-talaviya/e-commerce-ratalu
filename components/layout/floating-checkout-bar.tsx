@@ -12,11 +12,17 @@ function FloatingCheckoutBarContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { totals, items, openCart, setOpen } = useCart();
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const isLoginModalOpen = searchParams?.get("login") === "true";
 
   // Hide on account page, checkout page, admin console or when login gate is open
   const isHidden =
+    !mounted ||
     totals.itemCount === 0 ||
     pathname === "/checkout" ||
     pathname === "/account" ||
