@@ -125,8 +125,8 @@ exports.addAddress = async (req, res, next) => {
 
     const newAddress = req.user.addresses[req.user.addresses.length - 1];
     
-    if (shouldBeDefault) {
-      req.user.activeAddressId = newAddress._id.toString();
+    if (shouldBeDefault && newAddress) {
+      req.user.activeAddressId = newAddress._id ? newAddress._id.toString() : (newAddress.id || null);
     }
 
     await req.user.save();

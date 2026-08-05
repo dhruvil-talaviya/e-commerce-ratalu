@@ -73,6 +73,23 @@ interface AccountContextValue {
 
 const AccountContext = React.createContext<AccountContextValue | null>(null);
 
+function getLocalAddresses(): SavedAddress[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem("yamora_user_addresses");
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalAddresses(list: SavedAddress[]) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem("yamora_user_addresses", JSON.stringify(list || []));
+  } catch {}
+}
+
 function cleanUser(raw: any): UserProfile | null {
   if (!raw) return null;
   const rawAddresses = Array.isArray(raw.addresses) ? raw.addresses : [];
@@ -88,6 +105,10 @@ function cleanUser(raw: any): UserProfile | null {
       tag: a.addressType || a.tag || "Home",
     };
   });
+
+  if (addresses.length > 0) {
+    saveLocalAddresses(addresses);
+  }
 
   const activeAddressId = raw.activeAddressId
     ? String(raw.activeAddressId)
@@ -107,21 +128,44 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
   // Load profile on mount
   React.useEffect(() => {
     const loadProfile = async () => {
+      const localAddrs = getLocalAddresses();
       try {
         const token = typeof window !== "undefined" ? getMemoryToken() : null;
         if (!token) {
-          setUser(null);
+          setUser((prev) => prev || {
+            name: "Snacker",
+            email: "",
+            addresses: localAddrs,
+            activeAddressId: localAddrs.find(a => a.isDefault)?.id || localAddrs[0]?.id || null,
+          });
           setHydrated(true);
           return;
         }
         const profile = await apiFetch<UserProfile>("/auth/profile");
         if (profile && (profile.email || profile.name)) {
-          setUser(cleanUser(profile));
+          const cleaned = cleanUser(profile);
+          if (cleaned) {
+            if ((!cleaned.addresses || cleaned.addresses.length === 0) && localAddrs.length > 0) {
+              cleaned.addresses = localAddrs;
+              cleaned.activeAddressId = localAddrs.find(a => a.isDefault)?.id || localAddrs[0]?.id || null;
+            }
+            setUser(cleaned);
+          }
         } else {
-          setUser(null);
+          setUser((prev) => prev || {
+            name: "Snacker",
+            email: "",
+            addresses: localAddrs,
+            activeAddressId: localAddrs.find(a => a.isDefault)?.id || localAddrs[0]?.id || null,
+          });
         }
       } catch {
-        setUser(null);
+        setUser((prev) => prev || {
+          name: "Snacker",
+          email: "",
+          addresses: localAddrs,
+          activeAddressId: localAddrs.find(a => a.isDefault)?.id || localAddrs[0]?.id || null,
+        });
       } finally {
         setHydrated(true);
       }
@@ -281,22 +325,22 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
         setUser(cleanUser(freshProfile));
       } else {
         setUser((prev) => {
-          if (!prev) return null;
-          const currentList = Array.isArray(prev.addresses) ? prev.addresses : [];
+          const currentList = prev && Array.isArray(prev.addresses) ? prev.addresses : [];
           const id = String(resData?.id || resData?._id || `addr_${Date.now()}`);
           const newAddr = { ...address, ...resData, id, _id: id };
           const updated = [newAddr, ...currentList.filter((a) => String(a.id || a._id) !== id)];
-          return { ...prev, addresses: updated, activeAddressId: id };
+          saveLocalAddresses(updated);
+          return prev ? { ...prev, addresses: updated, activeAddressId: id } : { name: "Snacker", email: "", addresses: updated, activeAddressId: id };
         });
       }
     } catch {
       setUser((prev) => {
-        if (!prev) return null;
-        const currentList = Array.isArray(prev.addresses) ? prev.addresses : [];
+        const currentList = prev && Array.isArray(prev.addresses) ? prev.addresses : [];
         const id = `addr_${Date.now()}`;
         const newAddr = { ...address, id, _id: id };
         const updated = [newAddr, ...currentList];
-        return { ...prev, addresses: updated, activeAddressId: id };
+        saveLocalAddresses(updated);
+        return prev ? { ...prev, addresses: updated, activeAddressId: id } : { name: "Snacker", email: "", addresses: updated, activeAddressId: id };
       });
     }
   }, []);
@@ -315,10 +359,9 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
           if (!prev) return null;
           const currentList = Array.isArray(prev.addresses) ? prev.addresses : [];
           const targetId = String(id);
-          return {
-            ...prev,
-            addresses: currentList.map((a) => (String(a.id || a._id) === targetId ? { ...a, ...address, id: targetId, _id: targetId } : a))
-          };
+          const updated = currentList.map((a) => (String(a.id || a._id) === targetId ? { ...a, ...address, id: targetId, _id: targetId } : a));
+          saveLocalAddresses(updated);
+          return { ...prev, addresses: updated };
         });
       }
     } catch {
@@ -326,10 +369,9 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
         if (!prev) return null;
         const currentList = Array.isArray(prev.addresses) ? prev.addresses : [];
         const targetId = String(id);
-        return {
-          ...prev,
-          addresses: currentList.map((a) => (String(a.id || a._id) === targetId ? { ...a, ...address } : a))
-        };
+        const updated = currentList.map((a) => (String(a.id || a._id) === targetId ? { ...a, ...address } : a));
+        saveLocalAddresses(updated);
+        return { ...prev, addresses: updated };
       });
     }
   }, []);
@@ -348,6 +390,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
           const currentList = Array.isArray(prev.addresses) ? prev.addresses : [];
           const targetId = String(id);
           const filtered = currentList.filter((a) => String(a.id || a._id) !== targetId);
+          saveLocalAddresses(filtered);
           return {
             ...prev,
             addresses: filtered,
@@ -361,6 +404,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
         const currentList = Array.isArray(prev.addresses) ? prev.addresses : [];
         const targetId = String(id);
         const filtered = currentList.filter((a) => String(a.id || a._id) !== targetId);
+        saveLocalAddresses(filtered);
         return {
           ...prev,
           addresses: filtered,
@@ -379,13 +423,15 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
         if (!prev) return null;
         const currentList = Array.isArray(prev.addresses) ? prev.addresses : [];
         const targetId = String(id);
+        const updated = currentList.map((a) => ({
+          ...a,
+          isDefault: String(a.id || a._id) === targetId
+        }));
+        saveLocalAddresses(updated);
         return {
           ...prev,
           activeAddressId: targetId,
-          addresses: currentList.map((a) => ({
-            ...a,
-            isDefault: String(a.id || a._id) === targetId
-          }))
+          addresses: updated
         };
       });
     } catch {
@@ -393,13 +439,15 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
         if (!prev) return null;
         const currentList = Array.isArray(prev.addresses) ? prev.addresses : [];
         const targetId = String(id);
+        const updated = currentList.map((a) => ({
+          ...a,
+          isDefault: String(a.id || a._id) === targetId
+        }));
+        saveLocalAddresses(updated);
         return {
           ...prev,
           activeAddressId: targetId,
-          addresses: currentList.map((a) => ({
-            ...a,
-            isDefault: String(a.id || a._id) === targetId
-          }))
+          addresses: updated
         };
       });
     }
