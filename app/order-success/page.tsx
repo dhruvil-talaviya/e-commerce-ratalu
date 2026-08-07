@@ -125,7 +125,7 @@ function OrderSuccessContent() {
   }
 
   const displayId = order?.displayId || order?.id || orderId || "";
-  const supportEmail = settings?.supportEmail?.trim() || SITE.email || "support@yamorawafers.com";
+  const supportEmail = settings?.supportEmail?.trim() || SITE.email || "yamorawafers@gmail.com";
   
   const rawWa = (settings?.whatsappNumber || "9825000000").replace(/\D/g, "");
   const cc = (settings?.whatsappCountryCode || "91").replace(/\D/g, "");
@@ -394,8 +394,8 @@ function OrderSuccessContent() {
           <div className="mt-6 text-center border-t border-gray-100 pt-4">
             <p className="text-[11px] text-gray-500 font-medium">
               Need help with this order? Email us at{" "}
-              <a href="mailto:support@yamorawafers.com" className="text-[#5B2C83] font-bold underline hover:text-purple-900">
-                support@yamorawafers.com
+              <a href="mailto:yamorawafers@gmail.com" className="text-[#5B2C83] font-bold underline hover:text-purple-900">
+                yamorawafers@gmail.com
               </a>{" "}
               or message on{" "}
               <a href="https://wa.me/919825022222" target="_blank" rel="noopener noreferrer" className="text-emerald-700 font-bold underline hover:text-emerald-800">

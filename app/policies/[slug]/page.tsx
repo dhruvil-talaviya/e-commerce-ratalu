@@ -12,11 +12,8 @@ export default function PolicyPage() {
   const policy = getPolicy(slug);
   if (!policy) notFound();
 
-  // Map slug to PageKey
-  const pageKey = slug === "refunds" ? "refund" : slug;
-
   return (
-    <CmsProvider page={pageKey}>
+    <CmsProvider page={slug}>
       <PolicyView defaultPolicy={policy} />
     </CmsProvider>
   );
@@ -31,42 +28,57 @@ function formatCmsBody(body: string): string {
 
   let html = normalized
     // Convert ## Heading
-    .replace(/^##\s+(.+)$/gm, '<h2 class="font-serif text-2xl font-semibold text-charcoal mt-8 mb-4">$1</h2>')
+    .replace(/^##\s+(.+)$/gm, '<h2 class="font-serif text-2xl font-bold text-gray-900 mt-10 mb-4 pb-2 border-b border-gray-100">$1</h2>')
     // Convert # Heading
-    .replace(/^#\s+(.+)$/gm, '<h1 class="font-serif text-3xl font-bold text-charcoal mt-10 mb-6">$1</h1>')
-    // Convert bullet lists
-    .replace(/^\-\s+(.+)$/gm, '<li class="list-disc ml-6 text-charcoal-muted mb-2">$1</li>');
+    .replace(/^#\s+(.+)$/gm, '<h1 class="font-serif text-3xl font-bold text-gray-900 mt-10 mb-6">$1</h1>')
+    // Bold formatting
+    .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-gray-900">$1</strong>')
+    // Italic formatting
+    .replace(/\*(.*?)\*/g, '<em class="italic text-gray-700">$1</em>')
+    // Convert bullet lists (standard *, -, or •)
+    .replace(/^(?:•|-|\*)\s+(.+)$/gm, '<div class="flex items-start gap-2.5 my-1.5 ml-2"><span class="text-purple-600 font-bold mt-1.5 text-xs">•</span><span class="text-gray-700 leading-relaxed text-base sm:text-lg">$1</span></div>');
 
-  // Convert double newlines to paragraph tags
-  const paragraphs = html.split(/\r?\n\r?\n/).map(p => p.trim()).filter(Boolean);
-  const wrapped = paragraphs.map(p => {
-    if (p.startsWith("<h") || p.startsWith("<li")) {
-      return p;
+  // Split double newlines into blocks
+  const blocks = html.split(/\r?\n\r?\n/).map(p => p.trim()).filter(Boolean);
+  const wrapped = blocks.map(b => {
+    if (b.startsWith("<h") || b.startsWith("<div")) {
+      return b;
+    }
+    // If block contains divs (bullet list lines), return as is without wrapping in <p>
+    if (b.includes("<div class=\"flex items-start")) {
+      return b;
     }
     // Convert single newlines inside paragraph to <br/>
-    return `<p class="text-lg leading-relaxed text-charcoal-muted mb-4">${p.replace(/\r?\n/g, "<br/>")}</p>`;
+    return `<p class="text-base sm:text-lg leading-relaxed text-gray-700 mb-5">${b.replace(/\r?\n/g, "<br/>")}</p>`;
   });
 
   return wrapped.join("\n");
 }
 
 function PolicyView({ defaultPolicy }: { defaultPolicy: any }) {
-  // Load page details from CMS section "details"
+  const defaultBody = React.useMemo(() => {
+    return defaultPolicy.sections
+      .map((s: any) => `## ${s.heading}\n\n${s.body.join("\n\n")}`)
+      .join("\n\n");
+  }, [defaultPolicy]);
+
   const cms = useSection("details", {
     title: defaultPolicy.title,
     subtitle: defaultPolicy.summary,
-    body: defaultPolicy.sections.map((s: any) => `## ${s.heading}\n\n${s.body.join("\n\n")}`).join("\n\n")
+    body: defaultBody
   });
 
-  const formattedHtml = formatCmsBody(cms.body || "");
+  const title = cms.title || defaultPolicy.title;
+  const description = cms.subtitle || defaultPolicy.summary;
+  const formattedHtml = formatCmsBody(cms.body || defaultBody);
 
   return (
     <>
       <PageHeader
         eyebrow="Policies"
-        title={cms.title || defaultPolicy.title}
-        description={cms.subtitle || defaultPolicy.summary}
-        crumbs={[{ label: "Home", href: "/" }, { label: cms.title || defaultPolicy.title }]}
+        title={title}
+        description={description}
+        crumbs={[{ label: "Home", href: "/" }, { label: title }]}
       />
 
       <article className="container-px mx-auto max-w-3xl py-12">

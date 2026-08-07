@@ -33,8 +33,8 @@ const SettingsSchema = new mongoose.Schema({
   taxInclusive: { type: Boolean, default: true },
 
   // ─── Email & Phone Channels ───────────────────────────────────────────────
-  supportEmail: { type: String, default: 'support@yamorawafers.com' },
-  salesEmail: { type: String, default: 'sales@yamorawafers.com' },
+  supportEmail: { type: String, default: 'yamorawafers@gmail.com' },
+  salesEmail: { type: String, default: 'yamorawafers@gmail.com' },
   customerCareNumber: { type: String, default: '+91 98250 22222' },
   businessWorkingHours: { type: String, default: '9 AM - 6 PM IST, Mon - Sat' },
   timeZone: { type: String, default: 'Asia/Kolkata' },

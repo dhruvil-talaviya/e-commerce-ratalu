@@ -1564,8 +1564,8 @@ function AddressesPanel() {
                   </div>
 
                   {isActive ? (
-                    <div className="mt-4 flex items-center justify-between border-t border-purple-100 pt-3 text-[10px] font-bold uppercase tracking-wider text-purple-700">
-                      <span>✓ Active Address</span>
+                    <div className="mt-4 flex items-center justify-between border-t border-purple-100 pt-3 text-xs font-semibold text-purple-700">
+                      <span>✓ Active address</span>
                       {!addr.isDefault && (
                         <button
                           type="button"
@@ -1574,9 +1574,9 @@ function AddressesPanel() {
                             setDefaultAddress(addr.id);
                             toast.success("Default address updated");
                           }}
-                          className="text-[9px] font-bold text-purple-500 hover:text-purple-700 underline uppercase"
+                          className="text-xs font-semibold text-purple-600 hover:text-purple-800 hover:underline"
                         >
-                          Set Default
+                          Set as default
                         </button>
                       )}
                     </div>
@@ -1590,9 +1590,9 @@ function AddressesPanel() {
                             setDefaultAddress(addr.id);
                             toast.success("Default address updated");
                           }}
-                          className="text-[9px] font-bold text-gray-400 hover:text-purple-650 uppercase"
+                          className="text-xs font-semibold text-gray-500 hover:text-purple-600 hover:underline"
                         >
-                          Set Default
+                          Set as default
                         </button>
                       </div>
                     )

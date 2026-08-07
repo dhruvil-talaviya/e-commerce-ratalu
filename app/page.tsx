@@ -35,8 +35,8 @@ export default function HomePage() {
       {/* 7. Instagram Community Feed */}
       <InstagramGallery />
 
-      {/* 8. FAQ (Last) */}
-      <Faq />
+      {/* 8. FAQ Preview (Home Page Variant) */}
+      <Faq variant="homepage" />
     </>
   );
 }

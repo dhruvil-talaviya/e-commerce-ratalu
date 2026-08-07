@@ -3931,7 +3931,7 @@ function HomepageTab({
     { key: "privacy", label: "Privacy Policy Document" },
     { key: "terms", label: "Terms of Service" },
     { key: "shipping", label: "Shipping Policy" },
-    { key: "refund", label: "Refunds Policy" }
+    { key: "refunds", label: "Refunds Policy" }
   ]);
   const [editingPage, setEditingPage] = React.useState<string | null>(null);
   const [pageTitle, setPageTitle] = React.useState("");
@@ -4175,7 +4175,7 @@ function HomepageTab({
         previewUrl = "/why-us?preview=1";
       } else if (editingPage === "contact") {
         previewUrl = "/contact?preview=1";
-      } else if (editingPage === "privacy" || editingPage === "terms" || editingPage === "shipping" || editingPage === "refund") {
+      } else if (editingPage === "privacy" || editingPage === "terms" || editingPage === "shipping" || editingPage === "refunds" || editingPage === "refund") {
         previewUrl = `/policies/${editingPage === "privacy" ? "privacy" : editingPage === "terms" ? "terms" : editingPage === "shipping" ? "shipping" : "refunds"}?preview=1`;
       }
       window.open(previewUrl, "_blank");
@@ -5075,8 +5075,8 @@ function HomepageTab({
                       }
 
                       if (!initialTitle && !initialBody) {
-                        if (p.key === "privacy" || p.key === "terms" || p.key === "shipping" || p.key === "refund") {
-                          const polKey = p.key === "refund" ? "returns" : p.key;
+                        if (p.key === "privacy" || p.key === "terms" || p.key === "shipping" || p.key === "refunds" || p.key === "refund") {
+                          const polKey = (p.key === "refund" || p.key === "refunds") ? "returns" : p.key;
                           const policy = getPolicy(polKey);
                           if (policy) {
                             initialTitle = policy.title;

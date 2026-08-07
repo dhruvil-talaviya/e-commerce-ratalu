@@ -6,41 +6,69 @@ export const FAQS: FaqItem[] = [
     category: "Shipping",
     question: "How fast do you ship, and where do you deliver?",
     answer:
-      "We ship pan-India via trusted courier partners. Orders placed before 2 PM IST are dispatched the same day. Metro cities typically receive orders in 2–3 business days; the rest of India within 4–6 business days. Enjoy free shipping on all orders above ₹599.",
+      "We process orders within 1–2 business days. Delivery typically takes 1–3 business days for local orders, 2–4 business days within Gujarat, and 3–7 business days for the rest of India. Delivery timelines may vary based on your location and courier serviceability.",
   },
   {
     id: "shelf-life",
-    category: "Shelf Life",
+    category: "Products",
     question: "How long do the wafers stay fresh?",
     answer:
-      "Because we cook in small batches with no artificial preservatives, each pack is best enjoyed within 3 months of the manufacturing date printed on the pack. Our nitrogen-flushed pouches lock in that just-cooked crunch until you open them.",
-  },
-  {
-    id: "ingredients",
-    category: "Ingredients",
-    question: "What exactly goes into a pack of Ratalu Wafers?",
-    answer:
-      "Just three essentials: hand-selected fresh ratalu (purple yam), cold-pressed sunflower oil, and natural seasoning. No artificial colours, no MSG, no palm oil. Every flavour is 100% vegetarian, and most are naturally gluten-free.",
-  },
-  {
-    id: "storage",
-    category: "Storage",
-    question: "How should I store my wafers after opening?",
-    answer:
-      "Keep them in a cool, dry place away from direct sunlight. Once opened, press out the air and reseal the pouch, or transfer to an airtight container to keep them crisp for up to a week — though they rarely last that long.",
+      "Our wafers are freshly prepared in small batches and hygienically packed to lock in maximum crunch. They stay fresh for up to 3 months from the manufacturing date when stored in a cool, dry place. Once opened, keep them in an airtight container.",
   },
   {
     id: "returns",
     category: "Returns",
-    question: "What is your returns and refund policy?",
+    question: "What is your refund and replacement policy?",
     answer:
-      "Your happiness is guaranteed. If a pack arrives damaged, stale, or you're simply not delighted, write to us within 7 days of delivery with a photo and we'll send a free replacement or a full refund — no lengthy questions asked.",
+      "Due to the perishable nature of our products, we do not accept returns. However, if you receive a damaged, defective, incorrect, or missing item, please contact us within 48 hours of delivery with your Order ID and photos/unboxing video. Verified claims will receive a free replacement or refund as per our Refund Policy.",
   },
   {
-    id: "spice",
-    category: "Ingredients",
-    question: "Which flavour should I try first?",
+    id: "damaged-parcel",
+    category: "Shipping",
+    question: "What should I do if my parcel arrives damaged?",
     answer:
-      "If you love a clean, natural crunch, start with Original Salted. Craving nostalgia? Classic Masala. Want heat? Peri Peri and Green Chilli deliver. Not sure? Our variety packs let you taste all six and find your favourite.",
+      "If the outer package appears damaged, tampered with, or unsealed, do not accept the delivery. Inform the delivery partner immediately and contact our customer support with photos. We will investigate right away and arrange a suitable resolution.",
+  },
+  {
+    id: "cancellation",
+    category: "Orders",
+    question: "Can I cancel my order?",
+    answer:
+      "Yes. Orders can be cancelled within 5 minutes of placing them directly from your Account Dashboard. Once the 5-minute cancellation window expires, your order enters active kitchen preparation and cannot be cancelled.",
+  },
+  {
+    id: "payments",
+    category: "Payments",
+    question: "Which payment methods do you accept?",
+    answer:
+      "We accept 100% prepaid online payments only, including UPI (GPay, PhonePe, Paytm), Credit Cards, Debit Cards, Net Banking, and Wallet payments through our secure PCI-DSS compliant payment gateway.",
+  },
+  {
+    id: "freshness",
+    category: "Products",
+    question: "Are your wafers made fresh?",
+    answer:
+      "Yes! Our purple yam wafers are kettle-cooked in small batches using hand-selected fresh yam and cold-pressed oil, then nitrogen-flushed and hygienically sealed to guarantee fresh taste and irresistible crunch.",
+  },
+  {
+    id: "account",
+    category: "Orders",
+    question: "Do I need an account to place an order?",
+    answer:
+      "Yes. You need to sign in using your Google account before placing an order. This ensures your delivery addresses, live tracking, order history, and account security are managed seamlessly.",
+  },
+  {
+    id: "tracking",
+    category: "Orders",
+    question: "How can I track my order?",
+    answer:
+      "Once your order is shipped, you will receive real-time tracking links via SMS and email. You can also track your live shipment progress anytime directly under your Account Dashboard -> My Orders page on our website.",
+  },
+  {
+    id: "support",
+    category: "Support",
+    question: "How can I contact customer support?",
+    answer:
+      "You can reach our support team via our Contact Us page, email us at yamorawafers@gmail.com, or chat with us on WhatsApp (+91 91041 18363). We operate Mon–Sat (10:00 AM – 7:00 PM) and respond within a few business hours.",
   },
 ];

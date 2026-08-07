@@ -6,11 +6,11 @@
 export const SITE = {
   name: "Yamora Wafers",
   legalName: "Yamora Wafers Pvt. Ltd.",
-  tagline: "Crispy. Natural. Irresistible.",
+  tagline: "",
   description:
     "Yamora Wafers are crafted from hand-selected fresh purple yam, thin-sliced and kettle-cooked into perfectly crispy wafers with unforgettable flavours. Small-batch, no artificial colours, delivered fresh across India.",
   url: "https://yamorawafers.com",
-  email: "hello@yamorawafers.com",
+  email: "yamorawafers@gmail.com",
   phone: "+91 98250 22222",
   phoneHref: "tel:+919825022222",
   whatsapp: "919825022222", // WhatsApp Business number (country code + number, no +)

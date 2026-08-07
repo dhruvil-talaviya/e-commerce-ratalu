@@ -178,9 +178,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           // The guest cart has been absorbed; leaving it behind would re-merge
           // it into the next account too.
           localStorage.removeItem(STORAGE_KEY);
-          setItems(synced ?? []);
+          setItems(Array.isArray(synced) ? synced : []);
         } catch (err) {
           console.error("Failed to sync cart with backend:", err);
+          setItems([]);
         }
       } else {
         try {

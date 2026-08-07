@@ -8,7 +8,7 @@ const NotificationSchema = new mongoose.Schema({
   read: { type: Boolean, default: false },
   type: {
     type: String,
-    enum: ['OrderStatus', 'Coupon', 'Offer', 'General'],
+    enum: ['OrderStatus', 'Coupon', 'Offer', 'General', 'RTO'],
     default: 'General'
   }
 }, { timestamps: true });

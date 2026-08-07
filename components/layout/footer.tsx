@@ -27,7 +27,7 @@ export function Footer() {
         { label: "All Flavours", href: "/shop" },
         { label: "Best Sellers", href: "/shop?sort=popular" },
         { label: "Variety Packs", href: "/shop" },
-        { label: "Gift Boxes", href: "/shop" },
+        { label: "Super Combos", href: "/combos" },
       ],
     },
     {

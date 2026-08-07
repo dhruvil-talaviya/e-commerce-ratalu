@@ -1926,7 +1926,7 @@ function BrandCard() {
               value={form.supportEmail}
               onChange={(e) => setForm({ ...form, supportEmail: e.target.value })}
               className={INPUT}
-              placeholder="support@yamorawafers.com"
+              placeholder="yamorawafers@gmail.com"
             />
           </Labeled>
           <Labeled label="Customer Care Phone / WhatsApp">
