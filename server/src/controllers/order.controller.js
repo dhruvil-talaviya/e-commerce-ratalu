@@ -700,7 +700,7 @@ exports.placeOrder = async ({ user, items, couponCode, address, method, paymentM
   }
   const invoiceNumber = `${settings.invoicePrefix || 'INV-'}${nextInvSeq}/${settings.financialYear || '2026-27'}`;
 
-  // Auto-sync customer name & phone from delivery address if missing on customer profile
+  // Auto-sync customer profile & save delivery address to Customer document
   if (user && address) {
     let userChanged = false;
     if (address.phone && (!user.phone || user.phone !== address.phone)) {
@@ -711,6 +711,54 @@ exports.placeOrder = async ({ user, items, couponCode, address, method, paymentM
       user.name = address.fullName;
       userChanged = true;
     }
+
+    // Save address to user's saved addresses list if not already saved
+    if (!user.addresses) user.addresses = [];
+    const finalPinCode = String(normalizedPincode).trim();
+    const finalCity = String(normalizedCity).trim();
+    const finalState = String(normalizedState).trim();
+    const finalFullName = String(customerName).trim();
+    const finalPhone = String(phoneNum).trim();
+
+    const exists = user.addresses.some((a) => {
+      const aPin = String(a.pinCode || a.pincode || '').trim();
+      const aCity = String(a.city || '').trim().toLowerCase();
+      const aLine = String(a.addressLine || '').trim().toLowerCase();
+      const curLine = normalizedAddressLine.trim().toLowerCase();
+      return aPin === finalPinCode && aCity === finalCity.toLowerCase() && (aLine === curLine || (a.houseNo && a.houseNo === address.houseNo));
+    });
+
+    if (!exists) {
+      const shouldBeDefault = user.addresses.length === 0;
+      if (shouldBeDefault) {
+        user.addresses.forEach((a) => (a.isDefault = false));
+      }
+      user.addresses.push({
+        fullName: finalFullName,
+        phone: finalPhone,
+        houseNo: String(address.houseNo || 'House No').trim(),
+        building: String(address.building || '').trim(),
+        street: String(address.street || 'Street').trim(),
+        area: String(address.area || 'Locality').trim(),
+        landmark: String(address.landmark || '').trim(),
+        city: finalCity,
+        state: finalState,
+        country: address.country || 'India',
+        pinCode: finalPinCode,
+        latitude: address.latitude || null,
+        longitude: address.longitude || null,
+        accuracy: address.accuracy || null,
+        addressType: address.addressType || address.tag || 'Home',
+        isDefault: shouldBeDefault
+      });
+      userChanged = true;
+      if (shouldBeDefault && user.addresses.length > 0) {
+        user.activeAddressId = user.addresses[user.addresses.length - 1]._id
+          ? user.addresses[user.addresses.length - 1]._id.toString()
+          : null;
+      }
+    }
+
     if (userChanged) {
       await user.save();
     }
